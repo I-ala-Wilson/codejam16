@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import DigitBloom from './art/DigitBloom.tsx'
+import DitherBloom from './art/DitherBloom.tsx'
 import { engine } from './engine.ts'
 
 // Landing screen: the live digit bloom, one line of pitch, the three apps. Style per docs/STYLE.md.
@@ -12,7 +12,7 @@ export default function Home({ go }: { go: (page: string) => void }) {
   }
   return (
     <div className="home">
-      <DigitBloom height={Math.min(620, window.innerHeight * 0.68)} />
+      <DitherBloom height={Math.min(620, window.innerHeight * 0.68)} />
       <div className="home__text">
         <div className="mono-label">ECHO · SONAR, NOT A CAMERA</div>
         <h1 className="serif-display">Your laptop can feel your hands.</h1>

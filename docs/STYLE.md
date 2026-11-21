@@ -1,13 +1,13 @@
 # Echo visual style (owned by the lead; every UI change follows this)
 
 ## The one idea
-**Sound drawn out of numbers.** The hero art is a living "sonar bloom": a flower whose petals are the echo of your hand, built entirely from streams of digits, white on charcoal. It is directly modelled on Ian's reference: a dandelion/chrysanthemum head made of dense, overlapping serif digits (`…5972816340…`) on a dark grey background, with a single thin stem of small digits running down.
+**Sound drawn as a 1-bit dither.** The hero art is a living "sound flower": wave-lobed petals with rippling, waveform-like rims, a bright seed centre, echo rings pulsing outward and a thin wavering stem, rendered in grayscale and then **8x8 Bayer ordered-dithered to pure white on pure black**, blitted chunky and pixel-crisp (one dither pixel = 3 CSS px). It is modelled on Ian's references: dithered flowers, a horse and the Golden Gate in white-on-black Bayer dots, with thin dotted guide lines and a horizon rule. **No digit art** (tried and rejected by Ian).
 
 ## Palette
 | Token | Value | Use |
 |---|---|---|
-| `--bg` | `#1e1f21` | page background (charcoal, not pure black) |
-| `--bg-deep` | `#141516` | panels, the canvas behind the bloom |
+| `--bg` | `#000000` | page background (pure black, like the dither references) |
+| `--bg-deep` | `#0b0b0c` | panels |
 | `--ink` | `#f2f2f0` | all text and glyphs (off-white) |
 | `--ink-strong` | `#ffffff` | headings, active state, the brightest digits |
 | `--rule` | `#f2f2f0` at 1px **dotted** | frames and dividers |
@@ -21,19 +21,12 @@ No grey text. Hierarchy comes from **size, density and inversion**, never from d
 - Body: system sans, 15px, light.
 - Lots of empty charcoal space. Content sits centred in a narrow column (max 760px) or around the art.
 
-## The digit bloom (primary art)
-1. Draw a hidden grayscale **mask** (0..1) of the shape on an offscreen canvas: petals = radial lobes around a centre, each lobe's length driven by the echo (see Data below), plus a vertical stem line.
-2. Fill the mask with **rows of digits** that flow along the petals: walk short polylines that follow each petal's angle, and at each step print the next digit of a repeating string (`5972816340`, rotated per row).
-3. Each glyph's **size and opacity come from the mask brightness** at that spot: bright core = large (14-22px), tight, overlapping digits; edges = small (5-8px), sparse digits that scatter and fade into the background. Never draw a glyph where the mask is under ~0.08.
-4. The stem is a single column of 6-9px digits, straight down from the bloom to the bottom of the canvas.
-5. Render with canvas 2D `fillText` (cache font settings, batch by size). Budget about 4-8k glyphs at 30 fps on a MacBook Air; drop to 15 fps when the tab is hidden.
+## The dither bloom (primary art, app/src/art/DitherBloom.tsx)
+- Grayscale field per frame on a 1/3-resolution canvas, then Bayer threshold to 1-bit, upscaled with smoothing off.
+- Idle: slow breathing, rim ripples travel, rings drift outward. Hand motion (`energyToward/away`) swells the petals on that side; a fast move (|shiftHz| > 40) pulses the whole flower and brightens the rings.
+- 24 fps visible, 10 fps hidden.
 
-### Data (what makes it alive)
-- Idle: petals breathe slowly (a 6-second sine on petal length), digits drift along their rows.
-- Hand motion (`SpectrumFrame.energyToward/away`, `shiftHz`): petals on the "toward" side swell and brighten, "away" petals contract; a fast move sends a ripple of brighter digits outward from the centre.
-- A detected gesture (`GestureEvent`) flashes its name in mono under the bloom for 1.2 s.
-
-## Secondary: 1-bit dither
+## Same dither everywhere
 For the waterfall, small icons and backgrounds: draw grayscale, then 8x8 **Bayer ordered dither** to 1-bit off-white-on-charcoal, blit with `image-rendering: pixelated`. The waterfall becomes a white dither field where hand echoes show as bright speckled streaks.
 
 ## Components (`ui/`, EJ's lane)

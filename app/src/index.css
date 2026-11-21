@@ -1,5 +1,5 @@
 /* App-level dark theme per docs/STYLE.md (ui/ components get restyled by EJ's #19). */
-:root { --bg: #1e1f21; --bg-deep: #141516; --ink: #f2f2f0; --ink-strong: #fff; color-scheme: dark; }
+:root { --bg: #000; --bg-deep: #0b0b0c; --ink: #f2f2f0; --ink-strong: #fff; color-scheme: dark; }
 html, #root { background: var(--bg); min-height: 100vh; }
 body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 300 15px/1.5 -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
 .mono-label { font: 500 12px/1.4 "JetBrains Mono", "SF Mono", Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
