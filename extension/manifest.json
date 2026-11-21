@@ -1,11 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Echo Lock",
-  "version": "0.1.0",
-  "description": "Blocks chosen sites until unlocked by an Echo sonar gesture.",
-  "permissions": ["declarativeNetRequest", "storage"],
+  "version": "0.2.0",
+  "description": "Secretly blocks chosen sites until the Echo sonar hears the hand-sign password.",
+  "permissions": ["storage", "scripting", "tabs", "declarativeNetRequest"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
-  "externally_connectable": { "matches": ["http://localhost:*/*", "https://*.vercel.app/*"] },
-  "web_accessible_resources": [{ "resources": ["blocked.html", "blocked.js"], "matches": ["<all_urls>"] }]
+  "externally_connectable": { "matches": ["http://localhost:*/*", "https://*.vercel.app/*"] }
 }

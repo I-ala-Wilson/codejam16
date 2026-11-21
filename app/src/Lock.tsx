@@ -1,23 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { engine } from './engine.ts'
 import { extensionId, sendToExtension, type ExtReply } from './extension.ts'
-import { sendEvent } from './events.ts'
 import { LABEL, LENGTH, loadPassword, matches, savePassword, type Sign } from './lock/password.ts'
+import { guardian } from './lock/guardian.ts'
 import { useSignInput } from './lock/useSignInput.ts'
 
 const DEFAULT_SITES = ['youtube.com', 'tiktok.com', 'roblox.com']
-const MAX_FAILS = 3
-const LOCKOUT_MS = 30000
 
-type Mode = 'home' | 'verify' | 'set' | 'confirm' | 'unlock' | 'done'
+type Mode = 'home' | 'verify' | 'set' | 'confirm'
 const GLYPH: Record<Sign, string> = { PUSH: '>>', PULL: '<<', WAVE: '~~', OPEN_CLOSE: '<>' }
 
 export default function Lock() {
-  const params = new URLSearchParams(location.search)
-  const returnUrl = params.get('return')
-  // only ever redirect to a real web page (blocks javascript:, data: and other schemes in a crafted link)
-  const safeReturn = (() => { try { const u = new URL(returnUrl ?? ''); return u.protocol === 'https:' || u.protocol === 'http:' ? u.toString() : null } catch { return null } })()
-  const [mode, setMode] = useState<Mode>(params.get('unlock') ? 'unlock' : 'home')
+  const [mode, setMode] = useState<Mode>('home')
   const [extId, setExtId] = useState(extensionId())
   const [sites, setSites] = useState<string[]>(() => siteList(localStorage.getItem('echo.lock.sites') ?? DEFAULT_SITES.join(',')))
   const [newSite, setNewSite] = useState('')
@@ -25,24 +19,17 @@ export default function Lock() {
   const [password, setPassword] = useState<Sign[] | null>(loadPassword())
   const [draft, setDraft] = useState<Sign[]>([])
   const [running, setRunning] = useState(engine.health().running)
-  const [fails, setFails] = useState(0)
-  const [lockedUntil, setLockedUntil] = useState(0)
-  const [now, setNow] = useState(Date.now())
   const [message, setMessage] = useState('')
   const [shake, setShake] = useState(0)
   const [error, setError] = useState('')
   const [heard, setHeard] = useState('')
-  const lockedOut = now < lockedUntil
-  const listening = (mode === 'set' || mode === 'unlock' || mode === 'verify') && running && !lockedOut
+  const listening = (mode === 'set' || mode === 'verify') && running
   const { signs, reset } = useSignInput(listening)
 
   useEffect(() => { localStorage.setItem('echo.lock.sites', sites.join(',')) }, [sites])
   useEffect(() => { refresh() }, [])
-  useEffect(() => {
-    if (!lockedOut) return
-    const id = setInterval(() => setNow(Date.now()), 250)
-    return () => clearInterval(id)
-  }, [lockedOut])
+  // the secret guardian must not act on a password being typed here
+  useEffect(() => { guardian.paused = mode !== 'home'; return () => { guardian.paused = false } }, [mode])
   // what the sonar just heard, so the user sees that a move registered even when it is not a password sign
   useEffect(() => {
     if (!listening) return
@@ -63,10 +50,11 @@ export default function Lock() {
   const lockNow = async () => {
     setError('')
     try {
-      setStatus(await sendToExtension({ type: 'LOCK', sites, appUrl: `${location.origin}/#lock` }))
+      setStatus(await sendToExtension({ type: 'LOCK', sites }))
       setMessage('')
     } catch (e) { setError(String(e)) }
   }
+  const unlockNow = async () => { setError(''); try { setStatus(await sendToExtension({ type: 'UNLOCK' })) } catch (e) { setError(String(e)) } }
   const go = (m: Mode, msg = '') => { reset(); setMessage(msg); setMode(m) }
 
   // Setting: the 4th sign moves to the confirm screen.
@@ -74,31 +62,13 @@ export default function Lock() {
     if (mode === 'set' && signs.length === LENGTH) { setDraft(signs); setMode('confirm'); reset() }
   }, [mode, signs])
 
-  // Unlocking / verifying: the 4th sign is checked.
+  // Verifying: the 4th sign is checked against the current password before it can be changed.
   useEffect(() => {
-    if ((mode !== 'unlock' && mode !== 'verify') || signs.length !== LENGTH || !password) return
+    if (mode !== 'verify' || signs.length !== LENGTH || !password) return
     const attempt = signs
     reset()
-    if (mode === 'verify') {
-      if (matches(attempt, password)) { setFails(0); go('set', 'Now do your new password.') }
-      else { setShake((n) => n + 1); setMessage('That is not the current password.') }
-      return
-    }
-    if (matches(attempt, password)) {
-      setFails(0); setMode('done'); setMessage('')
-      sendEvent('lock', 'unlock_ok')
-      sendToExtension({ type: 'UNLOCK' }).then(setStatus).catch((e) => setError(String(e)))
-      setTimeout(() => { if (safeReturn) location.href = safeReturn; else setMode('home') }, 1400)
-    } else {
-      const n = fails + 1
-      setFails(n); setShake((k) => k + 1)
-      sendEvent('lock', 'unlock_fail', { attempt: n })
-      if (n >= MAX_FAILS) {
-        alarm(); sendEvent('lock', 'alarm', { attempts: n })
-        const until = Date.now() + LOCKOUT_MS
-        setLockedUntil(until); setNow(Date.now()); setFails(0); setMessage('')
-      } else setMessage(`Wrong signs. ${MAX_FAILS - n} ${MAX_FAILS - n === 1 ? 'try' : 'tries'} left.`)
-    }
+    if (matches(attempt, password)) go('set', 'Now do your new password.')
+    else { setShake((n) => n + 1); setMessage('That is not the current password.') }
   }, [mode, signs, password])
 
   const save = async () => {
@@ -108,35 +78,12 @@ export default function Lock() {
   }
 
   const locked = !!status?.locked
-  const blockedHost = returnUrl ? hostOf(returnUrl) : null
 
   // ---- focused full-screen views ----
-  if (lockedOut) {
-    return (
-      <div className="lk lk--invert">
-        <div className="lk__center">
-          <div className="lk__eyebrow">{MAX_FAILS} wrong tries · alarm sent to the parent</div>
-          <div className="lk__huge">LOCKED OUT</div>
-          <div className="lk__count">{Math.ceil((lockedUntil - now) / 1000)}s</div>
-        </div>
-      </div>
-    )
-  }
-  if (mode === 'done') {
-    return (
-      <div className="lk lk--invert">
-        <div className="lk__center">
-          <div className="lk__huge">UNLOCKED</div>
-          <div className="lk__eyebrow">{safeReturn ? `back to ${hostOf(safeReturn)}` : 'browser unlocked'}</div>
-        </div>
-      </div>
-    )
-  }
-  if (mode === 'set' || mode === 'verify' || mode === 'unlock' || mode === 'confirm') {
+  if (mode !== 'home') {
     const reveal = mode === 'set' || mode === 'confirm'
     const shown = mode === 'confirm' ? draft : signs
-    const title = mode === 'unlock' ? (blockedHost ? `${blockedHost} is locked.` : 'Unlock the browser.')
-      : mode === 'verify' ? 'First, the current password.'
+    const title = mode === 'verify' ? 'First, the current password.'
       : mode === 'set' ? 'Make your password.'
       : 'Is this your password?'
     const sub = mode === 'confirm' ? draft.map((s) => LABEL[s]).join('  ·  ')
@@ -144,7 +91,7 @@ export default function Lock() {
     return (
       <div className="lk">
         <div className="lk__center">
-          <div className="lk__eyebrow">ECHO\0 LOCK</div>
+          <div className="lk__eyebrow">ECHO Ø LOCK</div>
           <h1 className="lk__title">{title}</h1>
           <p className="lk__sub">{sub}</p>
           <div className="lk__slots" key={shake} data-shake={shake > 0 && mode !== 'confirm' ? 1 : 0}>
@@ -175,7 +122,7 @@ export default function Lock() {
             </>
           )}
           {error && <div className="lk__status">Problem: {error}</div>}
-          <button className="lk__back" onClick={() => go('home')}>{mode === 'unlock' ? 'cancel' : 'back'}</button>
+          <button className="lk__back" onClick={() => go('home')}>back</button>
         </div>
       </div>
     )
@@ -185,13 +132,15 @@ export default function Lock() {
   return (
     <div className="lk">
       <div className="lk__panel">
-        <div className="lk__eyebrow">ECHO\0 LOCK</div>
+        <div className="lk__eyebrow">ECHO Ø LOCK</div>
         <div className="lk__state">{status ? (locked ? 'LOCKED' : 'UNLOCKED') : 'NOT CONNECTED'}</div>
         <div className="lk__chips">
           <span className={running ? 'on' : ''}>sonar {running ? 'on' : 'off'}</span>
           <span className={status ? 'on' : ''}>extension {status ? 'connected' : 'missing'}</span>
           <span className={password ? 'on' : ''}>password {password ? 'set' : 'not set'}</span>
         </div>
+
+        <p className="lk__how">Secret mode. While the sonar is on in this tab, doing your 4 signs anywhere locks or unlocks the browser. A locked site just looks like it can't be reached; each right sign adds a tiny dot at the bottom of that page.</p>
 
         <div className="lk__cols">
           <section>
@@ -215,7 +164,7 @@ export default function Lock() {
             </div>
             <div className="lk__row lk__row--left">
               {locked
-                ? <button className="lk__btn lk__btn--primary" onClick={() => go('unlock')} disabled={!password}>Unlock with hand signs</button>
+                ? <button className="lk__btn lk__btn--primary" onClick={unlockNow}>Unlock now</button>
                 : <button className="lk__btn lk__btn--primary" onClick={lockNow} disabled={!password || !status || !sites.length}>Lock now</button>}
               {locked && <button className="lk__btn" onClick={lockNow}>Update sites</button>}
             </div>
@@ -269,15 +218,3 @@ const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) =>
 // accept 'youtube.com', 'www.youtube.com', 'https://www.youtube.com/watch?v=x' alike: keep only the bare host
 const siteList = (s: string) => [...new Set(s.split(',').map((x) => x.trim().toLowerCase())
   .map((x) => x.replace(/^[a-z]+:\/\//, '').replace(/^www\./, '').split(/[/?#:]/)[0]).filter(Boolean))]
-const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, '') } catch { return u } }
-
-let actx: AudioContext | null = null
-function alarm() {
-  actx ??= new AudioContext()
-  const o = actx.createOscillator(); const g = actx.createGain()
-  o.type = 'square'; g.gain.value = 0.2
-  o.connect(g).connect(actx.destination)
-  const t = actx.currentTime
-  for (let i = 0; i < 8; i++) o.frequency.setValueAtTime(i % 2 ? 660 : 990, t + i * 0.25)
-  o.start(t); o.stop(t + 2)
-}

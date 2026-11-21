@@ -7,9 +7,10 @@ The extension (extension/) blocks sites; the web app (app/) senses gestures and 
 
 | message (app -> extension) | effect | reply |
 |---|---|---|
-| `{type:'LOCK', sites:['youtube.com','tiktok.com'], appUrl?:'http://localhost:5173/#lock'}` | kid mode on: those sites redirect to the extension's `blocked.html`, whose button opens `appUrl` | `{ok:true, locked:true}` |
-| `{type:'UNLOCK'}` | kid mode off until the next LOCK (no expiry) | `{ok:true, locked:false, until:null}` |
+| `{type:'LOCK', sites:['youtube.com','tiktok.com']}` | secret lock on: those sites keep their URL but `veil.js` (registered content script, document_start) replaces them with a fake "This site can't be reached" page; open tabs on them reload | `{ok:true, locked:true}` |
+| `{type:'UNLOCK'}` | lock off until the next LOCK (no expiry); veiled tabs reload to the real site | `{ok:true, locked:false, until:null}` |
+| `{type:'PROGRESS', n:0..4}` | veiled pages show n tiny dots at the bottom (each right sign in order) | `{ok:true}` |
 | `{type:'STATUS'}` | - | `{locked:boolean, sites:string[], until:number|null}` |
 
-- Blocked sites redirect to `blocked.html#<original URL>`. It shows "Locked by Echo" and a link to `appUrl?unlock=1&return=<original URL>`, so the app opens in unlock mode and sends the user back after a correct password.
-- The secret sequence and attempt counting live in the app, never in the extension.
+- Secret mode (Ian, Sat 10:00): nothing says "locked". The app tab runs the sonar; `app/src/lock/guardian.ts` listens on every page, keeps only a correct prefix of the password, sends PROGRESS, and on the full password toggles LOCK/UNLOCK. No sound, no visible unlock screen.
+- The secret sequence lives in the app, never in the extension.

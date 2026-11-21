@@ -58,6 +58,7 @@ a { color: var(--ink-strong); }
 .lk__chips { display: flex; gap: 12px; margin-bottom: 48px; flex-wrap: wrap; }
 .lk__chips span { font-size: 21px; border: 1px dotted var(--ink); padding: 5px 12px; }
 .lk__chips span.on { background: var(--ink); color: #1e1f21; border-style: solid; }
+.lk__how { font-size: 23px; max-width: 900px; margin: -22px 0 44px; }
 .lk__cols { display: grid; grid-template-columns: 1fr 1.3fr; gap: 56px; }
 .lk__cols section { border-top: 1px dotted var(--ink); padding-top: 22px; }
 .lk__cols h2 { font: 400 36px var(--pixel); margin: 0 0 18px; color: var(--ink-strong); }

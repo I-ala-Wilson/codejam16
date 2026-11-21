@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import RoomTest from './RoomTest.tsx'
 import Home from './Home.tsx'
+import { useGuardian } from './lock/guardian.ts'
 import Record from './Record.tsx'
 import Lock from './Lock.tsx'
 import Gestures from './Gestures.tsx'
@@ -11,6 +12,7 @@ const PAGES = { home: 'ECHO Ø', room: 'Room test', dataset: 'Dataset recording'
 type Page = keyof typeof PAGES
 
 export default function App() {
+  useGuardian()
   const [page, setPage] = useState<Page>(location.pathname === '/lock' ? 'lock' : ((location.hash.slice(1) as Page) in PAGES ? (location.hash.slice(1) as Page) : 'home'))
   const go = (p: Page) => { setPage(p); location.hash = p }
   return (
