@@ -1,0 +1,83 @@
+{
+  "person": "EJ2007",
+  "gesture": "PUSH",
+  "laptop": "macbook-pro",
+  "note": "livecheck-1: PUSH at 20 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 216384,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 288768,
+      "end": 360768,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 433152,
+      "end": 505152,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 576512,
+      "end": 648512,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 720896,
+      "end": 792896,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 865280,
+      "end": 937280,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 1009664,
+      "end": 1081664,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 1153024,
+      "end": 1225024,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 1297408,
+      "end": 1369408,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 1441792,
+      "end": 1513792,
+      "label": "PUSH",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T15:19:12-05:00",
+  "takeKind": "gesture",
+  "battery": "calib",
+  "distanceCm": 20,
+  "cueWindowMs": 1500,
+  "periodMs": 3000,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "R",
+  "volumePct": 70,
+  "laptopModel": "Macbook Pro",
+  "protocol": "ml/PROTOCOL.md"
+}
