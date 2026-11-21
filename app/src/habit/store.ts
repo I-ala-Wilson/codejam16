@@ -31,7 +31,9 @@ function seedDemo() {
   write('echo.habit.demoLog', JSON.stringify(log.sort((a, b) => a - b)))
   write('echo.habit.demoStartedAt', String(midnight() + 8 * 36e5))
 }
-export const setHabitDemo = (v: boolean) => { write(DEMO, v ? '1' : '0'); if (v) seedDemo(); ping() }
+// Seed only when there is no demo log for today yet, so toggling demo off and on keeps the nudges made during the demo.
+const demoSeededToday = () => read('echo.habit.demoLog') !== null && Number(read('echo.habit.demoStartedAt') ?? 0) >= midnight()
+export const setHabitDemo = (v: boolean) => { write(DEMO, v ? '1' : '0'); if (v && !demoSeededToday()) seedDemo(); ping() }
 
 export const habitOn = () => read(ON) === '1'
 export const setHabitOn = (v: boolean) => {
