@@ -8,11 +8,13 @@ import Gestures from './Gestures.tsx'
 import Dataset from './Dataset.tsx'
 import LiveTest from './LiveTest.tsx'
 import Care from './Care.tsx'
+import BreathRecord from './BreathRecord.tsx'
 import Caregiver from './Caregiver.tsx'
 import HabitPage from './habit/HabitPage.tsx'
 import HabitWatch from './habit/HabitWatch.tsx'
+import Explainer from './explainer/Explainer.tsx'
 
-const PAGES = { home: 'ECHO Ø', lock: 'Lock', care: 'Care', caregiver: 'Caregiver', 'habit-app': 'Habit', room: 'Room test', dataset: 'Dataset recording', habit: 'Habit recording', gestures: 'Gesture test', live: 'Live test (cued)', record: 'Pilot record (old)' } as const
+const PAGES = { home: 'ECHO Ø', lock: 'Lock', care: 'Care', caregiver: 'Caregiver', 'habit-app': 'Habit', explainer: 'How it works', room: 'Room test', dataset: 'Dataset recording', habit: 'Habit recording', gestures: 'Gesture test', live: 'Live test (cued)', breath: 'Breathing takes', record: 'Pilot record (old)' } as const
 type Page = keyof typeof PAGES
 
 export default function App() {
@@ -26,7 +28,7 @@ export default function App() {
           <button key={p} onClick={() => go(p)} className={page === p ? 'on' : ''}>{PAGES[p]}</button>
         ))}
       </nav>
-      {page === 'home' ? <Home go={(p) => go(p as Page)} /> : page === 'room' ? <RoomTest /> : page === 'gestures' ? <Gestures /> : page === 'live' ? <LiveTest /> : page === 'dataset' ? <Dataset key="main" only="main" /> : page === 'habit' ? <Dataset key="habit" only="habit" /> : page === 'record' ? <Record /> : page === 'care' ? <Care /> : page === 'caregiver' ? <Caregiver /> : page === 'habit-app' ? <HabitPage /> : <Lock />}
+      {page === 'home' ? <Home go={(p) => go(p as Page)} /> : page === 'room' ? <RoomTest /> : page === 'gestures' ? <Gestures /> : page === 'live' ? <LiveTest /> : page === 'dataset' ? <Dataset key="main" only="main" /> : page === 'habit' ? <Dataset key="habit" only="habit" /> : page === 'record' ? <Record /> : page === 'breath' ? <BreathRecord /> : page === 'care' ? <Care /> : page === 'caregiver' ? <Caregiver /> : page === 'habit-app' ? <HabitPage /> : page === 'explainer' ? <Explainer /> : <Lock />}
       <HabitWatch />
     </div>
   )
