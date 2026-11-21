@@ -3,35 +3,29 @@ import DitherFlower from './art/DitherFlower.tsx'
 import Explainer from './explainer/Explainer.tsx'
 import HowWeBuilt from './HowWeBuilt.tsx'
 import { engine } from './engine.ts'
-import { ensureSonar } from './sonar.ts'
 
 // Landing screen: Ian's flower as a full-screen ordered dither, the headline top-left, the apps bottom-left. Style per docs/STYLE.md.
 export default function Home({ go }: { go: (page: string) => void }) {
   const [running, setRunning] = useState(engine.health().running)
-  const [error, setError] = useState('')
-  // the sonar starts by itself so the flower is listening the moment the page opens (mic permission is remembered)
-  useEffect(() => { ensureSonar().then(() => setRunning(engine.health().running)) }, [])
-  const start = async () => {
-    setError('')
-    try { await engine.start(); await engine.calibrate(3000); setRunning(true) } catch (e) { setError(String(e)) }
-  }
+  // the app starts the sonar on load (App.tsx); this only reflects whether it is running yet
+  useEffect(() => {
+    const id = setInterval(() => setRunning(engine.health().running), 500)
+    return () => clearInterval(id)
+  }, [])
   return (
     <div className="home">
       <section className="home__hero">
       <DitherFlower />
       <div className="home__text">
         <div className="home__mark">{'ECHØ'}</div>
-        <h1>Your laptop can hear your hands.</h1>
+        <h1>Your laptop can hear your hands.<br />Right now.</h1>
         <p className="home__lede">By leveraging the power of sound and some neat physics, ECHØ is able to discern your movements and gestures, creating a wide range of applications for all devices with a speaker and a microphone.</p>
       </div>
       <div className="home__apps">
-        {!running
-          ? <button className="dot-btn" onClick={start}>Start sonar</button>
-          : <span className="mono-label">sonar on · move your hand</span>}
+        <span className="mono-label">{running ? 'sonar on · move your hand' : 'starting sonar…'}</span>
         <button className="dot-btn" onClick={() => go('lock')}>Lock</button>
         <button className="dot-btn" onClick={() => go('care')}>Care</button>
         <button className="dot-btn" onClick={() => go('habit-app')}>Habit</button>
-        {error && <span className="mono-label">{error}</span>}
       </div>
       </section>
       <section className="home__how">
