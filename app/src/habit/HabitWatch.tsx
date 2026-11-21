@@ -3,13 +3,13 @@ import { Toast } from '@ui/index.ts'
 import { engine } from '../engine.ts'
 import { sendEvent } from '../events.ts'
 import { chime, ensureSonar } from '../sonar.ts'
-import { cancelSnooze, firstNudgeThisHour, habitOn, logHabit, snooze, snoozedUntil, today } from './store.ts'
+import { firstNudgeThisHour, habitOn, logHabit, snooze, snoozedUntil, today } from './store.ts'
 import './habit.css'
 
 // Habit mode runs app-wide, like the lock guardian: when the sonar hears repetitive hand motion (scratching,
 // nail-biting) it plays a soft chime and shows a tiny corner note; the first nudge each hour also shows a gentle
-// bar along the bottom for 2 s. A double tap (UNDO) snoozes it for 10 minutes at any time; a second one within 6 s
-// cancels the snooze.
+// bar along the bottom for 2 s. A double tap (UNDO) snoozes it for 10 minutes at any time; while snoozed, double taps
+// do nothing ('Resume now' on the Habit page is the only way to end a snooze early).
 // Live test (EJ, MacBook Air): 14/15 scratches caught, but 5 false nudges in 2 min of typing, and the double tap never
 // snoozed because the engine reports a natural double tap as PUSH, PUSH (issue #22). So: an UNDO or two PUSHes
 // close together count as the snooze tap; REPETITIVE is ignored while the keyboard or trackpad is in use on this
@@ -28,7 +28,6 @@ export default function HabitWatch() {
   const [bar, setBar] = useState(false)
   const lastNudge = useRef(0)
   const lastPush = useRef(0)
-  const lastSnooze = useRef(0)
   const lastInput = useRef(0)
   const hideNote = useRef(0)
   const hideBar = useRef(0)
@@ -56,14 +55,9 @@ export default function HabitWatch() {
     const pair = g.type === 'PUSH' && t - lastPush.current < TAP_PAIR_MS
     if (g.type === 'PUSH') lastPush.current = pair ? 0 : t
     const doubleTap = g.type === 'UNDO' || pair
-    if (doubleTap && t - lastSnooze.current < UNDO_WINDOW_MS) {
-      // A second double tap right after a snooze undoes it (an accidental snooze is reversible).
-      lastSnooze.current = 0; cancelSnooze(); show('snooze off')
-      return
-    }
     // UNDO starts the snooze at any time; a PUSH,PUSH pair only counts right after a nudge (too easy to hit by accident).
-    if ((g.type === 'UNDO' && snoozedUntil() <= t) || (doubleTap && t - lastNudge.current < UNDO_WINDOW_MS)) {
-      lastNudge.current = 0; lastSnooze.current = t
+    if (snoozedUntil() <= t && (g.type === 'UNDO' || (doubleTap && t - lastNudge.current < UNDO_WINDOW_MS))) {
+      lastNudge.current = 0
       snooze(SNOOZE_MS); show('snoozed 10 min'); sendEvent('habit', 'snoozed', {}, 'UNDO')
       return
     }
