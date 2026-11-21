@@ -1,8 +1,8 @@
 # QA journal (Yahya-github/qa)
 
-**Now:** DIRECT 7064730040 (secret Lock end to end) done at 9f225de, reported in `docs/qa/QA-DIRECT-1121-1150.md`. **P0 #27 open** (veil.js throws, nothing veiled; verified one-line fix in the issue). Next: when Ian posts DONE with `regress #27`, rerun `cd qa && npx playwright test -c contract/extension.config.ts` (expect 20 pass, 3 P2 fails), close #27 with evidence. Then Care, Habit, Home deeper passes when Ian/EJ/Michael post DONE (gesture-driven parts need a human).
+**Now:** lead QUEUE (comment 7066454821) items 1-4 done at 9678535, report `docs/qa/QA-QUEUE-1121-1300.md`. Item 5 = ask the lead (post DONE, then `scripts/board read`). Lead wants a one-line status every 30 min and `scripts/board wait` re-armed after every post. Next gates: M2 Sat 12:30 (check spec), nightly Sat 23:30, final QA 1 h before submit. Re-run my three new specs after each new push to main.
 
-**Done:** M1 (report `QA-M1-1121-0131.md`). DIRECT pass: contract tests rewritten for the v0.2 veil, app tabs list updated (12 tabs), old P1s #21 #22 #24 #25 #26 regressed and closed with evidence (all fixed on main). #23 closed earlier as superseded.
+**Done:** M1 (`QA-M1-1121-0131.md`). DIRECT (`QA-DIRECT-1121-1150.md`): contract tests for the v0.2 veil, P0 #27 found, old P1s #21 #22 #24 #25 #26 regressed and closed. QUEUE: #27 regressed and closed (20 pass, 3 known P2 fails); Habit (`qa/e2e/habit.spec.ts`), Care (`care.spec.ts`), Home (`home.spec.ts`) automated; P2s #28 (EJ, demo re-seed) and #29 (Michael, Care activity while sonar off) filed; "AudioContext is closed" not reproduced.
 
 **How to run my lane:**
 - App e2e: fresh clone (`git clone /home/atlas/codejam-qa <scratch>/fresh`, `cd fresh/app && npm ci`), then `cd qa && APP_DIR=<scratch>/fresh/app QA_GATE=<gate> npx playwright test` (own vite on port 5180; `QA_PORT`, `BASE_URL` override). My working copy's `app/node_modules` goes stale (missing `three` caused 31 false failures); always test a fresh clone.
@@ -20,6 +20,8 @@
 - Playwright's default navigation timeout is unlimited: always pass `timeout` to `goto` on third-party hosts; serve look-alike hosts with `ctx.route`.
 - Hard cutoff: no commits or pushes at or after Sun 22 Nov 11:30 Montreal.
 
-**Open bugs:** #27 (P0, veil). P2s in the DIRECT report (malformed LOCK corrupts state, hostile appUrl opens a pinned tab, router `#constructor`, no hashchange, home overflow 16 px at 390 px).
+**Open bugs:** none P0/P1. P2: #28 Habit demo re-seed, #29 Care activity while sonar off; extension malformed LOCK + hostile appUrl, router `#constructor`, no hashchange, home overflow 16 px at 390 px. P3: Care does not dedupe WAVE while HELP is up. Nit: How we built it says 147 recordings, data has 175.
 
-**Waiting on:** Ian: `regress #27`. Yahya (human): Ian's HUMAN task 7065627668, live test of the secret lock in real Chrome (5 unlocks, 10 loads of locked YouTube), which is the only way to test the hand-sign unlock.
+**Gesture injection trick (habit/care specs):** `page.route('**/src/engine.ts*')` appends a wrapper that records every `engine.onGesture` callback; `window.__emit({type})` plays a gesture in. Care events are read from `BroadcastChannel('echo-events')`. A silent fake mic needs its own `chromium.launch` with `--use-file-for-fake-audio-capture=<wav>` (the default fake mic beeps and reads as constant movement). Memory is tight on this laptop (a training job uses ~9 GB): the system killed my background board waits once; do not start heavy parallel runs.
+
+**Waiting on:** Ian: reply to the QUEUE DONE. Yahya (human): HUMAN task 7065627668, live test of the secret lock in real Chrome (5 unlocks, 10 loads of locked YouTube), the only way to test the hand-sign unlock.
