@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { habitOn, setHabitOn, snooze, snoozedUntil, today } from './store.ts'
 
-// ECHO Ø Habit: turn the watcher on, see today's nudges by hour and the time since the last one.
+// ECHØ Habit: turn the watcher on, see today's nudges by hour and the time since the last one.
 export default function HabitPage() {
   const [, tick] = useState(0)
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function HabitPage() {
   return (
     <div className="lk">
       <div className="lk__panel">
-        <div className="lk__eyebrow">ECHO Ø HABIT</div>
+        <div className="lk__eyebrow">ECHØ HABIT</div>
         <div className="lk__state">{on ? 'Hands off.' : 'Habit mode off'}</div>
         <div className="lk__chips">
           <span className={on ? 'on' : ''}>{on ? 'watching' : 'not watching'}</span>

@@ -91,7 +91,7 @@ export default function Lock() {
     return (
       <div className="lk">
         <div className="lk__center">
-          <div className="lk__eyebrow">ECHO Ø LOCK</div>
+          <div className="lk__eyebrow">ECHØ LOCK</div>
           <h1 className="lk__title">{title}</h1>
           <p className="lk__sub">{sub}</p>
           <div className="lk__slots" key={shake} data-shake={shake > 0 && mode !== 'confirm' ? 1 : 0}>
@@ -132,7 +132,7 @@ export default function Lock() {
   return (
     <div className="lk">
       <div className="lk__panel">
-        <div className="lk__eyebrow">ECHO Ø LOCK</div>
+        <div className="lk__eyebrow">ECHØ LOCK</div>
         <div className="lk__state">{status ? (locked ? 'LOCKED' : 'UNLOCKED') : 'NOT CONNECTED'}</div>
         <div className="lk__chips">
           <span className={running ? 'on' : ''}>sonar {running ? 'on' : 'off'}</span>

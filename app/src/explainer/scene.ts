@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-// ECHO Ø explainer: a laptop pings 20 kHz, the hand reflects it, the echo's spacing shows Doppler.
+// ECHØ explainer: a laptop pings 20 kHz, the hand reflects it, the echo's spacing shows Doppler.
 // Scene units are metres. Sound is drawn ~1000x slower than real so the wavefronts can be seen.
 
 export const F0 = 20000

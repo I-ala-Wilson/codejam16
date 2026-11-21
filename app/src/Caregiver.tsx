@@ -24,7 +24,7 @@ export default function Caregiver() {
     return (
       <div className="lk lk--invert" onClick={() => setAlert(null)}>
         <div className="lk__center">
-          <div className="lk__eyebrow">ECHO Ø CAREGIVER</div>
+          <div className="lk__eyebrow">ECHØ CAREGIVER</div>
           <div className="lk__huge">HELP</div>
           <div className="lk__sub">{alert.device_id} · {new Date(alert.at).toLocaleTimeString()}</div>
           <div className="lk__status">tap when you are on your way</div>
@@ -35,7 +35,7 @@ export default function Caregiver() {
   return (
     <div className="lk">
       <div className="lk__panel">
-        <div className="lk__eyebrow">ECHO Ø CAREGIVER</div>
+        <div className="lk__eyebrow">ECHØ CAREGIVER</div>
         <div className="lk__state">{events.length ? 'Watching' : 'Waiting'}</div>
         <p className="lk__how">Open Care in another window on this laptop. Help calls, cancellations, inactivity and habit nudges appear here as they happen.</p>
         <div className="habit__hours" title="movement, newest right">

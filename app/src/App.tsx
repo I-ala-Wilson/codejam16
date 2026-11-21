@@ -14,7 +14,7 @@ import HabitPage from './habit/HabitPage.tsx'
 import HabitWatch from './habit/HabitWatch.tsx'
 import Explainer from './explainer/Explainer.tsx'
 
-const PAGES = { home: 'ECHO Ø', lock: 'Lock', care: 'Care', caregiver: 'Caregiver', 'habit-app': 'Habit', explainer: 'How it works', room: 'Room test', dataset: 'Dataset recording', habit: 'Habit recording', gestures: 'Gesture test', live: 'Live test (cued)', breath: 'Breathing takes', record: 'Pilot record (old)' } as const
+const PAGES = { home: 'ECHØ', lock: 'Lock', care: 'Care', caregiver: 'Caregiver', 'habit-app': 'Habit', explainer: 'How it works', room: 'Room test', dataset: 'Dataset recording', habit: 'Habit recording', gestures: 'Gesture test', live: 'Live test (cued)', breath: 'Breathing takes', record: 'Pilot record (old)' } as const
 type Page = keyof typeof PAGES
 
 export default function App() {

@@ -65,7 +65,7 @@ export default function BreathRecord() {
   return (
     <div className="lk">
       <div className="lk__center">
-        <div className="lk__eyebrow">ECHO Ø BREATHING EXPERIMENT</div>
+        <div className="lk__eyebrow">ECHØ BREATHING EXPERIMENT</div>
         {take ? (
           <>
             <h1 className="lk__title">{take.id === 'hold' && t >= 20 && t < 40 ? 'HOLD' : take.rate ? `${take.rate} breaths / min` : 'breathe normally'}</h1>

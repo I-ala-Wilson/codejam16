@@ -3,7 +3,7 @@ import { engine } from './engine.ts'
 import { sendEvent } from './events.ts'
 import { chime, ensureSonar } from './sonar.ts'
 
-// ECHO Ø Care, the bedside laptop. Wave for 2 s to call for help (camera-free, works in the dark); a double tap
+// ECHØ Care, the bedside laptop. Wave for 2 s to call for help (camera-free, works in the dark); a double tap
 // within 5 s cancels a false alarm. The sonar also tracks movement: an inactivity alert after INACTIVE_S with no
 // motion, and an activity level every 10 s for the caregiver's restlessness timeline (contracts/events.md).
 
@@ -82,7 +82,7 @@ export default function Care() {
     return (
       <div className="lk lk--invert" onClick={() => { helpRef.current = null; setHelp(null) }}>
         <div className="lk__center">
-          <div className="lk__eyebrow">ECHO Ø CARE</div>
+          <div className="lk__eyebrow">ECHØ CARE</div>
           <div className="lk__huge">{help.cancelled ? 'CANCELLED' : 'HELP IS COMING'}</div>
           <div className="lk__sub">{help.cancelled ? 'the caregiver was told it was a false alarm' : 'your caregiver has been alerted'}</div>
           {!help.cancelled && <div className="lk__status">{left > 0 ? `double tap to cancel · ${left}` : 'tap the screen when help has arrived'}</div>}
@@ -94,7 +94,7 @@ export default function Care() {
   return (
     <div className="lk">
       <div className="lk__center">
-        <div className="lk__eyebrow">ECHO Ø CARE</div>
+        <div className="lk__eyebrow">ECHØ CARE</div>
         <h1 className="lk__title">Wave for help.</h1>
         <p className="lk__sub">Wave your hand side to side at the screen, about 20 cm away. No camera, works in the dark.</p>
         {!running
