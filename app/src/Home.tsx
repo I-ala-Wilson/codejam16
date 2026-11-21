@@ -14,7 +14,7 @@ export default function Home({ go }: { go: (page: string) => void }) {
     <div className="home">
       <DitherFlower />
       <div className="home__text">
-        <div className="home__mark">{'ECHO\\0'}</div>
+        <div className="home__mark">{'ECHO Ø'}</div>
         <h1>Your laptop can hear your hands.</h1>
         <div className="mono-label">Echo Null · sonar, not a camera · works in the dark</div>
       </div>

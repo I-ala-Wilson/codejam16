@@ -7,7 +7,7 @@ import Gestures from './Gestures.tsx'
 import Dataset from './Dataset.tsx'
 import LiveTest from './LiveTest.tsx'
 
-const PAGES = { home: 'ECHO\\0', room: 'Room test', dataset: 'Dataset recording', habit: 'Habit recording', gestures: 'Gesture test', live: 'Live test (cued)', record: 'Pilot record (old)', lock: 'Lock' } as const
+const PAGES = { home: 'ECHO Ø', room: 'Room test', dataset: 'Dataset recording', habit: 'Habit recording', gestures: 'Gesture test', live: 'Live test (cued)', record: 'Pilot record (old)', lock: 'Lock' } as const
 type Page = keyof typeof PAGES
 
 export default function App() {
