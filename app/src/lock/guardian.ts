@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { engine } from '../engine.ts'
+import { ensureSonar } from '../sonar.ts'
 import { sendEvent } from '../events.ts'
 import { sendToExtension } from '../extension.ts'
 import { addEvent, emptyInput, loadPassword, type InputState } from './password.ts'
@@ -13,11 +14,9 @@ export const guardian = { paused: false } // the Lock setup page pauses it while
 
 // Starts the sonar with no click, so a locked site is already listening when it loads. Runs when the app opens with
 // a password set, and again whenever the extension pokes this tab (window.echoAutostart) because a veiled page loaded.
-let starting: Promise<void> | null = null
 export function autostart(): Promise<void> {
-  if (!loadPassword() || engine.health().running) return Promise.resolve()
-  starting ??= engine.start().then(() => engine.calibrate(3000)).then(() => undefined).catch(() => undefined).finally(() => { starting = null })
-  return starting
+  if (!loadPassword()) return Promise.resolve()
+  return ensureSonar().then(() => undefined)
 }
 declare global { interface Window { echoAutostart?: () => Promise<void> } }
 

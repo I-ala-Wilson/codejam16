@@ -23,8 +23,8 @@ export default function Home({ go }: { go: (page: string) => void }) {
           ? <button className="dot-btn" onClick={start}>Start sonar</button>
           : <span className="mono-label">sonar on · move your hand</span>}
         <button className="dot-btn" onClick={() => go('lock')}>Lock</button>
-        <button className="dot-btn" onClick={() => go('care')} disabled>Care (soon)</button>
-        <button className="dot-btn" onClick={() => go('habit-app')} disabled>Habit (soon)</button>
+        <button className="dot-btn" onClick={() => go('care')}>Care</button>
+        <button className="dot-btn" onClick={() => go('habit-app')}>Habit</button>
         {error && <span className="mono-label">{error}</span>}
       </div>
     </div>

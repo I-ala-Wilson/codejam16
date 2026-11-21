@@ -74,3 +74,17 @@ a { color: var(--ink-strong); }
 .lk__setup summary { cursor: pointer; }
 .lk__setup input { font: 400 22px var(--pixel); background: transparent; color: var(--ink); border: 1px dotted var(--ink); padding: 6px 10px; width: 380px; margin-right: 10px; }
 .lk__setup code { font-family: var(--pixel); color: var(--ink-strong); }
+
+/* Habit + caregiver */
+.habit-toast { position: fixed; right: 22px; bottom: 18px; z-index: 50; font: 400 20px var(--pixel); color: var(--ink); background: var(--bg); border: 1px dotted var(--ink); padding: 6px 12px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+.habit-toast.on { opacity: 1; }
+.habit__nums { display: flex; gap: 80px; margin: 10px 0 36px; font-size: 22px; }
+.habit__big { font-size: 110px; line-height: .9; color: var(--ink-strong); }
+.habit__hours { display: flex; gap: 6px; height: 150px; align-items: flex-end; margin-bottom: 40px; border-bottom: 1px dotted var(--ink); }
+.habit__bar { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; position: relative; }
+.habit__bar i { display: block; background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px); min-height: 2px; }
+.habit__bar.now i { background: var(--ink); }
+.habit__bar span { position: absolute; bottom: -26px; left: 0; font-size: 18px; }
+.cg__feed { border-top: 1px dotted var(--ink); }
+.cg__row { display: grid; grid-template-columns: 140px 1fr; font-size: 24px; padding: 10px 4px; border-bottom: 1px dotted var(--ink); }
+.cg__row.on { background: var(--ink); color: var(--bg); }
