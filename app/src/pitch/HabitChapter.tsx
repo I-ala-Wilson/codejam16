@@ -21,7 +21,7 @@ export default function HabitChapter({ go }: { go: (page: string) => void }) {
               <div key={s.big} className="pz__stat"><div className="pz__big">{s.big}</div><div className="pz__label">{s.label}</div></div>
             ))}
           </div>
-          <p className="pz__line">Typing does nothing. Scratching gets a soft chime and a gentle bar. A double tap in the air snoozes it for ten minutes.</p>
+          <p className="pz__line">Typing does nothing. Scratching sets off an alarm and a bar along the bottom. A double tap in the air snoozes it for ten minutes.</p>
           <button className="pz__btn" onClick={() => go('habit-app')}>Open live demo</button>
         </div>
         <div className="pz__frame"><DitherCanvas scene={habitScene} label="A hand scratches a forearm next to a laptop; a bar along the bottom reads Hands down for a moment." /></div>

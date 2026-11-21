@@ -6,8 +6,8 @@ import { chime, ensureSonar } from '../sonar.ts'
 import { habitOn, logHabit, snooze, snoozedUntil } from './store.ts'
 import './habit.css'
 
-// Habit mode runs app-wide, like the lock guardian: when the sonar hears repetitive hand motion (scratching,
-// fidgeting) it plays a soft chime and shows a tiny corner note; the first nudge each hour also shows a gentle
+// Habit mode runs app-wide, like the lock guardian: when the sonar hears repetitive hand motion (scratching)
+// it plays an alarm chime and shows a tiny corner note; the first nudge each hour also shows a gentle
 // bar along the bottom for 2 s. A double tap (UNDO) snoozes it for 10 minutes at any time; while snoozed, double taps
 // do nothing ('Resume now' on the Habit page is the only way to end a snooze early).
 // Live test (EJ, MacBook Air): 14/15 scratches caught, but 5 false nudges in 2 min of typing, and the double tap never

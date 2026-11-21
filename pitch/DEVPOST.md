@@ -12,7 +12,7 @@ ECHØ turns any laptop into sonar. The speaker plays a 20 kHz tone that's too hi
 One engine powers three apps:
 - **Care (Health):** a hands-free help call for hospital beds and bathrooms, where cameras aren't allowed, and for people who can't easily speak or reach a call button.
 - **Lock (Touch Grass + Undo Button):** undo handing your kid the iPad. A blocked site looks like an ordinary "This site can't be reached" page, so to the kid the Wi-Fi is just broken and they go outside. Your 4 secret hand signs open it, and only tiny dots show the progress, so nobody watching learns the code.
-- **Habit (Touch Grass):** nudges you off a screen habit. It notices scratching and fidgeting and gives a soft chime and a small note; a double tap snoozes it.
+- **Habit (Touch Grass):** nudges you off a screen habit. It notices scratching and alarms you with a chime and a small note; a double tap snoozes it.
 - **Undo Button:** a double tap in the air deletes the last sign anywhere in ECHØ.
 
 **Privacy:** there's no camera and no audio is kept. Sensing happens on the laptop, and only gesture events ever leave it.
