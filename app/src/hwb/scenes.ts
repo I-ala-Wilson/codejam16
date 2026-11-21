@@ -299,6 +299,10 @@ export const agents: Scene = {
       label(g, n.agent, x, yy - 9, 16, al)
       label(g, `${n.role} · ${n.who}`, x, yy + 8, 13, al)
     }
+    // the board is drawn crisp on top (no dither) so its log stays readable
+    { const land = u > 0.4 && u < 0.6 ? 1 - Math.abs(u - 0.5) * 10 : 0
+      g.fillStyle = BG; g.fillRect(HUB.x - HUB.w / 2, HUB.y - HUB.h / 2, HUB.w, HUB.h)
+      g.strokeStyle = INK; g.lineWidth = 1.5 + 2.5 * land; g.strokeRect(HUB.x - HUB.w / 2, HUB.y - HUB.h / 2, HUB.w, HUB.h) }
     // board header + running log of the last three messages
     label(g, 'SHARED BOARD', HUB.x, HUB.y - 34, 17, 'center')
     label(g, 'one GitHub issue', HUB.x, HUB.y - 19, 12, 'center')
