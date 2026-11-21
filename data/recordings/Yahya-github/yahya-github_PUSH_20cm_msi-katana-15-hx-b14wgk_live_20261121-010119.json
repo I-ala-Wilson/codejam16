@@ -1,0 +1,99 @@
+{
+  "person": "Yahya-github",
+  "gesture": "PUSH",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "live test: 3/10 detected; detector sources {\"rules\":43,\"classifier\":48}",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 216384,
+      "label": "PUSH",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 287744,
+      "end": 359744,
+      "label": "PUSH",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 432128,
+      "end": 504128,
+      "label": "PUSH",
+      "predicted": [
+        "HOLD",
+        "PUSH"
+      ],
+      "hit": true
+    },
+    {
+      "start": 576512,
+      "end": 648512,
+      "label": "PUSH",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 719872,
+      "end": 791872,
+      "label": "PUSH",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 864256,
+      "end": 936256,
+      "label": "PUSH",
+      "predicted": [
+        "PUSH"
+      ],
+      "hit": true
+    },
+    {
+      "start": 1008640,
+      "end": 1080640,
+      "label": "PUSH",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 1152000,
+      "end": 1224000,
+      "label": "PUSH",
+      "predicted": [
+        "HOLD"
+      ],
+      "hit": false
+    },
+    {
+      "start": 1296384,
+      "end": 1368384,
+      "label": "PUSH",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 1440768,
+      "end": 1512768,
+      "label": "PUSH",
+      "predicted": [
+        "PUSH"
+      ],
+      "hit": true
+    }
+  ],
+  "createdAt": "2026-11-21T01:01:19-05:00",
+  "takeKind": "gesture",
+  "battery": "livetest",
+  "distanceCm": 20,
+  "cueWindowMs": 1500,
+  "periodMs": 3000,
+  "leadInMs": 3000,
+  "laptopModel": "MSI Katana 15 HX B14WGK",
+  "protocol": "ml/PROTOCOL.md"
+}

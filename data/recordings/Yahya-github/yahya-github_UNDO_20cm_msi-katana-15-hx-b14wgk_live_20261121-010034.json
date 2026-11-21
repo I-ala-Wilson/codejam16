@@ -1,0 +1,106 @@
+{
+  "person": "Yahya-github",
+  "gesture": "UNDO",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "live test: 6/10 detected; detector sources {\"rules\":39,\"classifier\":42}",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 143360,
+      "end": 215360,
+      "label": "UNDO",
+      "predicted": [
+        "UNDO"
+      ],
+      "hit": true
+    },
+    {
+      "start": 287744,
+      "end": 359744,
+      "label": "UNDO",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 432128,
+      "end": 504128,
+      "label": "UNDO",
+      "predicted": [
+        "UNDO",
+        "UNDO"
+      ],
+      "hit": true
+    },
+    {
+      "start": 575488,
+      "end": 647488,
+      "label": "UNDO",
+      "predicted": [
+        "UNDO",
+        "UNDO"
+      ],
+      "hit": true
+    },
+    {
+      "start": 719872,
+      "end": 791872,
+      "label": "UNDO",
+      "predicted": [
+        "UNDO",
+        "UNDO"
+      ],
+      "hit": true
+    },
+    {
+      "start": 864256,
+      "end": 936256,
+      "label": "UNDO",
+      "predicted": [
+        "UNDO",
+        "UNDO"
+      ],
+      "hit": true
+    },
+    {
+      "start": 1008640,
+      "end": 1080640,
+      "label": "UNDO",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 1152000,
+      "end": 1224000,
+      "label": "UNDO",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 1296384,
+      "end": 1368384,
+      "label": "UNDO",
+      "predicted": [
+        "UNDO"
+      ],
+      "hit": true
+    },
+    {
+      "start": 1440768,
+      "end": 1512768,
+      "label": "UNDO",
+      "predicted": [],
+      "hit": false
+    }
+  ],
+  "createdAt": "2026-11-21T01:00:34-05:00",
+  "takeKind": "gesture",
+  "battery": "livetest",
+  "distanceCm": 20,
+  "cueWindowMs": 1500,
+  "periodMs": 3000,
+  "leadInMs": 3000,
+  "laptopModel": "MSI Katana 15 HX B14WGK",
+  "protocol": "ml/PROTOCOL.md"
+}

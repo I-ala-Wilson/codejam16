@@ -1,0 +1,112 @@
+{
+  "person": "Yahya-github",
+  "gesture": "WAVE",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "live test: 7/10 detected; detector sources {\"rules\":26,\"classifier\":28}",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 264384,
+      "label": "WAVE",
+      "predicted": [
+        "WAVE",
+        "WAVE"
+      ],
+      "hit": true
+    },
+    {
+      "start": 335872,
+      "end": 455872,
+      "label": "WAVE",
+      "predicted": [
+        "WAVE"
+      ],
+      "hit": true
+    },
+    {
+      "start": 528384,
+      "end": 648384,
+      "label": "WAVE",
+      "predicted": [
+        "WAVE"
+      ],
+      "hit": true
+    },
+    {
+      "start": 719872,
+      "end": 839872,
+      "label": "WAVE",
+      "predicted": [
+        "HOLD"
+      ],
+      "hit": false
+    },
+    {
+      "start": 912384,
+      "end": 1032384,
+      "label": "WAVE",
+      "predicted": [
+        "HOLD",
+        "WAVE"
+      ],
+      "hit": true
+    },
+    {
+      "start": 1104896,
+      "end": 1224896,
+      "label": "WAVE",
+      "predicted": [
+        "HOLD"
+      ],
+      "hit": false
+    },
+    {
+      "start": 1296384,
+      "end": 1416384,
+      "label": "WAVE",
+      "predicted": [
+        "WAVE"
+      ],
+      "hit": true
+    },
+    {
+      "start": 1488896,
+      "end": 1608896,
+      "label": "WAVE",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 1680384,
+      "end": 1800384,
+      "label": "WAVE",
+      "predicted": [
+        "HOLD",
+        "WAVE"
+      ],
+      "hit": true
+    },
+    {
+      "start": 1872896,
+      "end": 1992896,
+      "label": "WAVE",
+      "predicted": [
+        "HOLD",
+        "WAVE"
+      ],
+      "hit": true
+    }
+  ],
+  "createdAt": "2026-11-21T00:59:00-05:00",
+  "takeKind": "gesture",
+  "battery": "livetest",
+  "distanceCm": 20,
+  "cueWindowMs": 2500,
+  "periodMs": 4000,
+  "leadInMs": 3000,
+  "laptopModel": "MSI Katana 15 HX B14WGK",
+  "protocol": "ml/PROTOCOL.md"
+}

@@ -1,0 +1,108 @@
+{
+  "person": "Yahya-github",
+  "gesture": "PUSH",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "live test: 1/10 detected; detector sources {\"rules\":11,\"classifier\":4}",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 216384,
+      "label": "PUSH",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 288768,
+      "end": 360768,
+      "label": "PUSH",
+      "predicted": [],
+      "hit": false
+    },
+    {
+      "start": 433152,
+      "end": 505152,
+      "label": "PUSH",
+      "predicted": [
+        "HOLD"
+      ],
+      "hit": false
+    },
+    {
+      "start": 576512,
+      "end": 648512,
+      "label": "PUSH",
+      "predicted": [
+        "HOLD"
+      ],
+      "hit": false
+    },
+    {
+      "start": 720896,
+      "end": 792896,
+      "label": "PUSH",
+      "predicted": [
+        "HOLD",
+        "WAVE"
+      ],
+      "hit": false
+    },
+    {
+      "start": 865280,
+      "end": 937280,
+      "label": "PUSH",
+      "predicted": [
+        "HOLD"
+      ],
+      "hit": false
+    },
+    {
+      "start": 1008640,
+      "end": 1080640,
+      "label": "PUSH",
+      "predicted": [
+        "HOLD"
+      ],
+      "hit": false
+    },
+    {
+      "start": 1153024,
+      "end": 1225024,
+      "label": "PUSH",
+      "predicted": [
+        "HOLD"
+      ],
+      "hit": false
+    },
+    {
+      "start": 1297408,
+      "end": 1369408,
+      "label": "PUSH",
+      "predicted": [
+        "HOLD"
+      ],
+      "hit": false
+    },
+    {
+      "start": 1440768,
+      "end": 1512768,
+      "label": "PUSH",
+      "predicted": [
+        "HOLD",
+        "PUSH"
+      ],
+      "hit": true
+    }
+  ],
+  "createdAt": "2026-11-21T00:57:35-05:00",
+  "takeKind": "gesture",
+  "battery": "livetest",
+  "distanceCm": 20,
+  "cueWindowMs": 1500,
+  "periodMs": 3000,
+  "leadInMs": 3000,
+  "laptopModel": "MSI Katana 15 HX B14WGK",
+  "protocol": "ml/PROTOCOL.md"
+}
