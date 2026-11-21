@@ -1,0 +1,143 @@
+{
+  "person": "Yahya-github",
+  "gesture": "OPEN_CLOSE",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "calib-1: OPEN_CLOSE at 20 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 143360,
+      "end": 239360,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 311296,
+      "end": 407296,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 479232,
+      "end": 575232,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 647168,
+      "end": 743168,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 816128,
+      "end": 912128,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 984064,
+      "end": 1080064,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1152000,
+      "end": 1248000,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 1319936,
+      "end": 1415936,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1487872,
+      "end": 1583872,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 1655808,
+      "end": 1751808,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1823744,
+      "end": 1919744,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 1991680,
+      "end": 2087680,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2159616,
+      "end": 2255616,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 2327552,
+      "end": 2423552,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2495488,
+      "end": 2591488,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 2664448,
+      "end": 2760448,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2832384,
+      "end": 2928384,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 3000320,
+      "end": 3096320,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3168256,
+      "end": 3264256,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 3336192,
+      "end": 3432192,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T13:19:43-05:00",
+  "takeKind": "gesture",
+  "battery": "calib",
+  "distanceCm": 20,
+  "cueWindowMs": 2000,
+  "periodMs": 3500,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "L",
+  "volumePct": 200,
+  "laptopModel": "MSI Katana 15 HX B14WGK",
+  "protocol": "ml/PROTOCOL.md"
+}

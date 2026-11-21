@@ -1,0 +1,83 @@
+{
+  "person": "Yahya-github",
+  "gesture": "UNDO",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "livecheck-1: UNDO at 20 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 143360,
+      "end": 215360,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 287744,
+      "end": 359744,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 432128,
+      "end": 504128,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 575488,
+      "end": 647488,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 719872,
+      "end": 791872,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 864256,
+      "end": 936256,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 1007616,
+      "end": 1079616,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 1152000,
+      "end": 1224000,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 1296384,
+      "end": 1368384,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 1439744,
+      "end": 1511744,
+      "label": "UNDO",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T13:24:25-05:00",
+  "takeKind": "gesture",
+  "battery": "calib",
+  "distanceCm": 20,
+  "cueWindowMs": 1500,
+  "periodMs": 3000,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "L",
+  "volumePct": 200,
+  "laptopModel": "MSI Katana 15 HX B14WGK",
+  "protocol": "ml/PROTOCOL.md"
+}
