@@ -8,6 +8,23 @@ export function ensureSonar(): Promise<boolean> {
   return starting
 }
 
+/** Keep trying until the sonar runs: after a failed start (audio blocked before any click), every later click or key
+ *  retries once the previous attempt has finished, so an early click can't leave it stopped. */
+export function keepSonarOn(): () => void {
+  let done = false
+  const kick = async () => {
+    if (done || engine.health().running) return
+    await (starting ?? Promise.resolve(false)) // let a pending attempt finish first
+    if (!engine.health().running) await ensureSonar()
+    if (engine.health().running) stop()
+  }
+  const stop = () => { done = true; window.removeEventListener('pointerdown', kick); window.removeEventListener('keydown', kick) }
+  window.addEventListener('pointerdown', kick)
+  window.addEventListener('keydown', kick)
+  ensureSonar().then((ok) => { if (ok) stop() })
+  return stop
+}
+
 let actx: AudioContext | null = null
 /** A soft two-note chime (care confirmations, habit nudges). */
 export function chime(up = true, gain = 0.08) {

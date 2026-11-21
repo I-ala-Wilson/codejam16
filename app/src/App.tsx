@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import RoomTest from './RoomTest.tsx'
 import Home from './Home.tsx'
 import { useGuardian } from './lock/guardian.ts'
-import { ensureSonar } from './sonar.ts'
+import { keepSonarOn } from './sonar.ts'
 import Record from './Record.tsx'
 import Lock from './Lock.tsx'
 import Gestures from './Gestures.tsx'
@@ -21,13 +21,7 @@ export default function App() {
   useGuardian()
   // The sonar starts the moment any page opens. If the browser blocks audio until the first interaction, the first
   // click or key anywhere starts it silently; there is no button to press.
-  useEffect(() => {
-    ensureSonar()
-    const kick = () => { ensureSonar() }
-    window.addEventListener('pointerdown', kick, { once: true })
-    window.addEventListener('keydown', kick, { once: true })
-    return () => { window.removeEventListener('pointerdown', kick); window.removeEventListener('keydown', kick) }
-  }, [])
+  useEffect(() => keepSonarOn(), [])
   const [page, setPage] = useState<Page>(location.pathname === '/lock' ? 'lock' : ((location.hash.slice(1) as Page) in PAGES ? (location.hash.slice(1) as Page) : 'home'))
   const go = (p: Page) => { setPage(p); location.hash = p }
   return (
