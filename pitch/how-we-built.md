@@ -7,7 +7,7 @@ Your laptop's speaker plays a 20 kHz tone that's too high to hear. Your hand ref
 Five people recorded 147 gesture takes on their own laptops. We trained a small CNN on a GPU, and it runs in the browser through ONNX. Every score is measured on a person the model never trained on, and a brand-new person gets about 1 in 2 gestures right. Five minutes of your own recordings lifts accuracy by about 9 points. Simple rule-based detectors are the fallback.
 
 ## 3. The agents
-Four humans worked with five AI agents: three Claude Code agents, one QA agent and one Codex agent. The agents talked on a single GitHub issue board. Git hooks blocked any edit outside an agent's own folders. Every spec change got a new version number, and every agent had to acknowledge it. The model trained on a GPU overnight, and the QA agent caught a security bug in the lock. The humans chose the idea, recorded the data, tested and decided. The agents wrote the code.
+Four humans worked with five AI agents (three Claude Code, one QA, one Codex) on one GitHub issue board. Git hooks blocked edits outside each agent's folders. Every agent acknowledged each new spec version. The model trained on a GPU overnight, and the QA agent caught a security bug in the lock. The humans chose the idea, recorded the data, tested and decided. The agents wrote the code.
 
 ## 4. Considerations
 - **Privacy:** sensing happens on your device. Only gesture events ever leave it, never audio.
