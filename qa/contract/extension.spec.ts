@@ -4,7 +4,6 @@ import { resolve } from 'node:path'
 // Contract under test: contracts/extension.md (LOCK / UNLOCK / STATUS over externally_connectable).
 const EXT_DIR = resolve(process.env.EXT_DIR ?? resolve(__dirname, '..', '..', 'extension'))
 const ORIGIN = 'http://localhost:5199'
-const THIRTY_MIN = 30 * 60 * 1000
 
 let ctx: BrowserContext
 let page: Page
@@ -46,7 +45,7 @@ test('STATUS after fresh unlock matches the contract shape', async () => {
   const r = (await send({ type: 'STATUS' })) as { locked: boolean; sites: string[]; until: number | null }
   expect(r.locked).toBe(false)
   expect(Array.isArray(r.sites)).toBe(true)
-  expect(typeof r.until).toBe('number')
+  expect(r.until === null || typeof r.until === 'number').toBe(true) // contract: number|null
 })
 
 test('LOCK replies {ok:true, locked:true} and STATUS reflects the sites', async () => {
@@ -56,14 +55,12 @@ test('LOCK replies {ok:true, locked:true} and STATUS reflects the sites', async 
   expect(s).toEqual({ locked: true, sites: ['youtube.com', 'tiktok.com'], until: null })
 })
 
-test('UNLOCK replies {ok:true, locked:false, until ~ now+30min}', async () => {
+// Contract history: up to 8048c98 UNLOCK meant "off for 30 min" (until = epoch ms). Since 643eb6c the
+// contract says "off until the next LOCK (no expiry)" and replies until:null. Tests follow the current contract.
+test('UNLOCK replies {ok:true, locked:false, until:null} (no expiry, per current contract)', async () => {
   await send({ type: 'LOCK', sites: ['youtube.com'] })
-  const before = Date.now()
-  const r = (await send({ type: 'UNLOCK' })) as { ok: boolean; locked: boolean; until: number }
-  expect(r.ok).toBe(true)
-  expect(r.locked).toBe(false)
-  expect(r.until).toBeGreaterThanOrEqual(before + THIRTY_MIN - 2000)
-  expect(r.until).toBeLessThanOrEqual(Date.now() + THIRTY_MIN + 2000)
+  const r = await send({ type: 'UNLOCK' })
+  expect(r).toEqual({ ok: true, locked: false, until: null })
 })
 
 test('locked site redirects to blocked.html with the exact copy and a link to appUrl', async () => {
@@ -78,8 +75,13 @@ test('locked site redirects to blocked.html with the exact copy and a link to ap
   const p = await ctx.newPage()
   await p.goto(`chrome-extension://${extId}/blocked.html`)
   // Copy is split across elements ("Locked by Echo." / "Ask a parent."), so match across the break.
-  await expect(p.locator('body')).toContainText(/Locked by Echo\.\s*Ask a parent\./)
-  await expect(p.locator('#open')).toHaveAttribute('href', `${ORIGIN}/#lock`)
+  await expect(p.locator('body')).toContainText(/Locked by Echo\./)
+  await expect(p.locator('body')).toContainText(/Ask a parent\./)
+  // Contract: link is appUrl?unlock=1&return=<original URL>; opened without a hash there is no return param.
+  const href = (await p.locator('#open').getAttribute('href')) ?? ''
+  const u = new URL(href)
+  expect(u.origin + u.pathname + u.hash).toBe(`${ORIGIN}/#lock`)
+  expect(u.searchParams.get('unlock')).toBe('1')
   await p.close()
 })
 
@@ -174,7 +176,30 @@ test('lock persists through a service-worker restart (state not held only in mem
   expect(s.sites).toEqual(['youtube.com'])
 })
 
-test('lock expiry: after UNLOCK the 30-min window must re-lock (manifest needs an alarm/timer)', async () => {
-  const manifest = (await (await ctx.request.get(`chrome-extension://${extId}/manifest.json`)).json()) as { permissions: string[] }
-  expect(manifest.permissions, 'no "alarms" permission => nothing can re-lock after 30 min').toContain('alarms')
+async function urlAfterVisit(url: string): Promise<string> {
+  const p = await ctx.newPage()
+  await p.goto(url, { waitUntil: 'commit' }).catch(() => undefined)
+  await p.waitForTimeout(1200)
+  const u = p.url()
+  await p.close()
+  return u
+}
+
+test('free-text site entered as a full URL either blocks the site or is rejected, never "LOCKED" with nothing blocked', async () => {
+  // Lock page input is free text split on commas; a parent may well type "https://www.youtube.com".
+  const r = (await send({ type: 'LOCK', sites: ['https://www.youtube.com'] })) as { ok?: boolean }
+  const after = await urlAfterVisit('https://www.youtube.com/')
+  const blocked = after.includes('blocked.html')
+  expect(blocked || r.ok === false, `reply ok:${r.ok} but youtube.com ${blocked ? 'is' : 'is NOT'} blocked (landed on ${after.slice(0, 40)})`).toBe(true)
+})
+
+test('a tab already open on a site is blocked when LOCK arrives (not only new navigations)', async () => {
+  const open = await ctx.newPage()
+  await open.route('https://www.kids.test/**', (r) => r.fulfill({ contentType: 'text/html', body: '<title>video</title>playing' }))
+  await open.goto('https://www.kids.test/watch')
+  await send({ type: 'LOCK', sites: ['kids.test'] })
+  await open.waitForTimeout(1000)
+  const stillPlaying = (await open.locator('body').innerText().catch(() => '')).includes('playing')
+  await open.close()
+  expect(stillPlaying, 'existing tab keeps playing after LOCK').toBe(false)
 })

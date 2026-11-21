@@ -6,7 +6,7 @@ const GATE = process.env.QA_GATE ?? 'M1'
 const SHOTS = join(__dirname, '..', '..', 'docs', 'qa', 'shots', GATE)
 mkdirSync(SHOTS, { recursive: true })
 
-const TABS = ['room', 'dataset', 'habit', 'gestures', 'live', 'record', 'lock'] as const
+const TABS = ['home', 'room', 'dataset', 'habit', 'gestures', 'live', 'record', 'lock'] as const
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'mobile', width: 390, height: 844 },
@@ -81,6 +81,19 @@ test('lock page implements the secret rhythm (demo step 2), not just extension b
   // mentions "secret rhythm" (the "Next (#12)" placeholder) must not count.
   expect(body, 'placeholder copy must be gone').not.toMatch(/next \(#\d+\)/)
   await expect(page.getByRole('button', { name: /set (the )?(secret|password|sequence)|record (the )?(secret|sequence)/i }).first()).toBeVisible({ timeout: 2000 })
+})
+
+test('lock: an existing password cannot be replaced without knowing it (kid bypass)', async ({ page }) => {
+  // A parent already set a password; a child now sits at the open Echo tab with the mic allowed.
+  await page.addInitScript(() => localStorage.setItem('echo.lock.password', JSON.stringify(['PUSH', 'PULL', 'WAVE', 'OPEN_CLOSE'])))
+  await page.goto('/#lock')
+  await page.waitForLoadState('networkidle')
+  await page.getByRole('button', { name: /start sonar/i }).first().click()
+  await page.waitForTimeout(4500) // calibrate(3000)
+  const change = page.getByRole('button', { name: /change password|set password/i })
+  await page.screenshot({ path: join(SHOTS, 'lock-change-password.png'), fullPage: true })
+  const reachable = (await change.count()) > 0 && (await change.first().isEnabled())
+  expect(reachable, 'Change password must require the current password (or be hidden while locked)').toBe(false)
 })
 
 test('dataset: switching tabs mid-take must not wedge the next take', async ({ page }) => {
