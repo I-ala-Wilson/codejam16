@@ -1,0 +1,142 @@
+{
+  "person": "EJ2007",
+  "gesture": "WAVE",
+  "laptop": "macbook-air-m2",
+  "note": "WAVE at 50 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 264384,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 336896,
+      "end": 456896,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 528384,
+      "end": 648384,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 720896,
+      "end": 840896,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 913408,
+      "end": 1033408,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1104896,
+      "end": 1224896,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1297408,
+      "end": 1417408,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1489920,
+      "end": 1609920,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1681408,
+      "end": 1801408,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1873920,
+      "end": 1993920,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2066432,
+      "end": 2186432,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 2257920,
+      "end": 2377920,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2450432,
+      "end": 2570432,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 2642944,
+      "end": 2762944,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2834432,
+      "end": 2954432,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3026944,
+      "end": 3146944,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3218432,
+      "end": 3338432,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3410944,
+      "end": 3530944,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3603456,
+      "end": 3723456,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3794944,
+      "end": 3914944,
+      "label": "WAVE",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-20T23:15:07-05:00",
+  "takeKind": "gesture",
+  "distanceCm": 50,
+  "cueWindowMs": 2500,
+  "periodMs": 4000,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "R",
+  "volumePct": 70,
+  "laptopModel": "MacBook Air M2",
+  "protocol": "ml/PROTOCOL.md"
+}
