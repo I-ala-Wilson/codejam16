@@ -241,6 +241,48 @@ evaluation finished; it is now OFF by default and can be switched on in gesture.
 detector's own stroke logic (the primary stroke after wind-up and recoil are dropped) as the tie-break. That would be a new
 candidate under a new pre-registered rule.
 
+## Retrain with Michael's Dell takes (Sat 21 Nov, 12:00). PRE-REGISTERED before the retrain is evaluated
+New data: 14 gesture takes on a Dell Inspiron 15 3520 (`data/recordings/Miguel982/battery1`, audited 14 of 14 usable,
+tone 37-49 dB), the first new laptop model since the original set. Nothing about the recipe changes (defaults, 30 epochs).
+Leave-one-person-out with the same machinery as round 3 (`ml/tune.py`, baseline recipe only, seeds 0 and 1) is a sanity
+check on the new data, not a paired comparison with the earlier 0.421 / 2.11 (the people's data differ now).
+The new model replaces the shipped one only if ALL hold:
+- mean macro recall of the two seeds is at least 0.39 (the old baseline 0.421 minus 2 x its seed noise 0.018),
+- mean false alarms per minute is at most 2.6 (the old 2.11 plus 0.5),
+- the exported model passes the engine and ml tests (`npm test` in engine, `pytest` in ml) with the new `gesture.onnx/.json`.
+Otherwise the shipped model stays and the result is reported.
+
+### Retrain result: SHIPPED (rule met)
+Leave-one-person-out, baseline recipe, seeds 0 and 1, 5 people, now including the Dell takes (`retrain_dell/SUMMARY.md`):
+macro recall 0.413 and 0.412 (mean 0.412, needs 0.39), false alarms 2.08 and 2.13 per minute (mean 2.10, needs 2.6),
+train F1 0.927, held-out F1 0.557 (was 0.946 and 0.555). Engine tests 184 passed, ml tests 263 passed (5 skipped) with the
+new files. `gesture.json` differs only in the window count (73208 to 79550); classes, thresholds and decoder are unchanged.
+Honest reading: the held-out numbers are the same as before within noise (0.412 vs 0.421), so this is not an accuracy gain
+on the people we already had. What it adds is a second laptop model (Dell Inspiron 15 3520) in the training set.
+
+## UNDO backup from the rule detector. PRE-REGISTERED before the rule UNDO is scored on the recordings (Sat 21 Nov 12:10)
+Why: EJ reports that on his MacBook Air the engine never emitted UNDO live. The held-out report shows classifier UNDO recall
+of 29% for EJ (86% for Ian). With the model on, `engine/src/index.ts` drops the rules' UNDO (only HOLD and REPETITIVE pass).
+The rule detector (double tap toward within 600 ms) is untrained, so its score on the recordings is not train/test
+contaminated, but its thresholds were first guesses tuned on the pilot data, which is not in `data/recordings`.
+Measurement: `engine/tools/score.ts` on `data/recordings` (rules only): UNDO rep recall pooled and per person, and UNDO
+events per minute on NONE takes (false alarms), pooled.
+Decision: let the rules' UNDO through next to the model's (OR, like REPETITIVE) only if ALL hold:
+- rule UNDO rep recall pooled over all UNDO takes is at least 0.60 (the model alone is 0.48 held-out),
+- rule UNDO false events on NONE takes are at most 0.5 per minute pooled,
+- the rule UNDO recall for EJ is higher than the model's held-out 0.29,
+- all engine tests pass, with a new test that a model event and a rule event for the same double tap give ONE UNDO
+  (shared refractory).
+Otherwise nothing changes and the answer to EJ is "record a short calibration on his laptop and retrain".
+
+### UNDO backup result: REFUSED
+`engine/tools/score.ts`, rules only, all `data/recordings` (Naomi's takes sit in Ian's folder): rule UNDO rep recall
+EJ 7/80 (9%), Ian and Naomi 9/200 (5%), Michael 3/40 (8%), Yahya 7/90 (8%), pooled 26/410 (6%), needs 60%. The rules read a
+real double tap as PUSH and PULL strokes (EJ's UNDO cues were missed as PULLx69 PUSHx73), so the detector in `gestures.ts`
+does not catch the double tap on real hands even though 71% of EJ's cues contain two clear toward strokes in the raw
+Doppler (measured separately). Nothing changes in the engine. Not claimed: that a better double-tap rule cannot work; that
+would be a new candidate under a new pre-registered rule.
+
 ## Breathing v2: time-boxed second shot (Ian's DIRECT 7065406175). PRE-REGISTERED before any new take is analysed
 v1 stays as written above and keeps its verdict (NO-GO on the 15 takes it was run on). v2 is an alternative method next to it,
 judged only on takes that were not used to design it, with a hard stop at 13:30 today: if v2 is not a GO by then, breathing

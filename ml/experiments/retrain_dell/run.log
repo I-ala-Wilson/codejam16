@@ -1,0 +1,12 @@
+tuning on cuda, 161 takes, 5 people
+baseline seed 0: macro recall 0.413, false alarms/min 2.0811586756211056, train F1 0.926, held-out F1 0.557 (404 s)
+baseline seed 1: macro recall 0.412, false alarms/min 2.1280568782772065, train F1 0.927, held-out F1 0.558 (414 s)
+# Tuning summary (leave-one-person-out)
+
+Accepted only if: gain over the baseline > max(2 x seed noise, 0.01), better for 80% of people,
+false alarms/min no more than 0.0 per minute above the baseline, train-to-held-out gap no more than 0.02 wider.
+
+| recipe | seeds | macro recall | false alarms/min | train F1 | held-out F1 | gap | verdict |
+|---|---|---|---|---|---|---|---|
+| baseline | 2 | 0.412 | 2.10 | 0.927 | 0.557 | 0.369 | baseline |
+finished
