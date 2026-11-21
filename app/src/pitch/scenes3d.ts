@@ -539,3 +539,163 @@ export const careScene3D = make3D(() => {
     g.stroke()
   }
 })
+
+// ---------- Lock: over the shoulder; the laptop shows Chrome's "can't be reached" page; PUSH PULL PULL PUSH unlocks ----------
+// Timeline (s): locked 0-1.5, hand rises 1.5-2.3, four signs 1.4 s each 2.3-7.9 (a dot after each), cross-fade to the
+// unlocked site 7.9-8.7, hand lowers 8.7-9.5, hold until 12. Clicking the scene restarts the loop (replayLock).
+const LOCK_T = 12
+const LOCK_SIGNS = ['PUSH', 'PULL', 'PULL', 'PUSH'] as const
+const SIGN0 = 2.3, SIGN_LEN = 1.4
+let lockNow = 0, lockStart = 0
+export function replayLock() { lockStart = lockNow }
+const lockAt = () => ((lockNow - lockStart) % LOCK_T + LOCK_T) % LOCK_T
+const lockDots = (u: number) => Math.max(0, Math.min(4, Math.floor((u - SIGN0 - SIGN_LEN * 0.55) / SIGN_LEN) + 1))
+const lockOpen = (u: number) => Math.max(0, Math.min(1, (u - 7.9) / 0.8))
+
+// The laptop screen: drawn like extension/veil.js (Chrome's net-error page), large type so it survives the dither.
+function drawLockScreen(c: HTMLCanvasElement, dots: number, open: number) {
+  const g = c.getContext('2d')!, W = c.width, H = c.height
+  g.globalAlpha = 1; g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H)
+  if (open < 1) {
+    g.globalAlpha = 1 - open
+    g.fillStyle = '#5f6368' // sad page icon
+    g.beginPath(); g.moveTo(70, 44); g.lineTo(122, 44); g.lineTo(144, 66); g.lineTo(144, 146); g.lineTo(70, 146); g.closePath(); g.fill()
+    g.fillStyle = '#ffffff'; g.fillRect(92, 84, 8, 8); g.fillRect(114, 84, 8, 8)
+    g.strokeStyle = '#ffffff'; g.lineWidth = 6; g.beginPath(); g.arc(107, 128, 14, Math.PI * 1.15, Math.PI * 1.85); g.stroke()
+    g.fillStyle = '#202124'; g.font = 'bold 44px system-ui, -apple-system, sans-serif'; g.textBaseline = 'alphabetic'
+    g.fillText('This site can’t be reached', 70, 214)
+    g.fillStyle = '#3c4043'; g.font = '28px system-ui, -apple-system, sans-serif'
+    g.fillText('youtube.com refused to connect.', 70, 262)
+    g.fillStyle = '#5f6368'; g.font = '22px system-ui, -apple-system, sans-serif'
+    g.fillText('ERR_CONNECTION_REFUSED', 70, 304)
+    g.fillStyle = '#1a73e8'; g.fillRect(W - 210, H - 120, 140, 50)
+    g.fillStyle = '#ffffff'; g.font = 'bold 24px system-ui, -apple-system, sans-serif'; g.fillText('Reload', W - 178, H - 86)
+    g.fillStyle = '#9aa0a6' // the only tell: faint progress dots at the bottom
+    for (let i = 0; i < dots; i++) { g.beginPath(); g.arc(W / 2 - (dots - 1) * 11 + i * 22, H - 26, 6, 0, Math.PI * 2); g.fill() }
+  }
+  if (open > 0) {
+    g.globalAlpha = open // an unlocked video site: dark header, big 16:9 player, thumbnails, grey text lines, no logo
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H)
+    g.fillStyle = '#202124'; g.fillRect(0, 0, W, 54)
+    g.fillStyle = '#5f6368'; g.fillRect(W / 2 - 150, 16, 300, 22)
+    g.fillStyle = '#111111'; g.fillRect(40, 76, 520, 292)
+    g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(280, 182); g.lineTo(280, 262); g.lineTo(346, 222); g.closePath(); g.fill()
+    for (let i = 0; i < 3; i++) { g.fillStyle = '#9aa0a6'; g.fillRect(590, 76 + i * 102, 150, 84); g.fillStyle = '#cfd2d6'; g.fillRect(750, 84 + i * 102, 70, 12); g.fillRect(750, 106 + i * 102, 50, 10) }
+    g.fillStyle = '#cfd2d6'; g.fillRect(40, 388, 420, 18); g.fillRect(40, 416, 280, 14)
+  }
+  g.globalAlpha = 1
+}
+
+export const lockScene3D = make3D(() => {
+  const scene = new THREE.Scene()
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x101010, 0.35))
+  const key = new THREE.DirectionalLight(0xffffff, 2.0); key.position.set(-1.5, 3, -2); scene.add(key)
+  const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(2, 2, 2); scene.add(fill)
+  const camera = new THREE.PerspectiveCamera(22, DW / DH, 0.05, 50)
+  const desk = new THREE.Mesh(new THREE.BoxGeometry(2, 0.04, 1.2), SOFT(0x1a1a1a)); scene.add(desk)
+  const lap = laptop(); lap.scale.setScalar(0.24); lap.rotation.y = Math.PI; scene.add(lap) // screen faces him (-z)
+  const tex = document.createElement('canvas'); tex.width = 860; tex.height = 460
+  const screenTex = new THREE.CanvasTexture(tex); screenTex.colorSpace = THREE.SRGBColorSpace
+  const screenMat = new THREE.MeshBasicMaterial({ map: screenTex })
+  lap.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.material === SCREEN) m.material = screenMat })
+  const screenTop = new THREE.Object3D(); screenTop.position.set(0, 1.18, -0.6); lap.add(screenTop)
+  const screenMid = new THREE.Object3D(); screenMid.position.set(0, 0.7, -0.55); lap.add(screenMid)
+  const handAnchor = new THREE.Object3D(); scene.add(handAnchor)
+  let drawn = ''
+  type Rig = { bone: (n: string) => THREE.Bone; q0: (n: string) => THREE.Quaternion; l1: number; l2: number; up: THREE.Vector3; fore: THREE.Vector3; hand: THREE.Vector3; palm: THREE.Vector3; deskY: number; rSh: THREE.Vector3; side: number }
+  let rig: Rig | null = null
+  new GLTFLoader().load('/models/person/guy.glb', (gltf) => {
+    const root = gltf.scene, bones = new Map<string, THREE.Bone>()
+    const body = new THREE.MeshLambertMaterial({ color: 0xbdbdbb })
+    root.traverse((o) => {
+      if ((o as THREE.Bone).isBone) bones.set(o.name.replace(/^mixamorig:?/, ''), o as THREE.Bone)
+      const m = o as THREE.Mesh
+      if (!m.isMesh) return
+      if (/^(EyeLeft|EyeRight|Wolf3D_Teeth|Wolf3D_Beard|Wolf3D_Headwear)$/.test(m.name)) m.visible = false
+      ;(m.material as THREE.Material).dispose(); m.material = body; m.frustumCulled = false
+      if (m.name === 'Wolf3D_Outfit_Top') dropTrim(m.geometry)
+    })
+    const bone = (n: string) => { const b = bones.get(n); if (!b) throw new Error('guy.glb: missing bone ' + n); return b }
+    const at = (n: string) => bone(n).getWorldPosition(new V3())
+    scene.add(root); root.updateMatrixWorld(true)
+    const rest = new Map<string, THREE.Quaternion>()
+    for (const [n, b] of bones) rest.set(n, b.getWorldQuaternion(new THREE.Quaternion()))
+    const q0 = (n: string) => rest.get(n)!
+    const dir = (a: string, b: string) => at(b).sub(at(a)).normalize()
+    const X = new V3(1, 0, 0)
+    // left arm down by his side (the rest pose has the arms out)
+    const lUp = dir('LeftArm', 'LeftForeArm'), lFore = dir('LeftForeArm', 'LeftHand')
+    aim(bone('LeftArm'), q0('LeftArm'), lUp, perpTo(X, lUp), new V3(0.12, -1, 0.1).normalize(), X)
+    aim(bone('LeftForeArm'), q0('LeftForeArm'), lFore, perpTo(X, lFore), new V3(0.05, -1, 0.25).normalize(), X)
+    root.updateMatrixWorld(true)
+    const lSh = at('LeftArm'), rSh = at('RightArm'), mid = lSh.clone().add(rSh).multiplyScalar(0.5)
+    const deskY = mid.y - 0.42
+    desk.position.set(mid.x, deskY - 0.02, mid.z + 0.75)
+    const side = Math.sign(rSh.x - mid.x) || -1
+    lap.position.set(mid.x - side * 0.04, deskY, mid.z + 0.58)
+    // over his right shoulder: head and shoulder partly in the foreground, the screen large
+    camera.position.set(rSh.x + side * 0.3, rSh.y + 0.3, rSh.z - 0.55)
+    const sm = screenMid.getWorldPosition(new V3())
+    camera.lookAt(sm.x + side * 0.06, sm.y - 0.01, sm.z)
+    const hand = dir('RightHand', 'RightHandMiddle1'), across = at('RightHandIndex1').sub(at('RightHandPinky1'))
+    const palm = new V3().crossVectors(hand, across).multiplyScalar(-1).normalize()
+    rig = { bone, q0, l1: at('RightArm').distanceTo(at('RightForeArm')), l2: at('RightForeArm').distanceTo(at('RightHand')), up: dir('RightArm', 'RightForeArm'), fore: dir('RightForeArm', 'RightHand'), hand, palm, deskY, rSh, side }
+  }, undefined, (e) => console.warn('guy.glb failed to load for the Lock scene', e))
+
+  const w = new V3(), pE = new V3(), pB = new V3()
+  const ease = (x: number) => { const k = Math.max(0, Math.min(1, x)); return k * k * (3 - 2 * k) }
+  return {
+    scene, camera, anchors: { hand: handAnchor, screenTop, screenMid },
+    update(t) {
+      lockNow = t
+      const u = lockAt(), dots = lockDots(u), open = lockOpen(u)
+      const k = `${dots}:${Math.round(open * 10)}`
+      if (k !== drawn) { drawLockScreen(tex, dots, open); screenTex.needsUpdate = true; drawn = k }
+      const r = rig
+      if (!r) return
+      const sm = screenMid.getWorldPosition(new V3())
+      // hand in front of the screen; a sign moves it 15 cm toward (PUSH) or away from (PULL) the screen and back
+      const mid = new V3(sm.x + r.side * 0.04, sm.y + 0.02, sm.z - 0.32)
+      const restW = new V3(r.rSh.x - r.side * 0.02, r.deskY + 0.06, sm.z - 0.42)
+      const up = ease((u - 1.5) / 0.8) * (1 - ease((u - 8.7) / 0.8))
+      let dz = 0
+      const i = Math.floor((u - SIGN0) / SIGN_LEN)
+      if (i >= 0 && i < 4) {
+        const p = (u - SIGN0 - i * SIGN_LEN) / SIGN_LEN
+        dz = (LOCK_SIGNS[i] === 'PUSH' ? 0.15 : -0.15) * Math.sin(Math.min(1, p / 0.85) * Math.PI)
+      }
+      w.copy(mid).add(new V3(0, 0, dz)).lerp(restW, 1 - up)
+      const sh = r.bone('RightArm').getWorldPosition(new V3())
+      const pole = new V3(r.side, -1, -0.3)
+      ikElbow(sh, w, r.l1, r.l2, pole, pE)
+      const dU = new V3().subVectors(pE, sh).normalize(), dF = new V3().subVectors(w, pE).normalize()
+      const bend = new V3().crossVectors(dU, dF); if (bend.lengthSq() < 1e-6) bend.copy(pole)
+      aim(r.bone('RightArm'), r.q0('RightArm'), r.up, perpTo(new V3().crossVectors(r.up, r.palm), r.up), dU, bend)
+      r.bone('RightForeArm').getWorldPosition(pB)
+      const palmN = new V3(0, 0, 1).lerp(new V3(0, -1, 0), 1 - up).normalize() // open palm toward the screen when raised
+      const fingers = new V3(0, 1, 0).lerp(new V3(0, 0, 1), 1 - up).normalize()
+      aim(r.bone('RightForeArm'), r.q0('RightForeArm'), r.fore, perpTo(r.palm, r.fore), dF.subVectors(w, pB), palmN)
+      aim(r.bone('RightHand'), r.q0('RightHand'), r.hand, perpTo(r.palm, r.hand), fingers, palmN)
+      r.bone('RightHand').getWorldPosition(handAnchor.position)
+    },
+  }
+}, (g, at) => {
+  const u = lockAt()
+  if (lockOpen(u) > 0.5) { const [x, y] = at('screenTop'); chip(g, 'UNLOCKED', x, y - 22) }
+}, (g, at) => {
+  // a thin flower arc pulses from the hand to the laptop as each sign lands
+  const u = lockAt(), i = Math.floor((u - SIGN0) / SIGN_LEN)
+  if (i < 0 || i > 3) return
+  const p = (u - SIGN0 - i * SIGN_LEN) / SIGN_LEN
+  if (p < 0.35 || p > 0.95) return
+  const q = (p - 0.35) / 0.6
+  const [hx, hy] = at('hand'), [sx, sy] = at('screenMid')
+  const a = Math.atan2(sy - hy, sx - hx), d = Math.hypot(sx - hx, sy - hy)
+  g.lineCap = 'round'
+  for (let k = 0; k < 3; k++) {
+    const v = q - k * 0.18
+    if (v <= 0 || v >= 1) continue
+    g.strokeStyle = `rgba(255,255,255,${(0.9 * (1 - v)).toFixed(3)})`; g.lineWidth = 2
+    g.beginPath(); g.arc(hx, hy, 10 + v * d, a - 0.4, a + 0.4); g.stroke()
+  }
+})

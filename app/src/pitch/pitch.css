@@ -79,3 +79,5 @@
 .pz__cards--soft .hwb__canvas { aspect-ratio: 2 / 1; }
 .pz__gestures li.pz__gestures-head { font-size: 19px; letter-spacing: .08em; text-transform: uppercase; border-bottom: 1px solid var(--ink); padding-bottom: 6px; }
 .pz__gestures li.pz__gestures-head b, .pz__gestures li.pz__gestures-head span { color: var(--ink); }
+.pz__replay { position: relative; cursor: pointer; }
+.pz__replay:hover::after { content: 'click to replay'; position: absolute; right: 10px; top: 8px; font: 400 18px var(--pixel); letter-spacing: .06em; text-transform: uppercase; background: var(--ink); color: var(--bg); padding: 1px 8px; }
