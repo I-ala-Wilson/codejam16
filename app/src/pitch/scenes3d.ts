@@ -363,7 +363,7 @@ export const careScene3D = make3D(() => {
   const phone = new THREE.Group(); scene.add(phone)
   // pinned to the bottom-right of the frame, well clear of the bed: a point on screen, pushed out to the bed's depth
   camera.updateMatrixWorld(true)
-  const toScreen = new THREE.Vector3(0.84, -0.8, 0.5).unproject(camera).sub(camera.position).normalize()
+  const toScreen = new THREE.Vector3(0.8, -0.42, 0.5).unproject(camera).sub(camera.position).normalize()
   phone.position.copy(camera.position).addScaledVector(toScreen, camera.position.distanceTo(new THREE.Vector3(-0.25, 0.68, 0.05)) * 0.9); phone.lookAt(camera.position)
   phone.add(new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.5, 0.03), new THREE.MeshBasicMaterial({ color: 0xf2f2f0 })))
   const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.23, 0.42), PHONE_GLOW); glass.position.z = 0.017; phone.add(glass)
@@ -464,6 +464,19 @@ export const careScene3D = make3D(() => {
   const u = careAt(t)
   const [hx, hy] = at('hand'), [lx, ly] = at('lapScreen'), [px, py] = at('glass')
   g.lineCap = 'round'
+  // alert on the phone: a soft glow and sparks drifting out for the moment the message lands
+  const since = u >= 4.8 && u < 5.9 ? u - 4.8 : u >= 10.4 ? u - 10.4 : -1
+  if (since >= 0) {
+    const fade = Math.max(0, 1 - since / 1.1)
+    const halo = g.createRadialGradient(px, py, 4, px, py, 70)
+    halo.addColorStop(0, `rgba(255,255,255,${(0.55 * fade).toFixed(3)})`); halo.addColorStop(1, 'rgba(255,255,255,0)')
+    g.fillStyle = halo; g.beginPath(); g.arc(px, py, 70, 0, Math.PI * 2); g.fill()
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + i * 0.7, r = 18 + since * (60 + (i % 4) * 14)
+      g.fillStyle = `rgba(255,255,255,${(0.95 * fade).toFixed(3)})`
+      g.beginPath(); g.arc(px + Math.cos(a) * r, py + Math.sin(a) * r * 0.8 - since * 18, 1.8 + (i % 3) * 0.6, 0, Math.PI * 2); g.fill()
+    }
+  }
   // faint, thin arcs from the moving hand to the laptop while a gesture is under way
   if ((u > 0.6 && u < 4) || (u > 6.2 && u < 9.6)) {
     const dir = Math.atan2(ly - hy, lx - hx), d = Math.hypot(lx - hx, ly - hy)
