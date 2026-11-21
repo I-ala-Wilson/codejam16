@@ -162,6 +162,26 @@ function price(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
 }
 // Habit: the explainer's mannequin at a desk, framed tight on the forearms. The left forearm rests on the desk;
 // the right hand's curled fingertips scratch it, then lift during the pause while the nudge shows.
+// Keep only the triangles whose three vertices are mostly skinned to arm bones (upper arm, forearm, hand, fingers), so
+// the mannequin becomes two arms with no chest, belly, head or legs.
+function armsOnly(m: THREE.SkinnedMesh) {
+  const g = m.geometry, idx = g.index, si = g.attributes.skinIndex, sw = g.attributes.skinWeight
+  if (!idx || !si || !sw) { m.visible = false; return }
+  const isArm = m.skeleton.bones.map((b) => /(Left|Right)(Arm|ForeArm|Hand)/.test(b.name))
+  const keep = new Uint8Array(si.count)
+  for (let v = 0; v < si.count; v++) {
+    let w = 0
+    for (let k = 0; k < 4; k++) if (isArm[si.getComponent(v, k)]) w += sw.getComponent(v, k)
+    keep[v] = w > 0.5 ? 1 : 0
+  }
+  const out: number[] = []
+  for (let t = 0; t < idx.count; t += 3) {
+    const a = idx.getX(t), b = idx.getX(t + 1), c = idx.getX(t + 2)
+    if (keep[a] && keep[b] && keep[c]) out.push(a, b, c)
+  }
+  if (!out.length) { m.visible = false; return }
+  g.setIndex(out)
+}
 const scratchingHand = make3D(() => {
   const scene = stage(), camera = cam()
   const desk = new THREE.Mesh(new THREE.BoxGeometry(3, 0.04, 1.4), SOFT(0x1c1c1c)); scene.add(desk)
@@ -192,6 +212,7 @@ const scratchingHand = make3D(() => {
       if (!m.isMesh) return
       if (/^(EyeLeft|EyeRight|Wolf3D_Teeth|Wolf3D_Beard|Wolf3D_Headwear)$/.test(m.name)) m.visible = false
       ;(m.material as THREE.Material).dispose(); m.material = body; m.frustumCulled = false
+      if ((m as THREE.SkinnedMesh).isSkinnedMesh) armsOnly(m as THREE.SkinnedMesh)
     })
     const bone = (n: string) => { const b = bones.get(n); if (!b) throw new Error('guy.glb: missing bone ' + n); return b }
     const at = (n: string) => bone(n).getWorldPosition(new V3())
@@ -214,16 +235,7 @@ const scratchingHand = make3D(() => {
     // the desk sits at elbow height; the left forearm lies across it in front of the body
     const lSh = at('LeftArm'), rSh = at('RightArm'), mid = lSh.clone().add(rSh).multiplyScalar(0.5)
     const deskY = mid.y - 0.25 // elbow height, so the forearms lie flat with natural elbows
-    // Remove only the torso and head: clip the block between the shoulders (|x| < 0.135), in front of the chest, above hand height.
-    // clipIntersection clips a point only when it is inside ALL three planes, so the arms (outside the block) stay whole.
-    // The y plane keeps everything below hand height, so the forearms and hands crossing the middle are never cut.
-    body.clippingPlanes = [
-      new THREE.Plane(new V3(0, 0, 1), -(mid.z + 0.26)),
-      new THREE.Plane(new V3(1, 0, 0), -(mid.x + 0.135)),
-      new THREE.Plane(new V3(-1, 0, 0), mid.x - 0.135),
-      new THREE.Plane(new V3(0, -1, 0), deskY + 0.16),
-    ]
-    body.clipIntersection = true
+    // Only the two arms: everything else was dropped from the meshes on load (see armsOnly), so no clipping is needed
     desk.position.set(mid.x, deskY - 0.03, mid.z + 0.45)
     const wl = new V3(mid.x + (rSh.x - lSh.x) * 0.2, deskY + 0.03, mid.z + 0.4)
     g = { bone, q0, L: arm('Left'), R: arm('Right'), wl, el: new V3() }
