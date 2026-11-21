@@ -35,13 +35,13 @@ fetch() {
     'map(select(.id > $after)) | sort_by(.id) | map({id, login: .user.login, body, created_at, url: .html_url})'
 }
 
-# Keep only posts that @mention me, skipping my own agent's posts.
-# Keep only posts that @mention me, skipping my own posts. QA triggers ([QA] from a non-QA sender)
+# Keep only posts addressed to me (hidden to= field, or a human's @mention), skipping my own posts. QA triggers ([QA] from a non-QA sender)
 # go only to the QA clone; the QA clone hears nothing else.
 mentions_only() {
   jq --arg me "$ME" --arg tag "$TAG" --arg role "$ROLE" 'map(
-      ((.body | capture("<!-- board type=(?<t>[A-Z]+) from=(?<f>[^ ]+)")) // {t: "", f: ""}) as $m
-      | select((.body | test("@" + $me + "(?![A-Za-z0-9-])"; "i")) and $m.f != $tag)
+      ((.body | capture("<!-- board type=(?<t>[A-Z]+) from=(?<f>[^ ]+) spec=[0-9]+( to=(?<to>[^ ]*))?")) // {t: "", f: "", to: null}) as $m
+      | select((if $m.to != null then ($m.to | split(",") | map(ascii_downcase) | index($me | ascii_downcase)) != null
+                else (.body | test("@" + $me + "(?![A-Za-z0-9-])"; "i")) end) and $m.f != $tag)
       | ($m.t == "QA" and ($m.f | endswith("/qa") | not)) as $trigger
       | select(if $role == "qa" then $trigger else ($trigger | not) end))'
 }
@@ -91,7 +91,7 @@ case "$cmd" in
     [[ "$type" == ACK && "$msg" != *"v"[0-9]* ]] && err "ACK must name the spec version you read (e.g. 'SPEC v2 read')"
     [[ "$type" == DIRECT && "$TAG" != "$(lead)" ]] && err "only the lead sends DIRECT; use NEED"
     [[ "$type" == HUMAN && "$TAG" != "$(lead)" && "$TAG" != */qa ]] && err "only the lead sends HUMAN tasks; ask the lead with NEED"
-    tags=""; for t in "${to[@]+"${to[@]}"}"; do tags+=" @$t"; done
+    tags=""; for t in "${to[@]+"${to[@]}"}"; do tags+=" \`$t\`"; done
     tolist="$(IFS=,; echo "${to[*]+"${to[*]}"}")"
     body="<!-- board type=$type from=$TAG spec=${spec:-0} to=$tolist${re:+ re=$re} -->
 **[$type]** from \`$TAG\` (spec v${spec:-0})${tags:+ →$tags}${re:+ · re: comment $re}
