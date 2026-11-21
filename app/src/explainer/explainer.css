@@ -1,0 +1,20 @@
+.ex { position: fixed; inset: 58px 0 0 0; background: var(--bg); color: var(--ink); font-family: var(--pixel); overflow: hidden; }
+.ex__gl { position: absolute; inset: 0; }
+.ex__gl canvas { image-rendering: pixelated; }
+.ex__tag { position: absolute; left: 0; top: 0; pointer-events: none; }
+.ex__tag::before { content: ""; position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; background: var(--ink); }
+.ex__tag span { position: absolute; left: 14px; white-space: nowrap; font-size: 20px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-strong); background: rgba(11, 11, 12, .85); border: 1px dotted var(--ink); padding: 1px 8px 2px; }
+.ex__tag--up span { bottom: 14px; }
+.ex__tag--down span { top: 14px; }
+.ex__caption { position: absolute; left: 48px; top: 36px; pointer-events: none; }
+.ex__name { font-size: 112px; line-height: .85; color: var(--ink-strong); letter-spacing: .01em; }
+.ex__sub { font-size: 30px; margin-top: 14px; letter-spacing: .02em; }
+.ex__readout { position: absolute; left: 48px; bottom: 40px; width: 340px; padding: 16px 18px 14px; border: 1px dotted var(--ink); background: rgba(11, 11, 12, .82); font-size: 22px; line-height: 1.25; }
+.ex__row { display: flex; justify-content: space-between; gap: 12px; }
+.ex__num { color: var(--ink-strong); }
+.ex__big { font-size: 40px; line-height: 1; color: #a8e2ff; }
+.ex__small { font-size: 19px; }
+.ex__formula { font-size: 30px; color: var(--ink-strong); margin: 8px 0 2px; }
+.ex__spec { display: block; width: 100%; height: 72px; margin-top: 12px; }
+.ex__axis { display: flex; justify-content: space-between; font-size: 17px; margin-top: 2px; }
+.ex__keys { position: absolute; right: 28px; bottom: 22px; padding: 8px 12px; background: rgba(11, 11, 12, .82); border: 1px dotted var(--ink); text-align: right; font-size: 18px; line-height: 1.3; letter-spacing: .03em; }
