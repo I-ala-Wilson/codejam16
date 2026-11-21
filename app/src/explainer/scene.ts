@@ -816,6 +816,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       quadScene.traverse(free)
       rt.dispose()
       renderer.dispose()
+      renderer.forceContextLoss() // free the WebGL context now; leaving and re-entering Home otherwise piles them up
       renderer.domElement.remove()
     },
   }

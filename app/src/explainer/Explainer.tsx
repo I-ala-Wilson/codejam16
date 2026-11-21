@@ -54,6 +54,7 @@ export default function Explainer({ embedded = false, children }: { embedded?: b
   const echoEl = useRef<HTMLDivElement>(null)
   const spec = useRef<HTMLCanvasElement>(null)
   const [gesture, setGesture] = useState(0)
+  const [gen, setGen] = useState(0) // bumped when the browser drops the WebGL context: rebuild instead of going white
 
   useEffect(() => {
     let shown = -1, heldAt = -1e9, heldKey = ''
@@ -75,6 +76,9 @@ export default function Explainer({ embedded = false, children }: { embedded?: b
       drawSpectrum(spec.current!, df)
     }
     const c = createExplainer(host.current!, { onFrame, labels: { speaker: speaker.current!, mic: mic.current! } })
+    const canvas = host.current!.querySelector('canvas')
+    const onLost = (e: Event) => { e.preventDefault(); setTimeout(() => setGen((n) => n + 1), 200) }
+    canvas?.addEventListener('webglcontextlost', onLost)
     const nav = document.querySelector('nav.top')
     const fit = () => { if (nav && !embedded) root.current!.style.top = `${nav.getBoundingClientRect().bottom}px` }
     fit()
@@ -88,8 +92,8 @@ export default function Explainer({ embedded = false, children }: { embedded?: b
       else if (e.key === 'd') c.toggleDither()
     }
     window.addEventListener('keydown', onKey)
-    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('resize', fit); c.dispose() }
-  }, [])
+    return () => { canvas?.removeEventListener('webglcontextlost', onLost); window.removeEventListener('keydown', onKey); window.removeEventListener('resize', fit); c.dispose() }
+  }, [gen])
 
   const g = GESTURES[gesture]
   return (
