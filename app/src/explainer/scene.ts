@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 // ECHØ explainer: a laptop pings 20 kHz, the hand reflects it, the echo's spacing shows Doppler.
 // Scene units are metres. Sound is drawn ~1000x slower than real so the wavefronts can be seen.
@@ -111,6 +112,21 @@ function solveElbow(a: THREE.Vector3, t: THREE.Vector3, l1: number, l2: number, 
   return out.copy(a).addScaledVector(d, l1 * cosA).addScaledVector(perp, l1 * sinA)
 }
 
+// Turn a bone so its rest-space axes a and b (orthonormal) point along world directions da and db; db is made
+// perpendicular to da first. Every Xbot bone rests with an identity rotation, so rest space is the model's own frame.
+const mRest = new THREE.Matrix4(), mWant = new THREE.Matrix4(), qWant = new THREE.Quaternion(), qPar = new THREE.Quaternion()
+const ob = new V(), oc = new V(), oa = new V()
+function orient(bone: THREE.Object3D, a: THREE.Vector3, b: THREE.Vector3, da: THREE.Vector3, db: THREE.Vector3) {
+  oa.copy(da).normalize()
+  ob.copy(db).addScaledVector(oa, -db.dot(oa)).normalize()
+  mWant.makeBasis(oa, ob, oc.crossVectors(oa, ob))
+  mRest.makeBasis(a, b, new V().crossVectors(a, b)).transpose()
+  qWant.setFromRotationMatrix(mWant.multiply(mRest))
+  bone.parent!.getWorldQuaternion(qPar)
+  bone.quaternion.copy(qPar.invert().multiply(qWant))
+  bone.updateMatrixWorld(true)
+}
+
 type Wave = { mesh: THREE.Mesh; mat: THREE.ShaderMaterial; on: boolean; t0: number; c: THREE.Vector3; hit: boolean; hitR: number; k: number }
 
 const X = new V(1, 0, 0)
@@ -214,13 +230,15 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   box(0.42, 0.44, 0.03, chairMat, 0, 0.72, 0.86, true)
   for (const [x, z] of [[-0.19, 0.46], [0.19, 0.46], [-0.19, 0.82], [0.19, 0.82]]) box(0.03, 0.41, 0.03, chairMat, x, 0.205, z, true)
 
-  // Person: low-poly capsules and spheres
+  // Fallback person: capsules and spheres, replaced by the rigged model once it loads
+  const person = new THREE.Group()
+  scene.add(person)
   const smooth = (hex: number) => new THREE.MeshLambertMaterial({ color: hex })
   const skin = smooth(0xd8d8d8)
   const cloth = smooth(0x8e8e8e)
   const capsule = (r: number, len: number, mat: THREE.Material, segs = 24) => {
     const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(0.001, len - 2 * r), 8, segs), mat)
-    scene.add(m)
+    person.add(m)
     return m
   }
   const torso = capsule(0.12, 0.5, cloth, 32)
@@ -231,11 +249,11 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.095, 40, 28), skin)
   head.position.set(0, 1.18, 0.525)
   head.scale.set(0.92, 1.08, 1)
-  scene.add(head)
+  person.add(head)
   for (const s of [-1, 1]) {
     setLimb(capsule(0.065, 0.39, cloth), new V(s * 0.09, 0.5, 0.62), new V(s * 0.1, 0.5, 0.24))
     setLimb(capsule(0.05, 0.45, cloth), new V(s * 0.1, 0.5, 0.24), new V(s * 0.1, 0.07, 0.27))
-    box(0.08, 0.05, 0.2, lam(0x303030), s * 0.1, 0.025, 0.21)
+    box(0.08, 0.05, 0.2, lam(0x303030), s * 0.1, 0.025, 0.21, false, person)
   }
   const L1 = 0.29, L2 = 0.27
   // Left arm resting on the desk
@@ -243,14 +261,14 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   const lElbow = solveElbow(lShoulder, lWrist, L1, L2, new V(-0.5, -1, 0.4), new V())
   setLimb(capsule(0.042, L1, cloth), lShoulder, lElbow)
   setLimb(capsule(0.036, L2, skin), lElbow, lWrist)
-  { const lh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 16), skin); lh.scale.set(0.07, 0.024, 0.095); lh.position.set(-0.27, 0.755, 0.2); scene.add(lh) }
+  { const lh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 16), skin); lh.scale.set(0.07, 0.024, 0.095); lh.position.set(-0.27, 0.755, 0.2); person.add(lh) }
 
   // Right arm, driven every frame
   const rShoulder = new V(0.19, 1.0, 0.54)
   const rUpper = capsule(0.042, L1, cloth)
   const rFore = capsule(0.036, L2, skin)
   const hand = new THREE.Group()
-  scene.add(hand)
+  person.add(hand)
   const palm = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 16), skin)
   palm.scale.set(0.078, 0.09, 0.026)
   hand.add(palm)
@@ -275,6 +293,92 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   thumb.position.set(-0.036, -0.012, -0.004)
   hand.add(thumb)
   thumb.add(new THREE.Mesh(fingerGeo(0.045), skin))
+
+  const done = new Set<unknown>()
+  const free = (o: THREE.Object3D) => {
+    const m = o as THREE.SkinnedMesh
+    if (m.isSkinnedMesh) m.skeleton.dispose()
+    if (m.geometry && !done.has(m.geometry)) { done.add(m.geometry); m.geometry.dispose() }
+    const mats = m.material ? (Array.isArray(m.material) ? m.material : [m.material]) : []
+    for (const mat of mats) {
+      if (done.has(mat)) continue
+      done.add(mat)
+      const map = (mat as THREE.MeshBasicMaterial).map
+      if (map) map.dispose()
+      mat.dispose()
+    }
+  }
+
+  // Rigged person: the Xbot mannequin (Mixamo skeleton), seated once on load; the right arm is solved every frame
+  type Rig = { bone: (n: string) => THREE.Bone; l1: number; l2: number }
+  let rig: Rig | null = null
+  let disposed = false
+  const HIP = new V(0, 0.55, 0.62)
+  const ALONG_R = new V(-1, 0, 0), ALONG_L = new V(1, 0, 0), DOWN = new V(0, -1, 0), UP = new V(0, 1, 0)
+  const pA = new V(), pE = new V(), pB = new V(), dU = new V(), dF = new V(), bend = new V()
+  const solveArm = (r: Rig, side: 'Left' | 'Right', w: THREE.Vector3, pole: THREE.Vector3, finger: THREE.Vector3, palmN: THREE.Vector3) => {
+    const along = side === 'Right' ? ALONG_R : ALONG_L
+    const arm = r.bone(side + 'Arm'), fore = r.bone(side + 'ForeArm')
+    arm.getWorldPosition(pA)
+    solveElbow(pA, w, r.l1, r.l2, pole, pE)
+    dU.subVectors(pE, pA).normalize()
+    dF.subVectors(w, pE).normalize()
+    bend.crossVectors(dU, dF)
+    if (bend.lengthSq() < 1e-6) bend.crossVectors(dU, pole)
+    orient(arm, along, side === 'Right' ? UP : DOWN, dU, bend)
+    fore.getWorldPosition(pB)
+    orient(fore, along, DOWN, dF.subVectors(w, pB), palmN)
+    orient(r.bone(side + 'Hand'), along, DOWN, finger, palmN)
+  }
+  new GLTFLoader().load('/models/person/xbot.glb', (gltf) => {
+    const root = gltf.scene
+    if (disposed) { root.traverse(free); return }
+    try {
+      const bones = new Map<string, THREE.Bone>()
+      const body = new THREE.MeshLambertMaterial({ color: 0xb8b8b6 }), joints = new THREE.MeshLambertMaterial({ color: 0x7a7a78 })
+      const old = new Set<THREE.Material>()
+      root.traverse((o) => {
+        if ((o as THREE.Bone).isBone) bones.set(o.name.replace(/^mixamorig:?/, ''), o as THREE.Bone)
+        const m = o as THREE.SkinnedMesh
+        if (m.isMesh) {
+          old.add(m.material as THREE.Material)
+          m.material = /joint/i.test((m.material as THREE.Material).name) ? joints : body
+          m.frustumCulled = false
+        }
+      })
+      for (const mt of old) { (mt as THREE.MeshStandardMaterial).map?.dispose(); mt.dispose() }
+      const bone = (n: string) => { const b = bones.get(n); if (!b) throw new Error('xbot: missing bone ' + n); return b }
+      root.rotation.y = Math.PI // the model faces +z; turn him to the laptop
+      for (const [s, k] of [['Left', 1], ['Right', -1]] as const) {
+        bone(s + 'UpLeg').rotation.set(-Math.PI / 2 - 0.04, 0, k * 0.06)
+        bone(s + 'Leg').rotation.set(Math.PI / 2 + 0.04 - 0.38, 0, -k * 0.06)
+        bone(s + 'Foot').rotation.x = 0.38
+      }
+      bone('Spine').rotation.x = 0.09
+      bone('Spine1').rotation.x = 0.09
+      bone('Neck').rotation.x = 0.06
+      bone('Head').rotation.x = 0.2
+      scene.add(root)
+      root.updateMatrixWorld(true)
+      root.position.add(HIP.clone().sub(bone('Hips').getWorldPosition(new V())))
+      root.updateMatrixWorld(true)
+      const at = (n: string) => bone(n).getWorldPosition(new V())
+      const r: Rig = { bone, l1: at('RightArm').distanceTo(at('RightForeArm')), l2: at('RightForeArm').distanceTo(at('RightHand')) }
+      const lw = new V(-0.25, 0.775, 0.18)
+      solveArm(r, 'Left', lw, new V(-0.8, -0.6, 0.4), new V(0.1, 0, -1).normalize(), DOWN)
+      rig = r
+      scene.remove(person)
+      person.traverse(free)
+      prevAvg = -1
+      placeHand()
+      Hp.copy(Hn)
+    } catch (e) {
+      scene.remove(root)
+      root.traverse(free)
+      rig = null
+      console.warn(e)
+    }
+  }, undefined, (e) => console.warn('xbot failed to load; keeping the simple figure', e))
 
   // Wavefront pool
   const quad = new THREE.PlaneGeometry(2, 2)
@@ -348,10 +452,33 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   let vSm = 0, prevAvg = -1
   let nextEmit = 0
 
+  const Hgoal = new V(), qTilt = new THREE.Quaternion(), eTilt = new THREE.Euler(), fDir = new V(), pN = new V(), mid = new V()
   const placeHand = () => {
     const p = pose(gi, gu, Ht)
-    if (blendT < 1) Hn.lerpVectors(blendFrom, Ht, ss(blendT)); else Hn.copy(Ht)
+    if (blendT < 1) Hgoal.lerpVectors(blendFrom, Ht, ss(blendT)); else Hgoal.copy(Ht)
     curl = p.curl; tilt = p.tilt
+    if (rig) {
+      // Palm to the laptop, fingers up, rolled by the wave tilt; the echo then reflects off the real palm
+      wrist.copy(Hgoal).add(new V(0, -0.055, 0.012))
+      qTilt.setFromEuler(eTilt.set(-0.15, 0, tilt))
+      fDir.set(0, 1, 0).applyQuaternion(qTilt)
+      pN.set(0, 0, -1).applyQuaternion(qTilt)
+      solveArm(rig, 'Right', wrist, new V(0.45, -1, 0.35), fDir, pN)
+      for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) {
+        rig.bone('RightHand' + f + '1').rotation.z = curl * 1.1
+        rig.bone('RightHand' + f + '2').rotation.z = curl * 1.6
+        rig.bone('RightHand' + f + '3').rotation.z = curl * 1.2
+      }
+      rig.bone('RightHandThumb1').rotation.set(0, -curl * 0.5, curl * 0.3)
+      rig.bone('RightHandThumb2').rotation.z = curl * 0.6
+      rig.bone('RightHandThumb3').rotation.z = curl * 0.6
+      const h = rig.bone('RightHand')
+      h.updateMatrixWorld(true)
+      h.getWorldPosition(Hn)
+      Hn.lerp(rig.bone('RightHandMiddle1').getWorldPosition(mid), 0.55)
+      return
+    }
+    Hn.copy(Hgoal)
     hand.position.copy(Hn)
     hand.rotation.set(-0.15, 0, tilt)
     for (const f of fingers) { f.a.rotation.x = -curl * 1.5; f.b.rotation.x = -curl * 1.8 }
@@ -477,26 +604,14 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   raf = requestAnimationFrame(frame)
 
   return {
-    jump: (g) => { blendFrom.copy(Hn); blendT = 0; gi = g; gu = 0 },
+    jump: (g) => { blendFrom.copy(Hgoal); blendT = 0; gi = g; gu = 0 },
     togglePause: () => (paused = !paused),
     toggleOrbit: () => (orbit = !orbit),
     toggleDither: () => (dither = !dither),
     dispose: () => {
       cancelAnimationFrame(raf)
       ro.disconnect()
-      const done = new Set<unknown>()
-      const free = (o: THREE.Object3D) => {
-        const m = o as THREE.Mesh
-        if (m.geometry && !done.has(m.geometry)) { done.add(m.geometry); m.geometry.dispose() }
-        const mats = m.material ? (Array.isArray(m.material) ? m.material : [m.material]) : []
-        for (const mat of mats) {
-          if (done.has(mat)) continue
-          done.add(mat)
-          const map = (mat as THREE.MeshBasicMaterial).map
-          if (map) map.dispose()
-          mat.dispose()
-        }
-      }
+      disposed = true
       scene.traverse(free)
       quadScene.traverse(free)
       rt.dispose()
