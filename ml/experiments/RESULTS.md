@@ -249,3 +249,9 @@ redo by Ian. None of the 15 takes already analysed (all the takes dated before 1
 Success rule, unchanged from v1: at least 4 usable paced takes from at least 2 people after the v2 gate; GO when at least
 75% of them are within 2 bpm of the paced rate; PARTIAL GO when the apnea check of v1 passes on the hold takes (75%, 2
 people); otherwise NO-GO. v1 and v2 are reported side by side on the test takes.
+
+Test set closing rule, written after the v2 code was frozen (9433b0b) and after the first look at the three takes that
+existed then (EJ's retakes: v2 gate passes all three, v2 reads the 15 bpm take as 15.4 bpm; v1 gate rejects all three;
+one paced take, so INSUFFICIENT DATA): the test set is every take with createdAt at or after 2026-11-21T11:05 -05:00
+that is pushed by 12:45 today. EVERY one of them that passes the v2 gate counts, whatever its estimate; nobody chooses
+which takes count, and a take is only recorded again when the gate rejects it. The verdict is computed once, after 12:45.

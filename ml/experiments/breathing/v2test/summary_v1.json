@@ -1,0 +1,35 @@
+[
+  {
+    "take": "breath-15bpm-ej2007_FREE_macbook-air-m2_20261121-110534",
+    "method": "v1",
+    "person": "ej2007",
+    "tone_level_range_db": [
+      -56.68803947307049,
+      -44.903598444399115
+    ],
+    "rejected": true,
+    "reason": "tone level not stable: the longest stretch within 3 dB of the median lasts 9 s, 30 s needed (level range -57 to -45 dB)"
+  },
+  {
+    "take": "breath-hold-ej2007_FREE_macbook-air-m2_20261121-110636",
+    "method": "v1",
+    "person": "ej2007",
+    "tone_level_range_db": [
+      -56.6061316325097,
+      -42.03728171286852
+    ],
+    "rejected": true,
+    "reason": "tone level not stable: the longest stretch within 3 dB of the median lasts 29 s, 30 s needed (level range -57 to -42 dB)"
+  },
+  {
+    "take": "breath-natural-ej2007_FREE_macbook-air-m2_20261121-110752",
+    "method": "v1",
+    "person": "ej2007",
+    "tone_level_range_db": [
+      -56.09038903283231,
+      -42.68170276671408
+    ],
+    "rejected": true,
+    "reason": "tone level not stable: the longest stretch within 3 dB of the median lasts 12 s, 30 s needed (level range -56 to -43 dB)"
+  }
+]
