@@ -30,12 +30,10 @@ const BATTERY: Take[] = [
   { kind: 'none', noneKind: 'd', durationMs: 60000, how: 'Let your hand wander slowly in front of the screen without making any gesture.' },
 ]
 
-// Habit add-on (Sat morning): repetitive habit motions + extra typing as the false-alarm counterexample.
+// Habit add-on (Sat morning): Habit mode scratch motion (not a gesture) + extra typing as the false-alarm counterexample.
 const HABIT: Take[] = [
   { kind: 'gesture', gesture: 'REPETITIVE', variant: 'scratch', distanceCm: 20, cueWindowMs: 3000, periodMs: 5000,
     how: 'Scratch your forearm in front of the laptop for the whole GO window (small, fast, repeated), then rest your arm still.' },
-  { kind: 'gesture', gesture: 'REPETITIVE', variant: 'nailbite', distanceCm: 20, cueWindowMs: 3000, periodMs: 5000,
-    how: 'Bring your hand to your mouth and do a nail-biting motion for the whole GO window, then lower your hand and keep still.' },
   { kind: 'none', noneKind: 'e', durationMs: 120000, how: 'Type normally for 2 minutes (write anything). This teaches Habit that typing is NOT a habit.' },
 ]
 
@@ -43,7 +41,7 @@ const BATTERIES = { main: BATTERY, habit: HABIT } as const
 type BatteryName = keyof typeof BATTERIES
 
 const takeName = (t: Take) => t.kind === 'gesture'
-  ? `${t.variant ? t.variant.toUpperCase() : t.gesture} at ${t.distanceCm} cm` : `NONE (${t.noneKind})`
+  ? `${t.variant ? `HABIT (${t.variant})` : t.gesture} at ${t.distanceCm} cm` : `NONE (${t.noneKind})`
 
 type Phase = 'idle' | 'away' | 'leadin' | 'cue' | 'rest' | 'none' | 'saving'
 

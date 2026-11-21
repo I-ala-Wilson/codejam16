@@ -13,6 +13,7 @@ export default function Gestures() {
   useEffect(() => {
     let clear: ReturnType<typeof setTimeout> | undefined
     const off = engine.onGesture((e) => {
+      if (e.type === 'REPETITIVE') return // Habit mode signal, not a gesture
       setLast(e); setLog((l) => [e, ...l].slice(0, 30))
       clearTimeout(clear); clear = setTimeout(() => setLast(null), 1200)
     })

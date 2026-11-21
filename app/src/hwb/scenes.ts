@@ -231,7 +231,7 @@ export const model: Scene = {
     label(g, 'ECHO OVER TIME', SG.x0, 276, 17)
     label(g, 'NOW', SG.x1, 276, 17, 'right')
     label(g, 'SMALL CNN', 246, 276, 17)
-    label(g, '7 GESTURES', OUT.x + 3, 276, 17)
+    label(g, '7 OUTPUTS', OUT.x + 3, 276, 17)
   },
 }
 

@@ -16,7 +16,7 @@ const GESTURES: Item[] = [
   { gesture: 'OPEN_CLOSE', how: 'Hand toward the screen: open and close your fist 3 times quickly.' },
   { gesture: 'UNDO', how: 'DOUBLE TAP: hand about 25 cm away, two quick small taps toward the screen (like double-clicking the air), then hold.' },
   { gesture: 'HOLD', how: 'Hand in front of the screen, completely still for the GO window.' },
-  { gesture: 'REPETITIVE', how: 'Scratch your forearm in front of the laptop, small fast movements.' },
+  { gesture: 'REPETITIVE', label: 'HABIT (scratch)', how: 'Scratch your forearm in front of the laptop, small fast movements.' },
   { gesture: 'FREE', how: 'Normal activity: type, reach for a drink, shift in your seat. Teaches it what is NOT a gesture.' },
 ]
 
