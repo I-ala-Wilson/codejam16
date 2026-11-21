@@ -1,0 +1,144 @@
+{
+  "person": "Yahya-github",
+  "gesture": "REPETITIVE",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "SCRATCH at 20 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 288384,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 385024,
+      "end": 529024,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 624640,
+      "end": 768640,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 864256,
+      "end": 1008256,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1104896,
+      "end": 1248896,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1344512,
+      "end": 1488512,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1585152,
+      "end": 1729152,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1824768,
+      "end": 1968768,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2064384,
+      "end": 2208384,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 2305024,
+      "end": 2449024,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2544640,
+      "end": 2688640,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 2785280,
+      "end": 2929280,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3024896,
+      "end": 3168896,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3264512,
+      "end": 3408512,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3505152,
+      "end": 3649152,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3744768,
+      "end": 3888768,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3985408,
+      "end": 4129408,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 4225024,
+      "end": 4369024,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 4464640,
+      "end": 4608640,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 4705280,
+      "end": 4849280,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T00:26:16-05:00",
+  "takeKind": "gesture",
+  "battery": "habit",
+  "variant": "scratch",
+  "distanceCm": 20,
+  "cueWindowMs": 3000,
+  "periodMs": 5000,
+  "leadInMs": 3000,
+  "leadInMotion": false,
+  "hand": "L",
+  "volumePct": 150,
+  "laptopModel": "MSI Katana 15 HX B14WGK",
+  "protocol": "ml/PROTOCOL.md"
+}
