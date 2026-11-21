@@ -355,62 +355,53 @@ export const agents: Scene = {
 }
 
 // ---------- 4. The trade-offs ----------
-const CELLS = [80, 240, 400, 560]
-const ICON_Y = 142
-export const TRADE_LABELS = ['No camera', 'Any laptop', 'Stays on device', 'Built for patients']
+// What sound gives up: the same gestures in a quiet room, a noisy room and on a weaker laptop. What it gains: three tags.
+const ROOMS = [
+  { name: 'QUIET ROOM', word: 'CLEAR', noise: 0.16, speck: 0, carrier: 0.92, strength: 0.95 },
+  { name: 'NOISY ROOM', word: 'NOISY', noise: 0.12, speck: 0.75, carrier: 0.92, strength: 0.95 },
+  { name: 'WEAKER LAPTOP', word: 'FAINT', noise: 0.14, speck: 0, carrier: 0.42, strength: 0.42 },
+]
+const RB = { xs: [16, 228, 440], w: 184, y0: 44, y1: 176 }
+const GAINS = ['$0 HARDWARE', 'WORKS IN THE DARK', 'NO IMAGE, EVER']
+const GX = [112, 320, 528], GSTEP = 2.4
 
 export const tradeoffs: Scene = {
   draw(g, t) {
-    // a slow band of light drifts across the row and lifts each icon's fill a little
-    const band = ((t / 9) % 1) * 900 - 130
-    const lift = (x: number) => 0.2 * Math.exp(-(((x - band) / 90) ** 2))
+    const cell = 2, { w, y0, y1 } = RB
+    const nowCol = Math.floor(t * SCROLL)
+    ROOMS.forEach((r, i) => {
+      const x0 = RB.xs[i]
+      for (let c = 0; c < w; c += cell) {
+        const col = nowCol - (w - c)
+        const s = streak(col / SCROLL)
+        for (let y = y0; y < y1; y += cell) {
+          const fy = -((y - y0) / (y1 - y0)) * 2 + 1
+          let v = 0.05 + hash(Math.floor(col / cell) + i * 97, y) * r.noise
+          if (r.speck) v += r.speck * hash(Math.floor(col / cell) * 3 + 11, y * 7 + 5) ** 3
+          v += r.carrier * Math.exp(-((fy / 0.035) ** 2))
+          if (s.on > 0) {
+            v += s.on * r.strength * Math.exp(-(((fy - s.shift) / 0.07) ** 2))
+            v += s.on * r.strength * 0.3 * Math.exp(-(((fy - s.shift * 0.55) / 0.2) ** 2))
+          }
+          g.fillStyle = gray(v)
+          g.fillRect(x0 + c, y, cell, cell)
+        }
+      }
+      g.strokeStyle = gray(1); g.lineWidth = 1.5
+      g.strokeRect(x0, y0, w, y1 - y0)
+    })
     g.strokeStyle = gray(1); g.lineWidth = 1.2; g.setLineDash([2, 6])
-    for (const x of [160, 320, 480]) { g.beginPath(); g.moveTo(x, 40); g.lineTo(x, 290); g.stroke() }
-    g.setLineDash([])
-
-    // no camera
-    {
-      const x = CELLS[0], y = ICON_Y
-      g.fillStyle = gray(0.3 + lift(x)); g.strokeStyle = gray(1); g.lineWidth = 2.4
-      g.beginPath(); g.rect(x - 15, y - 34, 30, 10); g.fill(); g.stroke()
-      g.beginPath(); g.roundRect(x - 44, y - 25, 88, 58, 6); g.fill(); g.stroke()
-      g.fillStyle = gray(0.7 + lift(x))
-      g.beginPath(); g.arc(x, y + 4, 19, 0, TAU); g.fill(); g.stroke()
-      g.fillStyle = gray(0); g.beginPath(); g.arc(x, y + 4, 9, 0, TAU); g.fill()
-      g.strokeStyle = gray(0); g.lineWidth = 11
-      g.beginPath(); g.moveTo(x - 52, y - 46); g.lineTo(x + 52, y + 52); g.stroke()
-      g.strokeStyle = gray(1); g.lineWidth = 4
-      g.beginPath(); g.moveTo(x - 52, y - 46); g.lineTo(x + 52, y + 52); g.stroke()
-    }
-    // any laptop: sound rings rise gently off the screen
-    {
-      const x = CELLS[1], y = ICON_Y
-      g.fillStyle = gray(0.2 + lift(x)); g.strokeStyle = gray(1); g.lineWidth = 2.4
-      g.beginPath(); g.rect(x - 44, y - 40, 88, 60); g.fill(); g.stroke()
-      g.beginPath(); g.moveTo(x - 44, y + 22); g.lineTo(x + 44, y + 22); g.lineTo(x + 58, y + 36); g.lineTo(x - 58, y + 36); g.closePath(); g.fill(); g.stroke()
-      g.save(); g.beginPath(); g.rect(x - 42, y - 38, 84, 56); g.clip()
-      arcs(g, x, y + 12, -Math.PI / 2, 4, 48, t, { n: 3, speed: 12, spread: 0.85, width: 2 })
-      g.restore()
-    }
-    // stays on device: a padlock
-    {
-      const x = CELLS[2], y = ICON_Y
-      g.strokeStyle = gray(1); g.lineWidth = 7
-      g.beginPath(); g.arc(x, y - 16, 21, Math.PI, TAU); g.moveTo(x - 21, y - 16); g.lineTo(x - 21, y - 2); g.moveTo(x + 21, y - 16); g.lineTo(x + 21, y - 2); g.stroke()
-      g.fillStyle = gray(0.5 + lift(x)); g.lineWidth = 2.4
-      g.beginPath(); g.rect(x - 36, y - 4, 72, 52); g.fill(); g.stroke()
-      g.fillStyle = gray(0)
-      g.beginPath(); g.arc(x, y + 16, 7, 0, TAU); g.fill(); g.fillRect(x - 3, y + 18, 6, 16)
-    }
-    // built for patients: a raised open hand with an echo arc
-    {
-      const x = CELLS[3], y = ICON_Y
-      hand(g, x - 4, y + 16, 1.15, 0.4 + lift(x))
-      arcs(g, x - 4, y - 6, 0, 36, 70, t, { n: 2, speed: 10, spread: 0.5, width: 2 })
-    }
+    g.beginPath(); g.moveTo(16, 240); g.lineTo(624, 240); g.stroke(); g.setLineDash([])
   },
-  overlay(g) {
-    for (let i = 0; i < 4; i++) label(g, TRADE_LABELS[i].toUpperCase(), CELLS[i], 258, 19, 'center')
+  overlay(g, t) {
+    label(g, 'WHAT SOUND GIVES UP', 16, 24, 17)
+    ROOMS.forEach((r, i) => {
+      label(g, r.name, RB.xs[i], 194, 16)
+      label(g, r.word, RB.xs[i] + RB.w, 194, 16, 'right')
+    })
+    label(g, 'WHAT IT GAINS', 16, 264, 17)
+    const a = Math.floor(t / GSTEP) % GAINS.length
+    GAINS.forEach((s, i) => { if (i === a) tag(g, s, GX[i], 296, 18); else label(g, s, GX[i], 296, 18, 'center') })
   },
 }
 

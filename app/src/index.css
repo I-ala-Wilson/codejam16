@@ -94,7 +94,7 @@ a { color: var(--ink-strong); }
 .cg__row { display: grid; grid-template-columns: 140px 1fr; font-size: 24px; padding: 10px 4px; border-bottom: 1px dotted var(--ink); }
 .cg__row.on { background: var(--ink); color: var(--bg); }
 
-/* How we built it: four dithered panels in a 2x2 grid, one number and one line each, then a one-open FAQ */
+/* How we built it: four dithered panels in a 2x2 grid, one number and one line each */
 .hwb { font-family: var(--pixel); padding: 88px max(56px, calc((100% - 1680px) / 2)) 104px; border-top: 1px dotted var(--ink); }
 .hwb__title { font: 400 52px/1.05 var(--pixel); max-width: 58ch; margin: 12px 0 56px; color: var(--ink-strong); letter-spacing: .01em; }
 .hwb__grid { display: grid; grid-template-columns: 1fr; gap: 0; }
@@ -114,14 +114,10 @@ a { color: var(--ink-strong); }
 .hwb__specs div { display: grid; grid-template-columns: 96px 1fr; gap: 12px; }
 .hwb__specs dt { text-transform: uppercase; letter-spacing: .08em; }
 .hwb__specs dd { margin: 0; }
-.hwb__faq { margin-top: 80px; border-top: 1px dotted var(--ink); padding-top: 22px; }
-.hwb__faqhead { font-size: 22px; letter-spacing: .08em; margin-bottom: 16px; }
-.hwb__qs { display: flex; flex-wrap: wrap; gap: 12px; }
 .hwb__q { font: 400 22px/1 var(--pixel); letter-spacing: .02em; color: var(--bg); background: var(--ink); border: 1px solid var(--ink); border-radius: 0; padding: 7px 14px 8px; display: inline-flex; gap: 10px; align-items: center; }
 .hwb__q:hover:not(:disabled) { background: transparent; color: var(--ink); }
 .hwb__q.on, .hwb__q.on:hover:not(:disabled) { background: transparent; color: var(--ink-strong); border-style: dotted; }
 .hwb__sign { display: inline-block; width: 12px; text-align: center; }
-.hwb__a { font-size: 30px; line-height: 1.2; color: var(--ink-strong); margin-top: 22px; min-height: 2.4em; max-width: 60ch; }
 @media (max-width: 1100px) { .hwb__panel { grid-template-columns: 1fr; grid-template-areas: 'head' 'frame' 'cap'; } .hwb { padding: 64px 28px 80px; } }
 
 /* calibration banner (CalibBanner.tsx) */

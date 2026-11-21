@@ -2,8 +2,8 @@ import { useState } from 'react'
 import DitherCanvas from './hwb/DitherCanvas.tsx'
 import { agents, model, pipeline, tradeoffs } from './hwb/scenes.ts'
 
-// "How we built it": the section under How it works on Home. Three dithered visuals, one number and one line each,
-// then a small FAQ. Numbers come from ml/REPORT.md and ml/experiments/RESULTS.md.
+// "How we built it": the section under How it works on Home. Three dithered visuals, one number and one line each.
+// Numbers come from ml/REPORT.md and ml/experiments/RESULTS.md.
 
 const PANELS = [
   {
@@ -27,21 +27,12 @@ const PANELS = [
   },
   {
     title: 'The trade-offs', big: '$0', scene: tradeoffs,
-    alt: 'Icons: no camera, any laptop, stays on device, built for patients.',
+    alt: 'The same gestures as echo spectrograms in a quiet room, a noisy room and on a weaker laptop, above three gains: no hardware cost, works in the dark, never an image.',
     caption: 'We chose sound because every laptop already has a speaker and a microphone, it works in complete darkness, and it never captures an image of anyone. Sound gives up some precision compared with a camera, since weaker laptops produce fainter echoes and a noisy room makes gestures harder to read. It is a proof of concept and not a medical device, and we have been open about where it falls short.',
   },
 ]
 
-const FAQ = [
-  ['Does it record me?', 'No. Audio is analysed on the device and discarded; only events like "help" leave it.'],
-  ['Will it work on my laptop?', 'Any laptop with a speaker and a mic; weaker speakers need a short calibration.'],
-  ['Why not a camera?', 'Cameras are not allowed in many patient rooms and bathrooms, and they fail in the dark.'],
-  ['How accurate is it?', 'About half of gestures for a brand-new person, much higher for someone it has learned.'],
-  ['What did the AI do?', 'The agents wrote and tested most of the code; we decided what to build and recorded the data.'],
-]
-
 export default function HowWeBuilt() {
-  const [open, setOpen] = useState(0)
   const [card, setCard] = useState(false)
   return (
     <section className="hwb">
@@ -72,17 +63,6 @@ export default function HowWeBuilt() {
             </figcaption>
           </figure>
         ))}
-      </div>
-      <div className="hwb__faq">
-        <div className="hwb__faqhead">FAQ</div>
-        <div className="hwb__qs">
-          {FAQ.map(([q], i) => (
-            <button key={q} aria-expanded={open === i} className={'hwb__q' + (open === i ? ' on' : '')} onClick={() => setOpen(open === i ? -1 : i)}>
-              <span className="hwb__sign">{open === i ? '−' : '+'}</span>{q}
-            </button>
-          ))}
-        </div>
-        <div className="hwb__a" aria-live="polite">{open >= 0 ? FAQ[open][1] : 'Pick a question.'}</div>
       </div>
     </section>
   )
