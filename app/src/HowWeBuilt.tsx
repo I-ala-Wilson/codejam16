@@ -7,9 +7,9 @@ import { agents, model, tradeoffs } from './hwb/scenes.ts'
 
 const PANELS = [
   {
-    title: 'The model', big: '147 recordings', scene: model,
+    title: 'The model', big: '202 recordings', scene: model,
     alt: 'A scrolling spectrogram with gesture streaks feeds a small convolutional network that picks one of seven outputs: five gestures, Habit, or nothing.',
-    caption: 'We recorded 147 sessions from five people performing each gesture on cue, so every slice of echo has a known label. We trained a small neural network on a GPU to recognise the shape each gesture leaves in the echo, and we tested it only on people it had never seen to keep our accuracy honest. The finished model runs inside the browser, which keeps it fast, lets it work without an internet connection, and means that no audio ever leaves the device.',
+    caption: 'We recorded 202 sessions from five people performing each gesture on cue, so every slice of echo has a known label. We trained a small neural network on a GPU to recognise the shape each gesture leaves in the echo, and we tested it only on people it had never seen to keep our accuracy honest. The finished model runs inside the browser, which keeps it fast, lets it work without an internet connection, and means that no audio ever leaves the device.',
   },
   {
     title: 'The agents', big: '4 + 5', unit: 'humans + agents', scene: agents,
