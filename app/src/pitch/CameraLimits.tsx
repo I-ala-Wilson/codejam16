@@ -1,5 +1,5 @@
 import DitherCanvas from '../hwb/DitherCanvas.tsx'
-import { costTile, darkTile, privacyTile } from './scenes.ts'
+import { costTile3D as costTile, darkTile3D as darkTile, privacyTile3D as privacyTile } from './scenes3d.ts'
 import './pitch.css'
 
 // Home pitch chapter: why gesture sensing should not rely on a camera. Three dithered tiles, one fact each.
