@@ -192,7 +192,7 @@ export default function App() {
 
       {view === 'care' && activeHelp && (
         <div role="alert" className="echo-alert care-alert" onClick={() => setActiveHelp(null)}>
-          <div className="echo-alert__title">{activeHelp.kind.toUpperCase()} requested</div>
+          <div className="echo-alert__title">{activeHelp.kind === 'pain' ? 'Patient is in pain' : 'HELP requested'}</div>
           <div className="echo-alert__sub">{activeHelp.device_id} · {new Date(activeHelp.created_at).toLocaleTimeString()}</div>
           <button autoFocus onClick={() => setActiveHelp(null)}>Acknowledge</button>
         </div>
