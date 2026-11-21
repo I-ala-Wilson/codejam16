@@ -36,6 +36,8 @@ export interface DecoderConfig {
    * PULL recall lower; ml/experiments/round3/sign/SIGN.md), because the strongest shift is often the recoil stroke.
    */
   readonly signOverride: boolean
+  /** Added to each class's logit before softmax (gesture.json `logitBias`), to correct a per-laptop lean such as PUSH read as PULL. */
+  readonly logitBias: Readonly<Record<string, number>>
 }
 
 export const DEFAULT_DECODER: DecoderConfig = {
@@ -47,6 +49,7 @@ export const DEFAULT_DECODER: DecoderConfig = {
   waveRefractoryMs: 1200,
   habitRefractoryMs: 3000,
   signOverride: false,
+  logitBias: {},
 }
 
 const isClassList = (v: unknown): v is string[] =>
@@ -58,7 +61,7 @@ const countOr = (v: unknown, fallback: number): number => (typeof v === 'number'
 /** The decoder settings from the gesture.json that `ml/run.py final` writes next to the model; anything missing or malformed takes the default. */
 export function decoderFromConfig(config: unknown): DecoderConfig {
   if (typeof config !== 'object' || config === null || Array.isArray(config)) return DEFAULT_DECODER
-  const c = config as { classes?: unknown; thresholds?: unknown; signOverride?: unknown; decoder?: Record<string, unknown> | null }
+  const c = config as { classes?: unknown; thresholds?: unknown; signOverride?: unknown; logitBias?: unknown; decoder?: Record<string, unknown> | null }
   const d = c.decoder && typeof c.decoder === 'object' ? c.decoder : {}
   const thresholds =
     typeof c.thresholds === 'object' && c.thresholds !== null && !Array.isArray(c.thresholds)
@@ -73,6 +76,7 @@ export function decoderFromConfig(config: unknown): DecoderConfig {
     waveRefractoryMs: numberOr(d.waveRefractoryMs, DEFAULT_DECODER.waveRefractoryMs),
     habitRefractoryMs: numberOr(d.habitRefractoryMs, DEFAULT_DECODER.habitRefractoryMs),
     signOverride: typeof c.signOverride === 'boolean' ? c.signOverride : DEFAULT_DECODER.signOverride,
+    logitBias: typeof c.logitBias === 'object' && c.logitBias !== null && !Array.isArray(c.logitBias) ? (c.logitBias as Record<string, number>) : {},
   }
 }
 
@@ -223,6 +227,7 @@ export interface ClassifierRuntimeOptions {
 export class ClassifierRuntime {
   private readonly runner: ModelRunner
   private readonly decoder: EventDecoder
+  private readonly bias: number[]
   private readonly onEvent: (event: ClassifierEvent) => void
   private readonly onError: (error: unknown) => void
   private readonly window = new FrameWindow()
@@ -232,6 +237,7 @@ export class ClassifierRuntime {
   constructor(opts: ClassifierRuntimeOptions) {
     this.runner = opts.runner
     this.decoder = new EventDecoder(opts.decoder)
+    this.bias = opts.decoder.classes.map((name) => opts.decoder.logitBias?.[name] ?? 0)
     this.onEvent = opts.onEvent
     this.onError = opts.onError
   }
@@ -244,7 +250,7 @@ export class ClassifierRuntime {
     this.chain = this.chain
       .then(() => this.runner.run(window))
       .then((logits) => {
-        const event = this.decoder.push(softmax(logits), tMs)
+        const event = this.decoder.push(softmax(Array.from(logits, (l, i) => l + (this.bias[i] ?? 0))), tMs)
         if (event) this.onEvent(event)
       })
       .catch((error: unknown) => this.onError(error))
