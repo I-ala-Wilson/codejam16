@@ -423,55 +423,47 @@ const STAGES = [
   { name: 'MODEL', note: '32k params · 128 KB' },
   { name: 'RUN', note: 'in browser · 12/s' },
 ]
-const PSTEP = 1.2, PX = [64, 192, 320, 448, 576], PY = 150
+const PSTEP = 1.2, PX = [64, 192, 320, 448, 576], PY = 70
 const activeStage = (t: number) => Math.floor(t / PSTEP) % STAGES.length
 
 export const pipeline: Scene = {
   draw(g, t) {
+    // clean line pictograms in solid ink (dim ink still dithers to dots, so only the active stage gets the full glow)
     const a = activeStage(t), p = (t % PSTEP) / PSTEP
-    // connector and the travelling pulse
-    g.strokeStyle = gray(0.35); g.lineWidth = 2
-    g.beginPath(); g.moveTo(PX[0] + 40, PY); g.lineTo(PX[4] - 40, PY); g.stroke()
+    g.strokeStyle = gray(1); g.lineWidth = 1.5
+    g.beginPath(); g.moveTo(PX[0] + 42, PY); g.lineTo(PX[4] - 42, PY); g.stroke()
     if (a < 4) {
-      const x = PX[a] + 40 + (PX[a + 1] - PX[a] - 80) * smooth(p)
-      const glow = g.createRadialGradient(x, PY, 0, x, PY, 16)
-      glow.addColorStop(0, gray(1)); glow.addColorStop(1, 'rgba(0,0,0,0)')
-      g.fillStyle = glow; g.beginPath(); g.arc(x, PY, 16, 0, TAU); g.fill()
+      const x = PX[a] + 42 + (PX[a + 1] - PX[a] - 84) * smooth(p)
+      g.fillStyle = gray(1); g.beginPath(); g.arc(x, PY, 5, 0, TAU); g.fill()
     }
     STAGES.forEach((_, i) => {
-      const on = i === a, v = on ? 1 : 0.55, x = PX[i], y = PY
-      g.fillStyle = gray(v); g.strokeStyle = gray(v); g.lineWidth = 3
-      if (i === 0) { // five people
-        for (let k = 0; k < 5; k++) {
-          const px = x - 30 + k * 15, py = y - 6 + (k % 2) * 8
-          g.beginPath(); g.arc(px, py - 10, 5, 0, TAU); g.fill()
-          g.beginPath(); g.arc(px, py + 8, 8, Math.PI, 0); g.fill()
-        }
-      } else if (i === 1) { // waveform with cue ticks
-        g.lineWidth = 2; g.beginPath()
-        for (let k = 0; k <= 60; k++) { const xx = x - 32 + k * 64 / 60, yy = y + Math.sin(k * 0.7 + t * 4) * (6 + 10 * Math.max(0, Math.sin(k * 0.21))); k ? g.lineTo(xx, yy) : g.moveTo(xx, yy) }
+      const on = i === a, x = PX[i], y = PY
+      if (on) { const glow = g.createRadialGradient(x, y, 10, x, y, 56); glow.addColorStop(0, 'rgba(255,255,255,0.18)'); glow.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = glow; g.fillRect(x - 56, y - 56, 112, 112) }
+      g.fillStyle = gray(1); g.strokeStyle = gray(1); g.lineWidth = 2.5
+      if (i === 0) {
+        for (let k = 0; k < 5; k++) { const px = x - 28 + k * 14; g.beginPath(); g.arc(px, y - 9, 4.5, 0, TAU); g.fill(); g.beginPath(); g.arc(px, y + 9, 7, Math.PI, 0); g.fill() }
+      } else if (i === 1) {
+        g.beginPath()
+        for (let k = 0; k <= 48; k++) { const xx = x - 30 + k * 60 / 48, yy = y + Math.sin(k * 0.55 + (on ? t * 5 : 0)) * 10; k ? g.lineTo(xx, yy) : g.moveTo(xx, yy) }
         g.stroke()
-        for (const cx of [-20, 4, 26]) { g.fillRect(x + cx, y - 26, 2, 10) }
-      } else if (i === 2) { // GPU chip with a filling bar
-        g.strokeRect(x - 28, y - 22, 56, 44)
-        for (let k = 0; k < 5; k++) { g.fillRect(x - 24 + k * 12, y - 30, 4, 7); g.fillRect(x - 24 + k * 12, y + 23, 4, 7) }
-        g.fillStyle = gray(v * 0.9); g.fillRect(x - 20, y - 4, 40 * (on ? smooth(p) : i < a ? 1 : 0.15), 8)
-      } else if (i === 3) { // three stacked layers
-        for (let k = 0; k < 3; k++) { g.fillStyle = gray(v * (0.55 + k * 0.2)); g.fillRect(x - 24 + k * 14, y - 26 + k * 6, 16, 52 - k * 12) }
-      } else { // browser window with seven output bars
-        g.strokeRect(x - 34, y - 26, 68, 52); g.fillRect(x - 34, y - 26, 68, 8)
-        for (let k = 0; k < 7; k++) {
-          const h = on ? 4 + 14 * Math.abs(Math.sin(t * 6 + k * 1.3)) : 4 + (k === 4 ? 14 : 3)
-          g.fillStyle = gray(v); g.fillRect(x - 28 + k * 9, y + 20 - h, 6, h)
-        }
+        for (const cx of [-18, 2, 22]) g.fillRect(x + cx, y - 28, 2.5, 9)
+      } else if (i === 2) {
+        g.strokeRect(x - 26, y - 20, 52, 40)
+        for (let k = 0; k < 4; k++) { g.fillRect(x - 19 + k * 12, y - 28, 3, 7); g.fillRect(x - 19 + k * 12, y + 21, 3, 7) }
+        g.fillRect(x - 18, y - 4, 36 * (on ? smooth(p) : i < a ? 1 : 0), 8)
+      } else if (i === 3) {
+        for (let k = 0; k < 3; k++) g.strokeRect(x - 22 + k * 12, y - 24 + k * 6, 14, 48 - k * 12)
+      } else {
+        g.strokeRect(x - 32, y - 24, 64, 48); g.fillRect(x - 32, y - 24, 64, 7)
+        for (let k = 0; k < 7; k++) { const h = on ? 3 + 14 * Math.abs(Math.sin(t * 6 + k * 1.3)) : k === 4 ? 14 : 3; g.fillRect(x - 26 + k * 8, y + 19 - h, 5, h) }
       }
     })
   },
   overlay(g, t) {
     const a = activeStage(t)
     STAGES.forEach((s, i) => {
-      if (i === a) tag(g, s.name, PX[i], 228, 18); else label(g, s.name, PX[i], 228, 18, 'center')
-      label(g, s.note, PX[i], 256, 14, 'center')
+      if (i === a) tag(g, s.name, PX[i], 140, 18); else label(g, s.name, PX[i], 140, 18, 'center')
+      label(g, s.note, PX[i], 166, 14, 'center')
     })
   },
 }

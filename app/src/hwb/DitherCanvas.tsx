@@ -17,7 +17,7 @@ export type Scene = {
   overlay?: (g: CanvasRenderingContext2D, t: number) => void
 }
 
-export default function DitherCanvas({ scene, label, dot = DOT, soft = 0 }: { scene: Scene; label: string; dot?: number; soft?: number }) {
+export default function DitherCanvas({ scene, label, dot = DOT, soft = 0, fps = 24 }: { scene: Scene; label: string; dot?: number; soft?: number; fps?: number }) {
   const ref = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export default function DitherCanvas({ scene, label, dot = DOT, soft = 0 }: { sc
       raf = 0
       if (!visible) return
       raf = requestAnimationFrame(tick)
-      if (now - last < 1000 / 24) return
+      if (now - last < 1000 / fps - 1) return
       last = now
       const cw = c.clientWidth, ch = c.clientHeight
       if (!cw || !ch) return
@@ -81,7 +81,7 @@ export default function DitherCanvas({ scene, label, dot = DOT, soft = 0 }: { sc
     })
     io.observe(c)
     return () => { cancelAnimationFrame(raf); io.disconnect() }
-  }, [scene, dot, soft])
+  }, [scene, dot, soft, fps])
 
   return <canvas ref={ref} className="hwb__canvas" role="img" aria-label={label} />
 }

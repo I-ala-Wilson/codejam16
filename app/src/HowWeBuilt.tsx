@@ -12,12 +12,12 @@ const PANELS = [
     caption: 'We recorded 202 sessions from five people, so every second of echo has an exact label. A small neural network learned the shape of each gesture in about three minutes, and it runs entirely in your browser.',
     scene2: pipeline, alt2: 'Record, label, train, model, run: five people make 202 takes, cue beeps label them, three minutes on one GPU, a 32k-parameter model, running in the browser about twelve times a second.',
     specs: [
-      ['Input', '1 s window: 48 frames × 87 frequency bins around 20 kHz, in dB above the room’s noise floor'],
-      ['Model', 'CNN: 3 conv blocks (16, 32, 64 channels), mean + max pooling, 64-unit dense layer, 7 outputs; 32k parameters, 128 KB'],
-      ['Training', 'PyTorch, AdamW, cosine schedule, 30 epochs, class-balanced, label smoothing; time, frequency, gain and noise augmentation, never mirrored'],
-      ['Data', '202 recordings, 5 people, about 134,000 windows; demo-laptop calibration counted 5×'],
-      ['Testing', 'leave one person out: every score is on a person the model never saw'],
-      ['Runs', 'ONNX Runtime Web on the laptop CPU, about 12 evaluations a second'],
+      ['Input', '1 s of echo: 48 × 87 Doppler bins around 20 kHz'],
+      ['Model', 'small CNN, 3 conv blocks, 7 outputs, 32k params, 128 KB'],
+      ['Training', 'PyTorch, 30 epochs, augmented but never mirrored'],
+      ['Data', '202 recordings, 5 people, 134k windows'],
+      ['Testing', 'every score on a person the model never saw'],
+      ['Runs', 'in the browser on the laptop CPU, 12×/s'],
     ],
   },
   {
@@ -53,13 +53,13 @@ export default function HowWeBuilt() {
               <span className="hwb__big">{p.big}{'unit' in p && <small className="hwb__unit">{p.unit}</small>}</span>
             </div>
             <div className="hwb__frame"><DitherCanvas scene={p.scene} label={p.alt} /></div>
-            {'scene2' in p && p.scene2 && <div className="hwb__frame hwb__frame2"><DitherCanvas scene={p.scene2} label={p.alt2} /></div>}
+            {'scene2' in p && p.scene2 && <div className="hwb__frame hwb__frame2"><div className="hwb__frame2title">How we trained it</div><DitherCanvas scene={p.scene2} label={p.alt2} fps={60} /></div>}
             <figcaption className="hwb__cap">
               {p.caption}
               {'specs' in p && p.specs && (
                 <>
                   <button className="hwb__q hwb__card" aria-expanded={card} onClick={() => setCard(!card)}>
-                    <span className="hwb__sign">{card ? '−' : '+'}</span>Model card
+                    <span className="hwb__sign">{card ? '−' : '+'}</span>Full explanation
                   </button>
                   {card && (
                     <dl className="hwb__specs">

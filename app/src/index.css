@@ -131,8 +131,11 @@ a { color: var(--ink-strong); }
 .calib--on { opacity: 1; font-size: 22px; padding: 14px 22px; border-style: solid; cursor: default; }
 
 /* The model: a second visual (the training pipeline) under the first, and the model card behind a toggle */
-.hwb__panel:has(.hwb__frame2) { grid-template-areas: 'head frame' 'cap frame2'; }
-.hwb__panel .hwb__frame2 { grid-area: frame2; margin-top: 28px; }
-.hwb__card { display: flex; margin-top: 22px; }
+.hwb__panel:has(.hwb__frame2) { grid-template-areas: 'head frame' 'cap frame' 'cap frame2'; grid-template-rows: auto auto 1fr; }
+.hwb__panel:has(.hwb__frame2) .hwb__cap { align-self: start; }
+.hwb__panel .hwb__frame2 { grid-area: frame2; margin-top: 40px; }
+.hwb__frame2 .hwb__canvas { aspect-ratio: 2 / 1; margin-bottom: -22%; }
+.hwb__frame2title { font-size: 22px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); margin: 0 0 4px; }
+.hwb__cap .hwb__card { display: flex; width: fit-content; margin-top: 24px; }
 .hwb__panel:has(.hwb__frame2) .hwb__head { align-self: start; justify-content: flex-start; }
 @media (max-width: 900px) { .hwb__panel:has(.hwb__frame2) { grid-template-areas: 'head' 'frame' 'frame2' 'cap'; } }
