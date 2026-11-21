@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { dropTrim } from '../explainer/scene.ts'
 import { DH, DW, type Scene } from '../hwb/DitherCanvas.tsx'
 import { habitScene } from './scenes.ts'
 
@@ -205,13 +206,14 @@ const scratchingHand = make3D(() => {
   }
   new GLTFLoader().load('/models/person/guy.glb', (gltf) => {
     const root = gltf.scene, bones = new Map<string, THREE.Bone>()
-    const body = new THREE.MeshLambertMaterial({ color: 0xd2d2d0 })
+    const body = new THREE.MeshLambertMaterial({ color: 0x9a9a98 })
     root.traverse((o) => {
       if ((o as THREE.Bone).isBone) bones.set(o.name.replace(/^mixamorig:?/, ''), o as THREE.Bone)
       const m = o as THREE.Mesh
       if (!m.isMesh) return
       if (/^(EyeLeft|EyeRight|Wolf3D_Teeth|Wolf3D_Beard|Wolf3D_Headwear)$/.test(m.name)) m.visible = false
       ;(m.material as THREE.Material).dispose(); m.material = body; m.frustumCulled = false
+      if (m.name === 'Wolf3D_Outfit_Top') dropTrim(m.geometry) // same clean torso as the explainer guy
       void armsOnly // whole body kept: cutting it open showed the inside of the mesh
     })
     const bone = (n: string) => { const b = bones.get(n); if (!b) throw new Error('guy.glb: missing bone ' + n); return b }
@@ -396,13 +398,14 @@ export const careScene3D = make3D(() => {
   let rig: Rig | null = null
   new GLTFLoader().load('/models/person/guy.glb', (gltf) => {
     const root = gltf.scene, bones = new Map<string, THREE.Bone>()
-    const body = new THREE.MeshLambertMaterial({ color: 0xd2d2d0 })
+    const body = new THREE.MeshLambertMaterial({ color: 0x9a9a98 })
     root.traverse((o) => {
       if ((o as THREE.Bone).isBone) bones.set(o.name.replace(/^mixamorig:?/, ''), o as THREE.Bone)
       const m = o as THREE.Mesh
       if (!m.isMesh) return
       if (/^(EyeLeft|EyeRight|Wolf3D_Teeth|Wolf3D_Beard|Wolf3D_Headwear)$/.test(m.name)) m.visible = false
       ;(m.material as THREE.Material).dispose(); m.material = body; m.frustumCulled = false
+      if (m.name === 'Wolf3D_Outfit_Top') dropTrim(m.geometry) // same clean torso as the explainer guy
     })
     const bone = (n: string) => { const b = bones.get(n); if (!b) throw new Error('guy.glb: missing bone ' + n); return b }
     const at = (n: string) => bone(n).getWorldPosition(new V3())

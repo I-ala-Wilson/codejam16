@@ -139,6 +139,43 @@ function orient(bone: THREE.Object3D, q0: THREE.Quaternion, a: THREE.Vector3, b:
 
 type Wave = { mesh: THREE.Mesh; mat: THREE.ShaderMaterial; on: boolean; t0: number; c: THREE.Vector3; hit: boolean; hitR: number; k: number }
 
+// The bow tie, lapel flower and vest buttons are small separate pieces inside the shirt mesh: find its connected
+// pieces (welding seams by position) and drop the small ones on the chest, so the torso reads as one smooth surface
+export const dropTrim = (g: THREE.BufferGeometry) => {
+  const pos = g.attributes.position, idx = g.index
+  if (!idx) return
+  const n = pos.count, par = Array.from({ length: n }, (_, i) => i)
+  const find = (a: number) => { while (par[a] !== a) a = par[a] = par[par[a]]; return a }
+  const join = (a: number, b: number) => { par[find(a)] = find(b) }
+  for (let t = 0; t < idx.count; t += 3) { join(idx.getX(t), idx.getX(t + 1)); join(idx.getX(t + 1), idx.getX(t + 2)) }
+  const seen = new Map<string, number>()
+  for (let i = 0; i < n; i++) {
+    const k = `${pos.getX(i).toFixed(4)},${pos.getY(i).toFixed(4)},${pos.getZ(i).toFixed(4)}`
+    const o = seen.get(k)
+    if (o === undefined) seen.set(k, i); else join(i, o)
+  }
+  const box = new Map<number, { n: number; b: THREE.Box3 }>()
+  const v = new THREE.Vector3()
+  for (let i = 0; i < n; i++) {
+    const r = find(i)
+    if (!box.has(r)) box.set(r, { n: 0, b: new THREE.Box3() })
+    const c = box.get(r)!
+    c.n++
+    c.b.expandByPoint(v.fromBufferAttribute(pos, i))
+  }
+  const drop = new Set<number>()
+  for (const [r, c] of box) {
+    const m = c.b.getCenter(v)
+    if (c.n <= 230 && c.b.max.y - c.b.min.y < 0.12 && Math.abs(m.x) < 0.25 && m.y > 1.1 && m.y < 1.6 && m.z > 0.05) drop.add(r)
+  }
+  const keep: number[] = []
+  for (let t = 0; t < idx.count; t += 3) {
+    const a = idx.getX(t)
+    if (!drop.has(find(a))) keep.push(a, idx.getX(t + 1), idx.getX(t + 2))
+  }
+  g.setIndex(keep)
+}
+
 export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -341,42 +378,6 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       for (let i = 0; i < pos.count; i += 3) { m.getVertexPosition(i, v); v.applyMatrix4(m.matrixWorld); if (v.y < y) y = v.y }
     })
     return y
-  }
-  // The bow tie, lapel flower and vest buttons are small separate pieces inside the shirt mesh: find its connected
-  // pieces (welding seams by position) and drop the small ones on the chest, so the torso reads as one smooth surface
-  const dropTrim = (g: THREE.BufferGeometry) => {
-    const pos = g.attributes.position, idx = g.index
-    if (!idx) return
-    const n = pos.count, par = Array.from({ length: n }, (_, i) => i)
-    const find = (a: number) => { while (par[a] !== a) a = par[a] = par[par[a]]; return a }
-    const join = (a: number, b: number) => { par[find(a)] = find(b) }
-    for (let t = 0; t < idx.count; t += 3) { join(idx.getX(t), idx.getX(t + 1)); join(idx.getX(t + 1), idx.getX(t + 2)) }
-    const seen = new Map<string, number>()
-    for (let i = 0; i < n; i++) {
-      const k = `${pos.getX(i).toFixed(4)},${pos.getY(i).toFixed(4)},${pos.getZ(i).toFixed(4)}`
-      const o = seen.get(k)
-      if (o === undefined) seen.set(k, i); else join(i, o)
-    }
-    const box = new Map<number, { n: number; b: THREE.Box3 }>()
-    const v = new V()
-    for (let i = 0; i < n; i++) {
-      const r = find(i)
-      if (!box.has(r)) box.set(r, { n: 0, b: new THREE.Box3() })
-      const c = box.get(r)!
-      c.n++
-      c.b.expandByPoint(v.fromBufferAttribute(pos, i))
-    }
-    const drop = new Set<number>()
-    for (const [r, c] of box) {
-      const m = c.b.getCenter(v)
-      if (c.n <= 230 && c.b.max.y - c.b.min.y < 0.12 && Math.abs(m.x) < 0.25 && m.y > 1.1 && m.y < 1.6 && m.z > 0.05) drop.add(r)
-    }
-    const keep: number[] = []
-    for (let t = 0; t < idx.count; t += 3) {
-      const a = idx.getX(t)
-      if (!drop.has(find(a))) keep.push(a, idx.getX(t + 1), idx.getX(t + 2))
-    }
-    g.setIndex(keep)
   }
   new GLTFLoader().load('/models/person/guy.glb', (gltf) => {
     const root = gltf.scene
