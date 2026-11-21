@@ -26,7 +26,7 @@ export interface DecoderConfig {
   readonly smooth: number
   readonly confirm: number
   readonly refractoryMs: number
-  /** A wave is long, so it holds off the strokes that follow it for longer. */
+  /** A wave (and an open/close, 2 to 3 pulses) is long, so it holds off the strokes that follow it for longer. */
   readonly waveRefractoryMs: number
   /** A habit goes on for seconds, so it holds off for longer still (ml/evaluate.py HABIT_REFRACTORY_S). */
   readonly habitRefractoryMs: number
@@ -185,7 +185,7 @@ export class EventDecoder {
     this.previous = candidate
     if (candidate === null || this.streak < confirm) return null
     const cls = names[candidate] as GestureType
-    const hold = cls === 'WAVE' ? this.config.waveRefractoryMs : cls === 'REPETITIVE' ? this.config.habitRefractoryMs : this.config.refractoryMs
+    const hold = cls === 'WAVE' || cls === 'OPEN_CLOSE' ? this.config.waveRefractoryMs : cls === 'REPETITIVE' ? this.config.habitRefractoryMs : this.config.refractoryMs
     this.holdUntilMs = tMs + hold
     this.streak = 0
     this.previous = null
