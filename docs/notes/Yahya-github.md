@@ -1,8 +1,9 @@
 # Journal: Yahya-github (engine + ML + QA lane)
 
 ## Now
-- #3 engine audio I/O + SpectrumFrame stream: code written, reviewed (3 HIGH found, all fixed with tests), 41 tests green. Next: commit/push (waiting for my human's OK), `[DONE]` to Ian saying audio shell is untested on a real mic, close #3 only after a real-mic check.
-- Next: #9 rule detectors PUSH/PULL/WAVE/HOLD/OPEN_CLOSE/UNDO + recording. Then #15, #14. #18 (ASL) is parked until M2 Floor is done (priority INFO posted on the board).
+- #3 pushed (fa572a3) and DONE posted. Left OPEN on purpose until Ian (or I) confirms on a real mic: snrDb >= 30 and a push gives positive shiftHz. Then `gh issue close 3 -c "..."`.
+- Next: #9 rule detectors PUSH/PULL/WAVE/HOLD/OPEN_CLOSE/UNDO + recording in engine/src (new file for detectors, wire into `onGesture` in index.ts). Then #15, #14. #18 (ASL) is parked until M2 Floor is done (Ian agreed on the board).
+- Human tasks pending (Ian, #7055273193): GPU check in ml/.venv, start the QA clone (after #3 is in, which it now is).
 
 ## Done
 - #3 (pending push): `engine/src/dsp.ts` (FFT, dB spectrum, floor, analyzeFrame, snrDb), `pipeline.ts` (ring buffer, 1 s auto-calibration, frames), `audio.ts` (mic with all DSP off, 20 kHz oscillator, AudioWorklet), `index.ts` (`createEngine`).
