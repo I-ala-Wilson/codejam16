@@ -13,8 +13,8 @@ const LEAD_IN_MS = 3000
 const REPS = 20
 
 type Take =
-  | { kind: 'gesture'; gesture: GestureType; distanceCm: number; cueWindowMs: number; periodMs: number; how: string; variant?: string }
-  | { kind: 'none'; noneKind: 'a' | 'b' | 'c' | 'd' | 'e'; durationMs: number; how: string }
+  | { kind: 'gesture'; gesture: GestureType; distanceCm: number; cueWindowMs: number; periodMs: number; how: string; variant?: string; folder?: string; reps?: number }
+  | { kind: 'none'; noneKind: 'a' | 'b' | 'c' | 'd' | 'e'; durationMs: number; how: string; folder?: string }
 
 const G = (gesture: GestureType, dists: [number, number], cueWindowMs: number, periodMs: number, how: string): Take[] =>
   dists.map((distanceCm) => ({ kind: 'gesture', gesture, distanceCm, cueWindowMs, periodMs, how }))
@@ -38,11 +38,25 @@ const HABIT: Take[] = [
   { kind: 'none', noneKind: 'e', durationMs: 120000, how: 'Type normally for 2 minutes (write anything). This teaches Habit that typing is NOT a habit.' },
 ]
 
-const BATTERIES = { main: BATTERY, habit: HABIT } as const
+// Demo-day calibration (ml/README.md): the presenter's own takes on the demo laptop, in the demo room, at demo volume.
+// calib-1 is trained on (counted 5 times); livecheck-1 is never trained on and is the before/after test for the new model.
+const C = (folder: string, gesture: GestureType, distanceCm: number, reps: number): Take => {
+  const b = BATTERY.find((x) => x.kind === 'gesture' && x.gesture === gesture)!
+  return { ...(b as Extract<Take, { kind: 'gesture' }>), distanceCm, folder, reps }
+}
+const CALIB: Take[] = [
+  C('calib-1', 'PUSH', 20, 20), C('calib-1', 'PULL', 20, 20), C('calib-1', 'WAVE', 30, 20),
+  C('calib-1', 'OPEN_CLOSE', 20, 20), C('calib-1', 'UNDO', 20, 20),
+  { kind: 'none', noneKind: 'd', durationMs: 60000, folder: 'calib-1', how: 'Let your hand wander slowly in front of the screen without making any gesture.' },
+  C('livecheck-1', 'WAVE', 30, 10), C('livecheck-1', 'UNDO', 20, 10), C('livecheck-1', 'PUSH', 20, 10), C('livecheck-1', 'PULL', 20, 10),
+]
+
+const BATTERIES = { main: BATTERY, habit: HABIT, calib: CALIB } as const
 type BatteryName = keyof typeof BATTERIES
 
-const takeName = (t: Take) => t.kind === 'gesture'
-  ? `${t.variant ? `HABIT (${t.variant})` : t.gesture} at ${t.distanceCm} cm` : `NONE (${t.noneKind})`
+const takeName = (t: Take) => (t.folder ? `${t.folder}: ` : '') + (t.kind === 'gesture'
+  ? `${t.variant ? `HABIT (${t.variant})` : t.gesture} at ${t.distanceCm} cm` : `NONE (${t.noneKind})`)
+const repsOf = (t: Take) => (t.kind === 'gesture' && t.reps) || REPS
 
 type Phase = 'idle' | 'away' | 'leadin' | 'cue' | 'rest' | 'none' | 'saving'
 
@@ -119,7 +133,7 @@ export default function Dataset({ only }: { only: BatteryName }) {
     const reps: { start: number; end: number; label: string; speed?: string }[] = []
     const sr = engine.health().sampleRate || 48000
     if (t.kind === 'gesture') {
-      for (let i = 0; i < REPS; i++) {
+      for (let i = 0; i < repsOf(t); i++) {
         const speed = i % 2 === 0 ? 'natural' : 'brisk'
         setRep(i + 1); setCueText(`${t.gesture.replace('_', ' ')}: ${speed}`)
         const start = sampleNow()
@@ -139,7 +153,7 @@ export default function Dataset({ only }: { only: BatteryName }) {
       const s = await engine.stopRecording()
       const stamp = s.filename.match(/_(\d{8}-\d{6})\.wav$/)?.[1] ?? Date.now().toString()
       const tag = t.kind === 'gesture' ? `${t.gesture}${t.variant ? '-' + t.variant : ''}_${t.distanceCm}cm` : `NONE-${t.noneKind}`
-      const base = `${person.toLowerCase()}_${tag}_${laptop}_${battery === 'habit' ? 'h' : 't'}${idx + 1}_${stamp}`
+      const base = `${t.folder ? t.folder + '__' : ''}${person.toLowerCase()}_${tag}_${laptop}_${battery === 'habit' ? 'h' : battery === 'calib' ? 'c' : 't'}${idx + 1}_${stamp}`
       const meta = {
         ...(s.meta as Record<string, unknown>),
         gesture: t.kind === 'gesture' ? t.gesture : 'NONE',
@@ -169,7 +183,7 @@ export default function Dataset({ only }: { only: BatteryName }) {
   const busy = phase !== 'idle'
 
   return (
-    <Window title={battery === 'main' ? 'Dataset recording (main battery, 14 takes)' : 'Habit recording (add-on, 3 takes)'}>
+    <Window title={battery === 'main' ? 'Dataset recording (main battery, 14 takes)' : battery === 'calib' ? 'Calibration (demo day, 10 takes, about 12 minutes)' : 'Habit recording (add-on, 3 takes)'}>
       {!busy && (
         <>
           <Box title="1. About you (once)">
@@ -183,18 +197,21 @@ export default function Dataset({ only }: { only: BatteryName }) {
             {running ? <>On · tone health <b>{snr.toFixed(0)} dB</b> {snr >= 30 ? '✓' : '✗ turn the volume up'}</> :
               <button onClick={startSonar} disabled={!ready}>Start sonar and calibrate (hands off 3 s)</button>}
           </Box>
-          <Box title={`3. ${battery === 'main' ? 'Main battery' : 'Habit add-on'}: ${Math.min(idx, LIST.length)} of ${LIST.length} done`}>
+          {battery === 'calib' && <Box title="What this is"><p>Record in the room you will demo in, at the volume you will demo at, sitting the way you will sit. Takes 1 to 6 (calib-1) teach the model your hands; takes 7 to 10 (livecheck-1) are never trained on and prove the new model is better. Just press Record, follow the big GO prompts, and move to the next take. Redo any take where you messed up.</p></Box>}
+          <Box title={`3. ${battery === 'main' ? 'Main battery' : battery === 'calib' ? 'Calibration' : 'Habit add-on'}: ${Math.min(idx, LIST.length)} of ${LIST.length} done`}>
             <div style={{ height: 14, border: '2px solid #000', borderRadius: 4, overflow: 'hidden', marginBottom: 10 }}>
-              <div style={{ width: `${(Math.min(idx, LIST.length) / LIST.length) * 100}%`, height: '100%', background: '#000' }} />
+              <div style={{ width: `${(Math.min(idx, LIST.length) / LIST.length) * 100}%`, height: '100%', background: 'currentColor' }} />
             </div>
-            {done ? (
+            {done && battery === 'calib' ? (
+              <p><b>All 10 takes done.</b> In a terminal run <b>scripts/file-takes</b> from the codejam16 folder: it moves the files from Downloads into data/recordings/&lt;you&gt;/calib-1 and livecheck-1, audits them and pushes. Then tell Yahya "calib-1 pushed, run the calib retrain".</p>
+            ) : done ? (
               <p><b>All takes done.</b> Tell your agent: <b>"move my Echo dataset files from Downloads into data/recordings/{login || '<my login>'}/ and push them"</b>. Then post DONE to Yahya-github.</p>
             ) : (
               <>
                 <p style={{ fontSize: 22 }}>Next: <b>{takeName(t)}</b></p>
                 <p>{t.how}</p>
                 {t.kind === 'gesture'
-                  ? <p>Hand at <b>{t.distanceCm} cm</b>. 3 s hands off, then {REPS} cues every {t.periodMs / 1000} s (alternating natural and brisk). Do one rep per GO, then put your hand back at the same rest spot and keep it still until the next beep. About {Math.round((LEAD_IN_MS + REPS * t.periodMs) / 1000)} s.</p>
+                  ? <p>Hand at <b>{t.distanceCm} cm</b>. 3 s hands off, then {repsOf(t)} cues every {t.periodMs / 1000} s (alternating natural and brisk). Do one rep per GO, then put your hand back at the same rest spot and keep it still until the next beep. About {Math.round((LEAD_IN_MS + repsOf(t) * t.periodMs) / 1000)} s.</p>
                   : <p>3 s hands off, then 60 s of the activity above.</p>}
                 <button onClick={runTake} disabled={!running} style={{ fontSize: 18 }}>Record this take</button>
               </>
@@ -209,7 +226,7 @@ export default function Dataset({ only }: { only: BatteryName }) {
       )}
 
       {busy && (
-        <Box title={`${takeName(t)}${phase === 'cue' || phase === 'rest' ? `: rep ${rep} of ${REPS}` : ''}`}>
+        <Box title={`${takeName(t)}${phase === 'cue' || phase === 'rest' ? `: rep ${rep} of ${repsOf(t)}` : ''}`}>
           <div style={{ fontSize: 64, fontWeight: 900, textAlign: 'center', padding: '28px 0', border: '2px solid #000', borderRadius: 8,
             background: phase === 'cue' ? '#000' : '#fff', color: phase === 'cue' ? '#fff' : '#000' }}>
             {phase === 'away' && `Take your hands away… ${count}`}

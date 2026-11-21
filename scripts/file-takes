@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Files the Calibration tab's downloads: ~/Downloads/<folder>__<person>_... -> data/recordings/<Login>/<folder>/, audits, pushes.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+shopt -s nullglob
+moved=0
+for f in ~/Downloads/calib-*__* ~/Downloads/livecheck-*__*; do
+  name=$(basename "$f"); folder=${name%%__*}; rest=${name#*__}; person=${rest%%_*}
+  login=$(ls data/recordings | grep -ix "$person" | head -1 || true)
+  [ -n "$login" ] || login=$person
+  mkdir -p "data/recordings/$login/$folder"
+  mv "$f" "data/recordings/$login/$folder/$rest"; moved=$((moved + 1))
+  echo "$folder/$rest"
+done
+[ "$moved" -gt 0 ] || { echo "No calibration files in ~/Downloads (they start with calib- or livecheck-)."; exit 1; }
+if [ -x ml/.venv/bin/python ]; then
+  for d in data/recordings/*/calib-* data/recordings/*/livecheck-*; do
+    echo "== audit $d"; ml/.venv/bin/python ml/audit.py "$d" || echo "!! a take FAILED in $d: redo it in the Calibration tab, then run this again"
+  done
+else
+  echo "(No ml venv here: Yahya's calib command audits the takes and names any take to redo.)"
+fi
+git add data/recordings
+git commit -qm "Calibration and livecheck takes" && git push -q && echo "Pushed $moved files. Tell Yahya: calib-1 pushed, run the calib retrain."
