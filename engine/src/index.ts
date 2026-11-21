@@ -1,6 +1,7 @@
 import type { Engine, EngineOptions, GestureEvent, SpectrumFrame } from '../../contracts/engine.ts'
 import { startCapture, type CaptureOptions, type CaptureSession } from './audio.ts'
 import { FramePipeline } from './pipeline.ts'
+import { SessionRecorder } from './recorder.ts'
 
 const DEFAULT_TONE_HZ = 20000
 const DEFAULT_TONE_DBFS = -36
@@ -9,8 +10,6 @@ const DEFAULT_CALIBRATION_MS = 3000
 const AUTO_CALIBRATION_MS = 1000
 /** calibrate() gives up this long after it should have finished if no audio frames are arriving. */
 const CALIBRATION_TIMEOUT_SLACK_MS = 2000
-
-const RECORDING_PENDING = 'Recording ships with the rule-detector issue (#9)'
 
 export interface EngineDeps {
   readonly startCapture: (opts: CaptureOptions) => Promise<CaptureSession>
@@ -42,6 +41,8 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
   const gestureListeners = new Set<(e: GestureEvent) => void>()
   let session: CaptureSession | null = null
   let pipeline: FramePipeline | null = null
+  /** Survives stop() and a dead mic, so a take that was cut short can still be saved. */
+  let recorder: SessionRecorder | null = null
   let starting: Promise<void> | null = null
   /** Bumped on every teardown so a start() that was still waiting can tell it was cancelled. */
   let generation = 0
@@ -57,8 +58,11 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
   }
 
   const onChunk = (chunk: Float32Array): void => {
+    recorder?.pushChunk(chunk)
     const frame = pipeline?.push(chunk, performance.now())
-    if (frame) emitFrame(frame)
+    if (!frame) return
+    recorder?.pushFrame(frame)
+    emitFrame(frame)
   }
 
   const teardown = (reason: string): void => {
@@ -147,12 +151,17 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
       return () => frameListeners.delete(cb)
     },
 
-    startRecording() {
-      throw new Error(RECORDING_PENDING)
+    startRecording(label) {
+      if (!session) throw new Error('Engine is not running: call start() before startRecording()')
+      if (recorder) throw new Error('A recording is already running: call stopRecording() first')
+      recorder = new SessionRecorder({ label, sampleRate: session.sampleRate, toneHz, toneDbfs, now: new Date() })
     },
 
     async stopRecording() {
-      throw new Error(RECORDING_PENDING)
+      if (!recorder) throw new Error('Not recording: call startRecording() first')
+      const finished = recorder
+      recorder = null
+      return finished.finish()
     },
   }
 }

@@ -160,6 +160,67 @@ describe('createEngineWith', () => {
     expect(engine.health().running).toBe(false)
   })
 
+  describe('recording', () => {
+    const label = { person: 'ian', gesture: 'PUSH', laptop: 'mbp-ian' } as const
+
+    it('refuses to record before start()', () => {
+      const { startCapture } = fakeCapture()
+      const engine = createEngineWith({ startCapture })
+      expect(() => engine.startRecording(label)).toThrow(/start/)
+    })
+
+    it('saves every mic sample between startRecording and stopRecording as a named WAV with meta', async () => {
+      const { startCapture, pushChunks } = fakeCapture()
+      const engine = createEngineWith({ startCapture })
+      await engine.start()
+      pushChunks(3) // before recording: must not be in the file
+      engine.startRecording(label)
+      pushChunks(10)
+      const session = await engine.stopRecording()
+      expect(session.wav.size).toBe(44 + 10 * HOP * 4)
+      expect(session.filename).toMatch(/^ian_PUSH_mbp-ian_\d{8}-\d{6}\.wav$/)
+      expect(session.meta).toMatchObject({ person: 'ian', gesture: 'PUSH', sampleRate: 48000, toneHz: 20000, toneDbfs: -36 })
+    })
+
+    it('rejects a second startRecording while one is running', async () => {
+      const { startCapture } = fakeCapture()
+      const engine = createEngineWith({ startCapture })
+      await engine.start()
+      engine.startRecording(label)
+      expect(() => engine.startRecording(label)).toThrow(/already/)
+    })
+
+    it('rejects stopRecording when nothing is recording', async () => {
+      const { startCapture } = fakeCapture()
+      const engine = createEngineWith({ startCapture })
+      await engine.start()
+      await expect(engine.stopRecording()).rejects.toThrow(/not recording/i)
+    })
+
+    it('still returns the data when the engine stops or the mic dies mid-recording', async () => {
+      const { startCapture, pushChunks, sessions } = fakeCapture()
+      const engine = createEngineWith({ startCapture })
+      await engine.start()
+      engine.startRecording(label)
+      pushChunks(5)
+      sessions[0].options.onEnded('microphone unplugged')
+      const session = await engine.stopRecording()
+      expect(session.wav.size).toBe(44 + 5 * HOP * 4)
+    })
+
+    it('allows a new recording after the previous one was stopped', async () => {
+      const { startCapture, pushChunks } = fakeCapture()
+      const engine = createEngineWith({ startCapture })
+      await engine.start()
+      engine.startRecording(label)
+      pushChunks(2)
+      await engine.stopRecording()
+      engine.startRecording(label)
+      pushChunks(4)
+      expect((await engine.stopRecording()).wav.size).toBe(44 + 4 * HOP * 4)
+    })
+  })
+
   it('can start again after a stop', async () => {
     const { startCapture } = fakeCapture()
     const engine = createEngineWith({ startCapture })

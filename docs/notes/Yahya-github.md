@@ -2,14 +2,15 @@
 
 ## Now
 - #3 pushed (fa572a3) and DONE posted. Left OPEN on purpose until Ian (or I) confirms on a real mic: snrDb >= 30 and a push gives positive shiftHz. Then `gh issue close 3 -c "..."`.
-- Next: #9 rule detectors PUSH/PULL/WAVE/HOLD/OPEN_CLOSE/UNDO + recording in engine/src (new file for detectors, wire into `onGesture` in index.ts). Then #15, #14. #18 (ASL) is parked until M2 Floor is done (Ian agreed on the board).
+- #9 part 1 (recording) pushed: `engine/src/recorder.ts` + `startRecording/stopRecording` in index.ts. Reps are auto-marked from motion energy (>10 dB for 3 frames, ends after 8 quiet frames); thresholds untuned on real data.
+- Next: #9 part 2, rule detectors PUSH/PULL/WAVE/HOLD/OPEN_CLOSE/UNDO (new file in engine/src, wire into `onGesture` in index.ts; tune on tonight's recordings, report per-gesture scores in ml/REPORT.md). Then #15, #14. #18 (ASL) is parked until M2 Floor is done (Ian agreed on the board).
 - Human tasks pending (Ian, #7055273193): GPU check in ml/.venv, start the QA clone (after #3 is in, which it now is).
 
 ## Done
 - #3 (pending push): `engine/src/dsp.ts` (FFT, dB spectrum, floor, analyzeFrame, snrDb), `pipeline.ts` (ring buffer, 1 s auto-calibration, frames), `audio.ts` (mic with all DSP off, 20 kHz oscillator, AudioWorklet), `index.ts` (`createEngine`).
 
 ## How to run my lane
-- `cd engine && npm i && npm test` (vitest, 41 tests) and `npm run typecheck`.
+- `cd engine && npm i && npm test` (vitest, 61 tests) and `npm run typecheck`. Also run `cd app && npx tsc -b`: the app's `erasableSyntaxOnly` bans constructor parameter properties and enums in engine code.
 - App check: `cd app && npm i && npm run dev`, open http://localhost:5173 in Chrome, click Start, allow the mic.
 - ML: `cd ml && python -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt && python check_gpu.py` (CUDA must say True; not done yet).
 
