@@ -21,7 +21,7 @@ const GESTURES: Item[] = [
 ]
 
 // Engine records float32; save 16-bit PCM to halve the size (contracts/recording.md v2).
-async function toPcm16(wav: Blob): Promise<Blob> {
+export async function toPcm16(wav: Blob): Promise<Blob> {
   const buf = await wav.arrayBuffer()
   const v = new DataView(buf)
   let off = 12, fmt = { rate: 48000, bits: 32, fmtTag: 3 }, dataOff = 0, dataLen = 0
@@ -47,7 +47,7 @@ async function toPcm16(wav: Blob): Promise<Blob> {
   return new Blob([out.buffer], { type: 'audio/wav' })
 }
 
-function download(blob: Blob, name: string) {
+export function download(blob: Blob, name: string) {
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob); a.download = name; a.click()
   setTimeout(() => URL.revokeObjectURL(a.href), 2000)
