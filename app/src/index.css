@@ -110,6 +110,10 @@ a { color: var(--ink-strong); }
 .hwb__frame { margin-top: 18px; }
 .hwb__canvas { display: block; width: 100%; aspect-ratio: 2 / 1; image-rendering: pixelated; }
 .hwb__cap { font-size: 23px; line-height: 1.25; margin-top: 16px; max-width: 54ch; color: var(--ink); }
+.hwb__specs { margin: 24px 0 0; padding-top: 16px; border-top: 1px dotted var(--ink); display: grid; gap: 8px; font-size: 17px; line-height: 1.3; letter-spacing: .02em; }
+.hwb__specs div { display: grid; grid-template-columns: 96px 1fr; gap: 12px; }
+.hwb__specs dt { text-transform: uppercase; letter-spacing: .08em; }
+.hwb__specs dd { margin: 0; }
 .hwb__faq { margin-top: 80px; border-top: 1px dotted var(--ink); padding-top: 22px; }
 .hwb__faqhead { font-size: 22px; letter-spacing: .08em; margin-bottom: 16px; }
 .hwb__qs { display: flex; flex-wrap: wrap; gap: 12px; }

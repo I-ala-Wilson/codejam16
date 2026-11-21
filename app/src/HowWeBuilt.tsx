@@ -9,7 +9,15 @@ const PANELS = [
   {
     title: 'The model', big: '202 recordings', scene: model,
     alt: 'A scrolling spectrogram with gesture streaks feeds a small convolutional network that picks one of seven outputs: five gestures, Habit, or nothing.',
-    caption: 'We recorded 202 sessions from five people performing each gesture on cue, so every slice of echo has a known label. We trained a small neural network on a GPU to recognise the shape each gesture leaves in the echo, and we tested it only on people it had never seen to keep our accuracy honest. The finished model runs inside the browser, which keeps it fast, lets it work without an internet connection, and means that no audio ever leaves the device.',
+    caption: 'We recorded 202 sessions from five people performing each gesture on cue, so every second of echo has an exact label without any hand labelling. Our model is a small convolutional neural network of about 32,000 parameters that reads one second of the Doppler spectrogram around the 20 kHz tone and decides between five gestures, Habit, and nothing. We trained it in PyTorch on a single laptop GPU in about three minutes, tested it only on people it had never seen, and exported it so that it runs inside the browser with no server and no audio ever leaving the device.',
+    specs: [
+      ['Input', '1 s window: 48 frames × 87 frequency bins around 20 kHz, in dB above the room’s noise floor'],
+      ['Model', 'CNN: 3 conv blocks (16, 32, 64 channels), mean + max pooling, 64-unit dense layer, 7 outputs; 32k parameters, 128 KB'],
+      ['Training', 'PyTorch, AdamW, cosine schedule, 30 epochs, class-balanced, label smoothing; time, frequency, gain and noise augmentation, never mirrored'],
+      ['Data', '202 recordings, 5 people, about 134,000 windows; demo-laptop calibration counted 5×'],
+      ['Testing', 'leave one person out: every score is on a person the model never saw'],
+      ['Runs', 'ONNX Runtime Web on the laptop CPU, about 12 evaluations a second'],
+    ],
   },
   {
     title: 'The agents', big: '4 + 5', unit: 'humans + agents', scene: agents,
@@ -43,7 +51,14 @@ export default function HowWeBuilt() {
               <span className="hwb__big">{p.big}{'unit' in p && <small className="hwb__unit">{p.unit}</small>}</span>
             </div>
             <div className="hwb__frame"><DitherCanvas scene={p.scene} label={p.alt} /></div>
-            <figcaption className="hwb__cap">{p.caption}</figcaption>
+            <figcaption className="hwb__cap">
+              {p.caption}
+              {'specs' in p && p.specs && (
+                <dl className="hwb__specs">
+                  {p.specs.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+                </dl>
+              )}
+            </figcaption>
           </figure>
         ))}
       </div>
