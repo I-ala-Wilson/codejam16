@@ -42,6 +42,11 @@ chrome.runtime.onMessageExternal.addListener((msg, _sender, reply) => {
   queue = queue.then(async () => {
     const st = await chrome.storage.local.get({ locked: false, sites: [] })
     if (msg.type === 'LOCK') {
+      // validate before touching state: sites must be a list of bare hosts, appUrl only our own app origins
+      const sites = Array.isArray(msg.sites) ? msg.sites.filter((x) => typeof x === 'string' && /^[a-z0-9.-]+$/i.test(x)) : null
+      const appOk = (u) => { try { const h = new URL(u); return (h.protocol === 'http:' && h.hostname === 'localhost') || (h.protocol === 'https:' && h.hostname.endsWith('.vercel.app')) } catch { return false } }
+      if (!sites || !sites.length) { reply({ ok: false, error: 'LOCK needs sites: [host, ...]' }); return }
+      msg = { ...msg, sites, appUrl: msg.appUrl && appOk(msg.appUrl) ? msg.appUrl : null }
       await chrome.storage.local.set({ locked: true, sites: msg.sites, progress: 0, appUrl: msg.appUrl || null })
       await applyVeil(msg.sites); reply({ ok: true, locked: true })
     } else if (msg.type === 'UNLOCK') {
