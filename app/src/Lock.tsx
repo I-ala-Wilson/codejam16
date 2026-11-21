@@ -11,6 +11,8 @@ const DEFAULT_SITES = ['youtube.com', 'tiktok.com', 'roblox.com']
 type Mode = 'home' | 'verify' | 'set' | 'confirm'
 const GLYPH: Record<Sign, string> = { PUSH: '>>', PULL: '<<', WAVE: '~~', OPEN_CLOSE: '<>' }
 
+const SET_GRACE_MS = 2500
+
 export default function Lock() {
   const [mode, setMode] = useState<Mode>('home')
   const [extId, setExtId] = useState(extensionId())
@@ -71,9 +73,11 @@ export default function Lock() {
   const unlockNow = async () => { setError(''); try { setStatus(await sendToExtension({ type: 'UNLOCK' })) } catch (e) { setError(String(e)) } }
   const go = (m: Mode, msg = '') => { reset(); setMessage(msg); setMode(m) }
 
-  // Setting: the 4th sign moves to the confirm screen.
+  // Setting: the 4th sign moves to the confirm screen after a short grace, so a double tap can still undo it.
   useEffect(() => {
-    if (mode === 'set' && signs.length === LENGTH) { setDraft(signs); setMode('confirm'); reset() }
+    if (mode !== 'set' || signs.length !== LENGTH) return
+    const id = window.setTimeout(() => { setDraft(signs); setMode('confirm'); reset() }, SET_GRACE_MS)
+    return () => clearTimeout(id)
   }, [mode, signs])
 
   // Verifying: the 4th sign is checked against the current password before it can be changed.
@@ -101,6 +105,7 @@ export default function Lock() {
       : mode === 'set' ? 'Make your password.'
       : 'Is this your password?'
     const sub = mode === 'confirm' ? draft.map((s) => LABEL[s]).join('  ·  ')
+      : mode === 'set' && signs.length === LENGTH ? 'Double tap to undo the last sign.'
       : `Do ${LENGTH} hand signs, one at a time, about 20 cm from the screen.`
     return (
       <div className="lk">
