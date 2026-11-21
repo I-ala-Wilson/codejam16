@@ -129,3 +129,22 @@ Acceptance (all must hold, judged by `tune.decide` with `fa_slack = 0` and the p
 If a candidate is accepted: train the final model with it, mirror it in the engine if it needs a runtime change, run all
 tests, push model and engine together, post DONE with the numbers. If none is accepted: post INFO with what failed and
 change nothing. PUSH and PULL recall and their mutual confusion are reported either way, but are not part of the rule.
+
+### Round 3b: Doppler-sign override for PUSH vs PULL. PRE-REGISTERED before any evaluation of it
+Disclosure: before writing this I looked at the rule detector's per-take hit rates (`engine/tools/score.ts`) for the five
+people: on PUSH and PULL takes the rule detector answers the right class in roughly 90-100% of cues (it also fires many
+stray events, which is why it is not the main detector). The CNN gets 49% and 53% for an unseen person. So the CNN finds the
+gesture but not its direction, and the Doppler sign already knows it. The override below was chosen before any number
+was computed with it, and has two fixed parameters, not tuned.
+
+Candidate 4, `sign`: whenever the classifier fires PUSH or PULL at time t, the class is set by the sign of the frame with
+the largest |shiftHz| among the engine's frames in the last 1.0 s (positive shift = toward the laptop = PUSH, negative =
+PULL). If that largest |shiftHz| is below 45 Hz (the rule detector's minimum stroke peak) the classifier's class stays.
+No other event changes, so the number of events, and therefore false alarms per minute, is unchanged by construction.
+
+Protocol: the baseline model's leave-one-person-out streams (seeds 0 and 1, default recipe), decoded at the default
+thresholds, scored with and without the override on the same models.
+
+Acceptance: on BOTH seeds the macro recall is higher with the override by more than 0.02, and neither PUSH nor PULL pooled
+recall is lower. If accepted: implement it in `engine/src/classifier.ts` (the engine has the frames), check parity with
+the Python version on fixtures, run all tests, push, post DONE. If not: INFO with what failed.
