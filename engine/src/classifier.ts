@@ -30,6 +30,8 @@ export interface DecoderConfig {
   readonly waveRefractoryMs: number
   /** A habit goes on for seconds, so it holds off for longer still (ml/evaluate.py HABIT_REFRACTORY_S). */
   readonly habitRefractoryMs: number
+  /** When the model says PUSH or PULL, let the sign of the Doppler shift decide which (see DopplerSign). */
+  readonly signOverride: boolean
 }
 
 export const DEFAULT_DECODER: DecoderConfig = {
@@ -40,6 +42,7 @@ export const DEFAULT_DECODER: DecoderConfig = {
   refractoryMs: 600,
   waveRefractoryMs: 1200,
   habitRefractoryMs: 3000,
+  signOverride: true,
 }
 
 const isClassList = (v: unknown): v is string[] =>
@@ -51,7 +54,7 @@ const countOr = (v: unknown, fallback: number): number => (typeof v === 'number'
 /** The decoder settings from the gesture.json that `ml/run.py final` writes next to the model; anything missing or malformed takes the default. */
 export function decoderFromConfig(config: unknown): DecoderConfig {
   if (typeof config !== 'object' || config === null || Array.isArray(config)) return DEFAULT_DECODER
-  const c = config as { classes?: unknown; thresholds?: unknown; decoder?: Record<string, unknown> | null }
+  const c = config as { classes?: unknown; thresholds?: unknown; signOverride?: unknown; decoder?: Record<string, unknown> | null }
   const d = c.decoder && typeof c.decoder === 'object' ? c.decoder : {}
   const thresholds =
     typeof c.thresholds === 'object' && c.thresholds !== null && !Array.isArray(c.thresholds)
@@ -65,7 +68,47 @@ export function decoderFromConfig(config: unknown): DecoderConfig {
     refractoryMs: numberOr(d.refractoryMs, DEFAULT_DECODER.refractoryMs),
     waveRefractoryMs: numberOr(d.waveRefractoryMs, DEFAULT_DECODER.waveRefractoryMs),
     habitRefractoryMs: numberOr(d.habitRefractoryMs, DEFAULT_DECODER.habitRefractoryMs),
+    signOverride: typeof c.signOverride === 'boolean' ? c.signOverride : DEFAULT_DECODER.signOverride,
   }
+}
+
+/** The sign override looks at the strongest shift in this many ms before the event. Mirrors ml/signfix.py SIGN_WINDOW_S. */
+const SIGN_WINDOW_MS = 1000
+/** Below this |shiftHz| the sign is not trusted (the rule detector's minimum stroke peak). Mirrors ml/signfix.py. */
+const SIGN_MIN_HZ = 45
+/** History kept: the window plus the time the model needs to answer. */
+const SIGN_HISTORY_MS = 2 * SIGN_WINDOW_MS
+
+/**
+ * The CNN finds that a push or pull happened but often gets the direction wrong, while the Doppler sign of the
+ * engine's frames knows it (ml/experiments/RESULTS.md, round 3b). Frames go in as they arrive; `decide` answers for
+ * an event at a given frame time from the strongest shift in the second before it. Positive shift = toward the laptop.
+ */
+export class DopplerSign {
+  private frames: Array<{ readonly tMs: number; readonly shiftHz: number }> = []
+
+  push(tMs: number, shiftHz: number): void {
+    this.frames = [...this.frames.filter((f) => f.tMs > tMs - SIGN_HISTORY_MS), { tMs, shiftHz }]
+  }
+
+  reset(): void {
+    this.frames = []
+  }
+
+  decide(tMs: number): 'PUSH' | 'PULL' | null {
+    let peak = 0
+    for (const f of this.frames) {
+      if (f.tMs > tMs - SIGN_WINDOW_MS && f.tMs <= tMs && Math.abs(f.shiftHz) > Math.abs(peak)) peak = f.shiftHz
+    }
+    if (Math.abs(peak) < SIGN_MIN_HZ) return null
+    return peak > 0 ? 'PUSH' : 'PULL'
+  }
+}
+
+/** The class to report: PUSH and PULL follow the Doppler sign when it is decisive, everything else is untouched. */
+export function resolveDirection(cls: GestureType, tMs: number, sign: DopplerSign): GestureType {
+  if (cls !== 'PUSH' && cls !== 'PULL') return cls
+  return sign.decide(tMs) ?? cls
 }
 
 export interface ClassifierEvent {

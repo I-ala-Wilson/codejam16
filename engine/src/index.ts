@@ -3,11 +3,13 @@ import { startCapture, type CaptureOptions, type CaptureSession } from './audio.
 import {
   ClassifierRuntime,
   DEFAULT_DECODER,
+  DopplerSign,
   createOnnxRunner,
   decoderFromConfig,
   type ClassifierEvent,
   type DecoderConfig,
   type ModelRunner,
+  resolveDirection,
 } from './classifier.ts'
 import { GestureDetector } from './gestures.ts'
 import { FramePipeline } from './pipeline.ts'
@@ -22,6 +24,9 @@ const AUTO_CALIBRATION_MS = 1000
 const CALIBRATION_TIMEOUT_SLACK_MS = 2000
 
 /** The onnxruntime-web .wasm file, which the app publishes (app/copy-ort.sh). Only the wasm: see OnnxRunnerOptions. */
+/** The rule habit stays quiet this long after the engine reported any other gesture. */
+const HABIT_AFTER_GESTURE_MS = 2000
+
 const ORT_WASM_PATHS = { wasm: '/ort/ort-wasm-simd-threaded.wasm' }
 
 export interface LoadedClassifier {
@@ -96,6 +101,23 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
   let generation = 0
 
   const detector = new GestureDetector({ toneHz })
+  /** Recent signed Doppler shifts, so a PUSH or PULL from the model can be given the direction the shift says. */
+  const dopplerSign = new DopplerSign()
+  /** The model and the rules can both see a habit; whichever reports first holds the other off for this long. */
+  let habitHoldMs = DEFAULT_DECODER.habitRefractoryMs
+  let lastHabitMs = -Infinity
+  /** When a deliberate gesture was last reported. A wave, an undo or a push is also back-and-forth motion, so the rule habit waits. */
+  let lastGestureMs = -Infinity
+  const emit = (gesture: GestureEvent): void => {
+    if (gesture.type === 'REPETITIVE') {
+      if (gesture.t - lastHabitMs < habitHoldMs) return
+      if (gesture.source === 'rules' && gesture.t - lastGestureMs < HABIT_AFTER_GESTURE_MS) return
+      lastHabitMs = gesture.t
+    } else if (gesture.type !== 'HOLD') {
+      lastGestureMs = gesture.t
+    }
+    notify(gestureListeners, gesture)
+  }
   /** The trained model, once loaded. While it is set it decides the gestures and the rules only keep HOLD. */
   let classifier: ClassifierRuntime | null = null
 
@@ -104,6 +126,7 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
     const frame = pipeline?.push(chunk, performance.now())
     if (!frame) return
     recorder?.pushFrame(frame)
+    dopplerSign.push(frame.t, frame.shiftHz)
     notify(frameListeners, frame)
     const ruleGestures = detector.push(frame)
     if (classifier) {
@@ -111,7 +134,8 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
       if (scaled) classifier.push(scaled, frame.t)
       else classifier.reset() // no floor yet, or it is being re-learned
     }
-    for (const gesture of ruleGestures) if (!classifier || gesture.type === 'HOLD') notify(gestureListeners, gesture)
+    // With the model on, the rules keep HOLD and the habit: the model is weak at habits, so the two are OR-ed.
+    for (const gesture of ruleGestures) if (!classifier || gesture.type === 'HOLD' || gesture.type === 'REPETITIVE') emit(gesture)
   }
 
   const attachClassifier = async (myGeneration: number): Promise<void> => {
@@ -119,10 +143,14 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
       if (!deps.loadClassifier) throw new Error('no classifier loader available')
       const loaded = await deps.loadClassifier(opts.modelUrl as string)
       if (generation !== myGeneration) return
+      habitHoldMs = loaded.decoder.habitRefractoryMs
       classifier = new ClassifierRuntime({
         runner: loaded.runner,
         decoder: loaded.decoder,
-        onEvent: (event) => notify(gestureListeners, toGestureEvent(event)),
+        onEvent: (event) => {
+          const cls = loaded.decoder.signOverride ? resolveDirection(event.cls, event.tMs, dopplerSign) : event.cls
+          emit(toGestureEvent({ ...event, cls }))
+        },
         onError: reportAsync,
       })
     } catch (error: unknown) {
@@ -134,6 +162,9 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
   const teardown = (reason: string): void => {
     generation += 1
     detector.reset()
+    dopplerSign.reset()
+    lastHabitMs = -Infinity
+    lastGestureMs = -Infinity
     classifier?.reset()
     classifier = null
     const live = session

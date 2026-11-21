@@ -90,6 +90,13 @@ describe('scoreRecording', () => {
     expect(score.strayEvents.map((e) => e.type)).toEqual(['PUSH'])
   })
 
+  it('scores a REPETITIVE-scratch rep against a REPETITIVE event (the take label carries the habit kind)', () => {
+    const echoes = Array.from({ length: 12 }, (_, i) => ({ at: 4 + i * 0.25, ms: 250, dopplerHz: i % 2 === 0 ? 117 : -117 }))
+    const score = scoreRecording(recording(9, echoes), meta([rep(4, 7, 'REPETITIVE-scratch')]))
+    expect(score.reps[0].events).toContain('REPETITIVE')
+    expect(score.reps[0].hit).toBe(true)
+  })
+
   it('reports no events for a still recording', () => {
     const score = scoreRecording(recording(10, []), meta([]))
     expect(score.events).toEqual([])

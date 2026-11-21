@@ -69,6 +69,22 @@ def decoder_cases() -> list[dict]:
     return cases
 
 
+def sign_cases() -> dict:
+    """Frames of signed Doppler shift and event times, with what signfix.sign_class answers, for the engine's DopplerSign."""
+    from signfix import SIGN_MIN_HZ, SIGN_WINDOW_S, sign_class
+
+    rng = np.random.default_rng(99)
+    hop_s = 1024 / 48000
+    cases = []
+    for _ in range(60):
+        n = int(rng.integers(60, 200))
+        t = (np.arange(n) * hop_s).round(6)
+        shift = np.where(rng.random(n) < 0.25, rng.normal(0.0, 90.0, n), rng.normal(0.0, 8.0, n)).round(1)
+        event_t = float(round(rng.uniform(0.2, t[-1] + 0.5) + 0.0037, 5))  # off the frame grid, so no boundary ties
+        cases.append({"t": t.tolist(), "shift": shift.tolist(), "eventT": event_t, "expected": sign_class(t, shift, event_t)})
+    return {"windowS": SIGN_WINDOW_S, "minHz": SIGN_MIN_HZ, "cases": cases}
+
+
 def parity() -> tuple[GestureCNN, dict]:
     torch.manual_seed(0)
     model = GestureCNN(n_classes=len(CLASSES)).eval()
@@ -94,6 +110,7 @@ def spectrum_parity() -> dict:
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "spectrum-parity.json").write_text(json.dumps(spectrum_parity()))
+    (OUT / "sign-cases.json").write_text(json.dumps(sign_cases()))
     (OUT / "decoder-cases.json").write_text(json.dumps({"thresholds": DEFAULT_THRESHOLDS, "cases": decoder_cases()}))
     model, fixture = parity()
     export_onnx(model, OUT / "parity.onnx")

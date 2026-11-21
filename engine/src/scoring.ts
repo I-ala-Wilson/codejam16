@@ -140,6 +140,9 @@ function learnFloor(chunks: Float32Array[], meta: RecordingMeta, repsMs: Readonl
   return buildFloor(still.length >= MIN_FLOOR_FRAMES ? still : all)
 }
 
+/** Habit takes are labelled with their kind (REPETITIVE-scratch, REPETITIVE-nailbite); the detector reports REPETITIVE. */
+export const canonicalLabel = (label: string): string => (label.startsWith('REPETITIVE') ? 'REPETITIVE' : label)
+
 /** Run the real pipeline and detectors over a recording and match their events to its reps. */
 export function scoreRecording(samples: Float32Array, meta: RecordingMeta): SessionScore {
   const toMs = (sample: number): number => (sample / meta.sampleRate) * 1000
@@ -169,7 +172,7 @@ export function scoreRecording(samples: Float32Array, meta: RecordingMeta): Sess
     e.t >= s - MATCH_HEAD_MS && e.t <= end + MATCH_TAIL_MS
   const reps = meta.reps.map((rep, i): ScoredRep => {
     const found = events.filter((e) => inWindow(e, repsMs[i])).map((e) => e.type as string)
-    return { label: rep.label, startMs: repsMs[i][0], endMs: repsMs[i][1], hit: found.includes(rep.label), events: found }
+    return { label: rep.label, startMs: repsMs[i][0], endMs: repsMs[i][1], hit: found.includes(canonicalLabel(rep.label)), events: found }
   })
   // A HOLD follows every motion by design, so it is only a false alarm in takes that are scored on HOLD.
   const scoresHold = meta.reps.some((r) => r.label === 'HOLD')

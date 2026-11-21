@@ -1,4 +1,5 @@
 import type { GestureEvent, GestureType, SpectrumFrame } from '../../contracts/engine.ts'
+import { HabitTracker } from './habit.ts'
 
 // Rule-based gesture detection on the stream of Doppler frames. Every threshold below is a first guess,
 // to be tuned on real recordings (ml/REPORT.md has the per-gesture scores).
@@ -7,6 +8,8 @@ export type MotionFrame = Pick<SpectrumFrame, 't' | 'shiftHz' | 'energyToward' |
 
 export interface GestureDetectorOptions {
   readonly toneHz: number
+  /** Hold-off between REPETITIVE (habit) events; 3 s unless the caller knows better. */
+  readonly habitRefractoryMs?: number
 }
 
 const SPEED_OF_SOUND_M_S = 343
@@ -85,6 +88,7 @@ function confidenceOf(peakAbsHz: number): number {
 
 export class GestureDetector {
   private readonly toneHz: number
+  private readonly habit: HabitTracker
   private open: Stroke | null = null
   private zeroRun = 0
   private chain: Stroke[] = []
@@ -98,9 +102,11 @@ export class GestureDetector {
 
   constructor(opts: GestureDetectorOptions) {
     this.toneHz = opts.toneHz
+    this.habit = new HabitTracker({ refractoryMs: opts.habitRefractoryMs })
   }
 
   reset(): void {
+    this.habit.reset()
     this.open = null
     this.zeroRun = 0
     this.chain = []
@@ -124,6 +130,7 @@ export class GestureDetector {
     this.trackPulse(frame, dir, energy)
     this.trackHold(frame.t, dir !== 0 || energy > MOTION_DB, events)
     this.finishBurstIfIdle(frame.t, events)
+    events.push(...this.habit.push(frame))
     return events
   }
 

@@ -5,7 +5,9 @@ import {
   ClassifierRuntime,
   DEFAULT_DECODER,
   EventDecoder,
+  DopplerSign,
   FrameWindow,
+  resolveDirection,
   WINDOW_FRAMES,
   createOnnxRunner,
   decoderFromConfig,
@@ -263,5 +265,78 @@ describe('createOnnxRunner', () => {
 
   it('refuses a model that is not ONNX', async () => {
     await expect(createOnnxRunner(new Uint8Array([1, 2, 3]))).rejects.toThrow()
+  })
+})
+
+
+describe('DopplerSign: the direction of a push or pull from the sign of the Doppler shift', () => {
+  const sign = (frames: Array<[number, number]>): DopplerSign => {
+    const s = new DopplerSign()
+    for (const [t, hz] of frames) s.push(t, hz)
+    return s
+  }
+
+  it('calls a strong positive shift just before the event a PUSH and a strong negative one a PULL', () => {
+    expect(sign([[2000, 120]]).decide(2300)).toBe('PUSH')
+    expect(sign([[2000, -120]]).decide(2300)).toBe('PULL')
+  })
+
+  it('lets the largest magnitude win, so a weaker recoil before the push does not decide it', () => {
+    expect(sign([[1600, -60], [2000, 140]]).decide(2300)).toBe('PUSH')
+  })
+
+  it('ignores frames older than one second and frames after the event', () => {
+    expect(sign([[500, 150]]).decide(500 + 1000 + 300)).toBeNull()
+    expect(sign([[3000, 150]]).decide(2300)).toBeNull()
+  })
+
+  it('does not trust a shift under 45 Hz, and says nothing without frames', () => {
+    expect(sign([[2000, 44]]).decide(2300)).toBeNull()
+    expect(new DopplerSign().decide(1000)).toBeNull()
+  })
+
+  it('keeps only a couple of seconds of history and forgets everything on reset()', () => {
+    const s = sign([[0, 150]])
+    s.push(5000, 0)
+    expect(s.decide(500)).toBeNull() // the frame at 0 s was dropped long ago
+    const r = sign([[2000, 150]])
+    r.reset()
+    expect(r.decide(2300)).toBeNull()
+  })
+
+  it('relabels only PUSH and PULL, and keeps the model\'s class when the sign is not decisive', () => {
+    const away = sign([[2000, -130]])
+    expect(resolveDirection('PUSH', 2300, away)).toBe('PULL')
+    expect(resolveDirection('PULL', 2300, away)).toBe('PULL')
+    for (const cls of ['WAVE', 'UNDO', 'OPEN_CLOSE', 'REPETITIVE', 'HOLD'] as const) expect(resolveDirection(cls, 2300, away)).toBe(cls)
+    expect(resolveDirection('PULL', 2300, new DopplerSign())).toBe('PULL')
+  })
+
+  it('matches the Python signfix.sign_class on 60 generated cases', () => {
+    const signCases = JSON.parse(readFileSync(fixture('sign-cases.json'), 'utf8')) as {
+      windowS: number
+      minHz: number
+      cases: Array<{ t: number[]; shift: number[]; eventT: number; expected: string | null }>
+    }
+    expect(signCases.windowS).toBe(1)
+    expect(signCases.minHz).toBe(45)
+    expect(signCases.cases.some((c) => c.expected === 'PUSH') && signCases.cases.some((c) => c.expected === 'PULL')).toBe(true)
+    for (const c of signCases.cases) {
+      const s = new DopplerSign()
+      // as in the engine: frames arrive in time order and the model answers a little after the window it looked at
+      c.t.forEach((t, i) => {
+        if (t <= c.eventT + 0.1) s.push(t * 1000, c.shift[i])
+      })
+      expect(s.decide(c.eventT * 1000)).toBe(c.expected)
+    }
+  })
+})
+
+describe('the sign override setting in gesture.json', () => {
+  it('is on by default and can be switched off', () => {
+    expect(DEFAULT_DECODER.signOverride).toBe(true)
+    expect(decoderFromConfig({}).signOverride).toBe(true)
+    expect(decoderFromConfig({ signOverride: false }).signOverride).toBe(false)
+    expect(decoderFromConfig({ signOverride: 'no' }).signOverride).toBe(true) // anything but a boolean keeps the default
   })
 })

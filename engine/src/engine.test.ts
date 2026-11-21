@@ -33,6 +33,26 @@ function fakeCapture(opts: { hold?: Deferred; sampleRate?: number } = {}) {
   return { startCapture, sessions, pushChunks }
 }
 
+/** Tone plus an echo that flips between 117 Hz above and below it every `chunksPerHalf` hops: a hand going back and forth. */
+function makeOscillating(chunksPerHalf: number, seed = 5): () => Float32Array {
+  const amp = (db: number): number => 10 ** (db / 20)
+  let sample = 0
+  let chunk = 0
+  let s = seed
+  return () => {
+    const echoHz = Math.floor(chunk++ / chunksPerHalf) % 2 === 0 ? 20117 : 19883
+    const out = new Float32Array(HOP)
+    for (let i = 0; i < HOP; i++, sample++) {
+      s = (s * 1664525 + 1013904223) >>> 0
+      out[i] =
+        (s / 0xffffffff - 0.5) * 2 * amp(-100) +
+        amp(-36) * Math.sin((2 * Math.PI * 20000 * sample) / 48000) +
+        amp(-56) * Math.sin((2 * Math.PI * echoHz * sample) / 48000)
+    }
+    return out
+  }
+}
+
 /** Continuous synthetic mic stream (tone plus optional Doppler echo plus noise), chunked by HOP. */
 function makeStream(echoHz: number | null, seed = 7): () => Float32Array {
   const amp = (db: number): number => 10 ** (db / 20)
@@ -292,6 +312,64 @@ describe('createEngineWith', () => {
       await send(makeStream(20117, 5), 12)
       await send(makeStream(null, 9), 40)
       expect(got.filter((e) => e.type === 'PUSH' || e.type === 'PULL')).toEqual([])
+    })
+
+    it('turns the model\'s PUSH into a PULL when the Doppler shift just before it points away', async () => {
+      const { got, send } = await engineWith(loaded(modelSaying('PUSH')))
+      await send(makeStream(null), 70)
+      await send(makeStream(19883, 5), 14) // echo 117 Hz below the tone: moving away
+      await send(makeStream(null, 9), 30)
+      const fromModel = got.filter((e) => e.source === 'classifier')
+      expect(fromModel.some((e) => e.type === 'PULL')).toBe(true)
+    })
+
+    it('keeps a PUSH when the Doppler shift points toward the laptop', async () => {
+      const { got, send } = await engineWith(loaded(modelSaying('PUSH')))
+      await send(makeStream(null), 70)
+      await send(makeStream(20117, 5), 14)
+      await send(makeStream(null, 9), 30)
+      const fromModel = got.filter((e) => e.source === 'classifier')
+      expect(fromModel.length).toBeGreaterThan(0)
+      expect(fromModel.every((e) => e.type === 'PUSH')).toBe(true)
+    })
+
+    it('does not touch the model\'s class when the override is switched off in gesture.json', async () => {
+      const off = async () => ({ runner: modelSaying('PUSH'), decoder: { ...DEFAULT_DECODER, signOverride: false } })
+      const { got, send } = await engineWith(off)
+      await send(makeStream(null), 70)
+      await send(makeStream(19883, 5), 14)
+      await send(makeStream(null, 9), 30)
+      const fromModel = got.filter((e) => e.source === 'classifier')
+      expect(fromModel.length).toBeGreaterThan(0)
+      expect(fromModel.every((e) => e.type === 'PUSH')).toBe(true)
+    })
+
+    it('still reports a habit from the rules while the model is on, because the model is weak at it (OR-ed)', async () => {
+      const { got, send } = await engineWith(loaded(modelSaying('NONE')))
+      await send(makeStream(null), 70)
+      await send(makeOscillating(12), 130) // about 2.8 s of back-and-forth
+      await send(makeStream(null, 9), 20)
+      const habits = got.filter((e) => e.type === 'REPETITIVE')
+      expect(habits.length).toBeGreaterThanOrEqual(1)
+      expect(habits[0].source).toBe('rules')
+      expect(got.filter((e) => e.source === 'rules' && e.type !== 'HOLD' && e.type !== 'REPETITIVE')).toEqual([]) // the rules stay quiet otherwise
+    })
+
+    it('does not let the rule habit fire on top of a gesture the model just reported (a wave is also back-and-forth)', async () => {
+      const { got, send } = await engineWith(loaded(modelSaying('WAVE')))
+      await send(makeStream(null), 70)
+      await send(makeOscillating(12), 130)
+      expect(got.filter((e) => e.type === 'WAVE').length).toBeGreaterThanOrEqual(1)
+      expect(got.filter((e) => e.type === 'REPETITIVE')).toEqual([])
+    })
+
+    it('never reports the habit twice inside the hold-off when the model and the rules both see it', async () => {
+      const { got, send } = await engineWith(loaded(modelSaying('REPETITIVE')))
+      await send(makeStream(null), 70)
+      await send(makeOscillating(12), 300) // about 6.4 s
+      const habits = got.filter((e) => e.type === 'REPETITIVE')
+      expect(habits.length).toBeGreaterThanOrEqual(2)
+      for (let i = 1; i < habits.length; i++) expect(habits[i].t - habits[i - 1].t).toBeGreaterThanOrEqual(DEFAULT_DECODER.habitRefractoryMs)
     })
 
     it('falls back to the rules, and says so, when the model cannot be loaded', async () => {

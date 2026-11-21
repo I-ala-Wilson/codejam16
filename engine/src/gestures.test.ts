@@ -183,6 +183,18 @@ describe('GestureDetector', () => {
     expect(types(run([push(), { still: 1000 }]))).not.toContain('OPEN_CLOSE')
   })
 
+  it('reports REPETITIVE for 2.4 s of back-and-forth hand motion, once, as a rules event', () => {
+    const strokes: Part[] = Array.from({ length: 10 }, (_, i) => ({ stroke: i % 2 === 0 ? 1 : -1, peakHz: 80, ms: 250 }))
+    const events = run([{ still: 500 }, ...strokes, { still: 800 }]).filter((e) => e.type === 'REPETITIVE')
+    expect(events).toHaveLength(1)
+    expect(events[0].source).toBe('rules')
+  })
+
+  it('does not report REPETITIVE for one brisk push or for stillness', () => {
+    expect(types(run([{ still: 500 }, push(), { still: 3000 }]))).not.toContain('REPETITIVE')
+    expect(types(run([{ still: 30_000 }]))).not.toContain('REPETITIVE')
+  })
+
   it('forgets everything on reset()', () => {
     const detector = new GestureDetector({ toneHz: TONE_HZ })
     const seq = frames([push(110, 250)])
