@@ -7,7 +7,7 @@ import { chime, ensureSonar } from './sonar.ts'
 // within 5 s cancels a false alarm. The sonar also tracks movement: an inactivity alert after INACTIVE_S with no
 // motion, and an activity level every 10 s for the caregiver's restlessness timeline (contracts/events.md).
 
-const WAVES_FOR_HELP = 2 // WAVE events within HELP_WINDOW_MS (the decoder emits about one per 1.2 s of waving)
+const WAVES_FOR_HELP = 1 // the decoder already needs a sustained wave (several confirming windows) before it emits WAVE
 const HELP_WINDOW_MS = 3500
 const CANCEL_MS = 5000
 const INACTIVE_S = 30 // demo value; hours in real use
@@ -22,6 +22,7 @@ export default function Care() {
   const [lastMove, setLastMove] = useState(Date.now())
   const [inactiveSent, setInactiveSent] = useState(false)
   const [history, setHistory] = useState<number[]>([])
+  const [heard, setHeard] = useState('')
   const level = useRef(0)
   const peak = useRef(0)
   const gestures = useRef(0)
@@ -43,6 +44,7 @@ export default function Care() {
   useEffect(() => engine.onGesture((g) => {
     gestures.current++
     const t = Date.now()
+    if (g.type !== 'HOLD') { setHeard(`heard ${g.type.replace('_', '/').toLowerCase()} ${Math.round(g.confidence * 100)}%`); setTimeout(() => setHeard(''), 1500) }
     const h = helpRef.current
     if (g.type === 'UNDO' && h && !h.cancelled && t - h.at < CANCEL_MS) {
       helpRef.current = { ...h, cancelled: true }; setHelp(helpRef.current)
@@ -94,15 +96,15 @@ export default function Care() {
       <div className="lk__center">
         <div className="lk__eyebrow">ECHO Ø CARE</div>
         <h1 className="lk__title">Wave for help.</h1>
-        <p className="lk__sub">Wave your hand at the screen for 2 seconds. No camera, works in the dark.</p>
+        <p className="lk__sub">Wave your hand side to side at the screen, about 20 cm away. No camera, works in the dark.</p>
         {!running
           ? <div className="lk__row"><button className="lk__btn lk__btn--primary" onClick={() => ensureSonar().then(setRunning)}>Start listening</button></div>
           : <>
             <Strip values={history} />
             <div className="lk__status">
-              {still >= INACTIVE_S ? `no movement for ${still}s · caregiver told` : still < 3 ? 'movement' : `resting · last moved ${still}s ago`}
+              {heard || (still >= INACTIVE_S ? `no movement for ${still}s · caregiver told` : still < 3 ? 'movement' : `resting · last moved ${still}s ago`)}
             </div>
-            <div className="lk__legend"><span><b>~~</b> wave 2 s = help</span><span><b>xx</b> double tap = cancel</span><span>activity sent every 10 s</span></div>
+            <div className="lk__legend"><span><b>~~</b> wave = help</span><span><b>xx</b> double tap = cancel</span><span>activity sent every 10 s</span></div>
           </>}
       </div>
     </div>
