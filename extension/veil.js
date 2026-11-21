@@ -1,7 +1,6 @@
 // Injected at document_start on locked sites: stop the real page and show what looks like the browser's own
 // "can't be reached" error. The only tell is a few tiny dots at the bottom while the right hand signs come in.
 (() => {
-  window.stop()
   const host = location.hostname
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${host}</title><style>
   :root { color-scheme: light dark; --bg: #fff; --fg: #202124; --muted: #5f6368; --btn: #1a73e8; --btnfg: #fff; }
