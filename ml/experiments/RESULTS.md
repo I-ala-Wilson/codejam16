@@ -288,6 +288,35 @@ new files. `gesture.json` differs only in the window count (73208 to 79550); cla
 Honest reading: the held-out numbers are the same as before within noise (0.412 vs 0.421), so this is not an accuracy gain
 on the people we already had. What it adds is a second laptop model (Dell Inspiron 15 3520) in the training set.
 
+## Calibration candidates and live regressions (Sat 21 Nov, 13:20-15:07; scripts in `analysis/`)
+State at the pause: the SHIPPED model is still the morning one (9f7e41e); three candidates sit in `ml/models/candidates/`
+(`calib-1` Ian, `calib-both` Ian+EJ, `calib-three` Ian+EJ+Michael; each calibration x5, config OPEN_CLOSE 0.60, UNDO 0.95).
+Ian was live-testing `calib-three` on his MacBook Pro. Nothing ships without his live check (rule c).
+- OPEN_CLOSE never fires live (Ian, P1). The model does see it: on his calib-1 OPEN_CLOSE take both the shipped model (unseen) and
+  the candidate catch 20 of 20 (peak median 0.99); his battery takes 80 of 80; his Friday pilot take (13 cues, free-form) is caught
+  0 of 13 (shipped) and 2 of 13 (candidate) at 0.85, with the probability mostly 0.60-0.85. Candidate threshold sweep (pilot recall /
+  false OPEN_CLOSE per minute on 52 idle takes): 0.85 2/13 0.02; 0.65 5/13 0.13; 0.55 9/13 0.22; 0.45 10/13 0.45. Over all 191 takes
+  lowering OPEN_CLOSE to 0.60 lifts its recall from 84% to 95%, leaves PUSH/PULL/WAVE/UNDO/Habit unchanged, adds 0.14 false events per
+  minute. Recommendation and config: 0.60.
+- Rule assist (engine `ruleAssist`, e968fa4; rule WAVE and OPEN_CLOSE with 2+ pulses added when no gesture in the last 1200 ms),
+  scored offline by mirroring its merge on 206 takes: shipped model WAVE on Ian's calib-1 14 -> 20 of 20, everyone's WAVE 383 -> 392 of
+  510; candidate WAVE 379 -> 383; OPEN_CLOSE unchanged everywhere (the rule never adds one); idle false alarms +0.08 per minute (0.35 -> 0.43).
+  Verdict: keep for WAVE, not a fix for OPEN_CLOSE.
+- Calibration floor (engine, 3 s window, candidate model, five-gesture mean recall / idle false alarms per min): still window: old
+  floor (all frames) 77.9% / 0.42, quietest third 73.6% / 1.75 (worse: biases the floor down), training floor 84.0% / 0.37; moving
+  window: old 53.9% (WAVE 14.9%) / 0.84, quietest third 64.8% (WAVE 38.9%) / 1.12. Margins of +1..+3 dB do not repair the still case.
+  Fix (Ian, b968d71): all frames, switching to the quietest third only if more than 10% of frames show motion. His exact rule was not
+  yet scored (`analysis/floors3.py`).
+- Candidates, rule (b) on unseen takes, shipped -> candidate cues hit: `calib-1`: Ian livecheck PUSH 3->5, PULL 6->6, WAVE 10->9, UNDO
+  7->8; Ian pilot PUSH 7->10, WAVE 4->7, OPEN_CLOSE 0->2, UNDO 6->11; rule (a) 0.410 / 2.54 per min (pass). `calib-both`: EJ PUSH 1->9,
+  PULL 3->10, WAVE 2->7, UNDO 0->9; Ian pilot Habit 2->0 (FAILS by one cue), the rest up; rule (a) not run. `calib-three` (23 calibration
+  takes, one Michael PUSH take skipped by `--skip-failed` for a 39% vs 40% alignment, 134,060 windows): passes everywhere: Ian livecheck
+  PUSH 3->5, PULL 6->8, WAVE 10->10, UNDO 7->10; Ian pilot PUSH 7->8, WAVE 4->7, OPEN_CLOSE 0->8, UNDO 6->12, Habit 2->3; EJ PUSH 1->6,
+  PULL 3->10, WAVE 2->8, UNDO 0->8; Michael PUSH 3->11, PULL 0->12, WAVE 1->17, UNDO 2->15 of 20. Rule (a) for `calib-three` is NOT done
+  (job stopped at 15:07 to free memory; rerun `ml/tune.py` baseline, 2 seeds, into `retrain_calib_three/`).
+- signOverride (sign window) is dropped by Ian: about half his PULLs read as PUSH with it on (consistent with the round 3b refusal).
+- QA regress (read-only Playwright, signs injected): the dot expiry (451f6ba) and Chrome-style error page (aa31580) pass all 7 steps.
+
 ## Retrain with EJ's two extra UNDO takes: candidate REFUSED by rule (b), shipped model stays (13:25)
 Candidate: final model trained on all 177 takes (EJ's UNDO 20 cm and 50 cm, 40 cues, pushed 506a88f, are in; Yahya's two live
 takes from 13:14 are not). Rule (a), leave-one-person-out, baseline recipe, seeds 0 and 1 (`ml/experiments/retrain_ej_undo/`):

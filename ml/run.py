@@ -212,14 +212,15 @@ def is_calibration_path(path: Path, root: Path) -> bool:
     return any(part.startswith(CALIB_PREFIX) for part in path.relative_to(root).parts[:-1])
 
 
-def load_corpus_and_calibration(root: Path, person: str) -> tuple[list[Session], list[Session]]:
-    """(every take under root, the subset that is `person`'s and sits in a calib-* folder)."""
+def load_corpus_and_calibration(root: Path, person: str | list[str]) -> tuple[list[Session], list[Session]]:
+    """(every take under root, the subset that belongs to `person` (one login or several) and sits in a calib-* folder)."""
+    people = {p.lower() for p in ([person] if isinstance(person, str) else person)}
     sessions: list[Session] = []
     calibration: list[Session] = []
     for path in find_sessions(root):
         session = load_session(path)
         sessions.append(session)
-        if session.person == person.lower() and is_calibration_path(path, root):
+        if session.person in people and is_calibration_path(path, root):
             calibration.append(session)
     return sessions, calibration
 
@@ -236,16 +237,23 @@ def cue_counts(calibration: list[Session]) -> Counter[str]:
 def run_calibration(args: argparse.Namespace, sessions: list[Session], calibration: list[Session]) -> int:
     if not calibration:
         sys.stderr.write(
-            f"no calibration takes for {args.person} under {args.root}: put the .json and .wav files in "
+            f"no calibration takes for {', '.join(args.person)} under {args.root}: put the .json and .wav files in "
             f"<root>/<login>/{CALIB_PREFIX}1/ (a folder starting with '{CALIB_PREFIX}')\n"
         )
         return 2
     bad = failed_audits(calibration)
-    if bad:
+    if bad and not args.skip_failed:
         sys.stderr.write(f"{len(bad)} of {len(calibration)} calibration takes FAILED the audit, not training. Redo them:\n")
         for r in bad:
             sys.stderr.write(f"  {r.name}: " + "; ".join(r.problems) + "\n")
         return 1
+    if bad:
+        skipped = {r.name for r in bad}
+        sys.stderr.write(f"--skip-failed: leaving {len(bad)} failed take(s) out of training entirely (redo them when you can):\n")
+        for r in bad:
+            sys.stderr.write(f"  {r.name}: " + "; ".join(r.problems) + "\n")
+        calibration = [s for s in calibration if s.name not in skipped]
+        sessions = [s for s in sessions if s.name not in skipped]
     counts = cue_counts(calibration)
     started = time.time()
     n_windows = train_final(sessions, args.epochs, args.device, args.seed, args.out_dir, calibration, args.repeat)
@@ -283,8 +291,9 @@ def main(argv: list[str]) -> int:
         else:
             p.add_argument("--out-dir", type=Path, default=Path(__file__).parent / "models")
         if name == "calib":
-            p.add_argument("--person", required=True, help="login whose calib-* takes are repeated (case-insensitive)")
+            p.add_argument("--person", nargs="+", required=True, help="one or more logins whose calib-* takes are repeated (case-insensitive)")
             p.add_argument("--repeat", type=int, default=DEFAULT_CALIB_REPEAT, help="times the calibration takes count in training")
+            p.add_argument("--skip-failed", action="store_true", help="leave calibration takes that FAIL the audit out of training (named on stderr) instead of refusing")
     args = parser.parse_args(argv)
 
     problem = device_problem(args.device, args.allow_cpu)

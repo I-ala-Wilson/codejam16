@@ -54,6 +54,13 @@ def test_it_finds_that_persons_calibration_takes_and_keeps_everything_in_the_cor
     assert cue_counts(calibration) == {"PUSH": 3, "WAVE": 3}
 
 
+def test_several_people_can_be_calibrated_together(root: Path):
+    # the app ships one model, so a presenter and a second laptop owner are calibrated in the same run
+    sessions, calibration = load_corpus_and_calibration(root, ["Ana", "bo"])
+    assert {s.person for s in calibration} == {"ana", "bo"}
+    assert len(sessions) > len(calibration)
+
+
 def test_a_person_without_calibration_takes_gets_an_empty_list(root: Path):
     assert load_corpus_and_calibration(root, "nobody")[1] == []
 
@@ -92,6 +99,18 @@ def test_the_cli_refuses_to_train_when_a_calibration_take_fails_the_audit(root: 
     err = capsys.readouterr().err
     assert bad.name in err and "FAILED" in err
     assert not out.exists()  # nothing was trained or written
+
+
+def test_skip_failed_leaves_the_bad_take_out_and_still_trains(root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    bad = still(make_take("UNDO", person="ana", n_cues=5, seed=77))
+    write_take(bad, root / "ana" / "calib-2")
+    out = tmp_path / "out"
+    args = ["calib", str(root), "--person", "ana", "--out-dir", str(out), "--allow-cpu", "--device", "cpu", "--epochs", "1", "--skip-failed"]
+    assert main(args) == 0
+    captured = capsys.readouterr()
+    assert "--skip-failed" in captured.err and bad.name in captured.err
+    assert "calibration takes: 2 (6 cues; PUSH 3, WAVE 3)" in captured.out  # the failed UNDO take is not counted
+    assert (out / "gesture.onnx").exists()
 
 
 def test_the_cli_trains_exports_and_prints_the_summary(root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]):
