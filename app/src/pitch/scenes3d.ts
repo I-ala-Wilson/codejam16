@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DH, DW, type Scene } from '../hwb/DitherCanvas.tsx'
 
 // 3D versions of the "Why not a camera" tiles: small lit three.js scenes rendered at low resolution, then ordered-
@@ -184,65 +185,185 @@ function noSign(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
   g.beginPath(); g.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r); g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); g.stroke()
 }
 
-// ---------- Care: a hospital bed in 3/4 view, a waving hand, the bedside laptop and the caregiver's phone ----------
-const CARE_PERIOD = 3.2 // s per call: arcs travel for the first half, the phone shows HELP for the second
-const careLit = (t: number) => (t % CARE_PERIOD) > CARE_PERIOD * 0.5
+// ---------- Care: the explainer's mannequin reclined in a hospital bed; HELP (wave) then PAIN (open/close) ----------
+// Timeline (s): wave 0-4, pulse laptop -> phone 4-4.8, HELP 4.8-5.9; open/close 5.6-9.6, pulse 9.6-10.4, PAIN 10.4-11.5.
+const CARE_T = 11.5
+const careAt = (t: number) => t % CARE_T
+const careWave = (u: number) => u < 4.2
+const careCall = (u: number): 'HELP' | 'PAIN' | null => (u >= 4.8 && u < 5.9 ? 'HELP' : u >= 10.4 ? 'PAIN' : null)
+const carePulse = (u: number): number | null => (u >= 4 && u < 4.8 ? (u - 4) / 0.8 : u >= 9.6 && u < 10.4 ? (u - 9.6) / 0.8 : null)
 let careT = 0 // the scene clock, shared with the overlay (which gets no time argument)
-const PHONE_GLOW = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0x000000, roughness: 0.3 })
+
+// Small copies of the explainer's rig helpers (app/src/explainer/scene.ts): two-bone IK and "turn a bone so its rest
+// directions point along new ones", working from each bone's rest world rotation.
+const V3 = THREE.Vector3
+function ikElbow(a: THREE.Vector3, t: THREE.Vector3, l1: number, l2: number, pole: THREE.Vector3, out: THREE.Vector3) {
+  const d = new V3().subVectors(t, a)
+  const len = Math.min(Math.max(d.length(), Math.abs(l1 - l2) + 1e-3), l1 + l2 - 1e-3)
+  d.normalize()
+  const cosA = (l1 * l1 + len * len - l2 * l2) / (2 * l1 * len), sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA))
+  const perp = pole.clone().sub(d.clone().multiplyScalar(pole.dot(d))).normalize()
+  return out.copy(a).addScaledVector(d, l1 * cosA).addScaledVector(perp, l1 * sinA)
+}
+function setWorldQ(bone: THREE.Object3D, q0: THREE.Quaternion, d: THREE.Quaternion) {
+  const want = d.clone().multiply(q0), par = new THREE.Quaternion()
+  bone.parent!.getWorldQuaternion(par)
+  bone.quaternion.copy(par.invert().multiply(want))
+  bone.updateMatrixWorld(true)
+}
+function aim(bone: THREE.Object3D, q0: THREE.Quaternion, a: THREE.Vector3, b: THREE.Vector3, da: THREE.Vector3, db: THREE.Vector3) {
+  const x = da.clone().normalize(), y = db.clone().addScaledVector(x, -db.dot(x)).normalize()
+  const want = new THREE.Matrix4().makeBasis(x, y, new V3().crossVectors(x, y))
+  const rest = new THREE.Matrix4().makeBasis(a, b, new V3().crossVectors(a, b)).transpose()
+  setWorldQ(bone, q0, new THREE.Quaternion().setFromRotationMatrix(want.multiply(rest)))
+}
+const perpTo = (v: THREE.Vector3, along: THREE.Vector3) => v.clone().addScaledVector(along, -v.dot(along)).normalize()
+
+const SOFT = (hex: number) => new THREE.MeshLambertMaterial({ color: hex })
+const PHONE_GLOW = new THREE.MeshLambertMaterial({ color: 0x111111, emissive: 0x000000 })
 
 export const careScene3D = make3D(() => {
-  const scene = stage(), camera = new THREE.PerspectiveCamera(30, DW / DH, 0.1, 100)
-  camera.position.set(2.5, 2.7, 6.3); camera.lookAt(0.55, -0.35, 0)
-  // bed: frame, mattress, pillow, blanket over the patient, head on the pillow
-  const bed = new THREE.Group(); bed.position.set(-1.3, -1.2, 0); scene.add(bed)
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.25, 1.6), GREY); frame.position.y = 0.2; bed.add(frame)
-  for (const [x, z] of [[-1.7, -0.7], [1.7, -0.7], [-1.7, 0.7], [1.7, 0.7]]) {
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), GREY); leg.position.set(x, -0.15, z); bed.add(leg)
+  // softer, darker lighting than the camera tiles, like the explainer
+  const scene = new THREE.Scene()
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x101010, 0.35))
+  const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(-2, 4, 3); scene.add(key)
+  const rim = new THREE.DirectionalLight(0xffffff, 0.45); rim.position.set(3, 2, -3); scene.add(rim)
+  const camera = new THREE.PerspectiveCamera(27, DW / DH, 0.05, 50)
+  camera.position.set(-2.55, 1.85, 2.75); camera.lookAt(-0.25, 0.68, 0.05)
+
+  // bed along +z (head at -z), low contrast: dark frame, mid-grey mattress, soft rounded pillows and blanket
+  const bedMat = SOFT(0x2c2c2c), sheet = SOFT(0x444444), soft = SOFT(0x555555)
+  const MT = 0.58 // mattress top
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.12, 2.1), bedMat); frame.position.set(0, 0.36, 0); scene.add(frame)
+  const headboard = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.75, 0.05), bedMat); headboard.position.set(0, 0.7, -1.07); scene.add(headboard)
+  const mattress = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.16, 2.0), sheet); mattress.position.set(0, MT - 0.08, 0); scene.add(mattress)
+  const pillow = (z: number, y: number, r: number) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), soft); m.scale.set(0.36, 0.1, 0.2); m.position.set(0, y, z); m.rotation.x = r; scene.add(m)
   }
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.1, 1.6), GREY); head.position.set(-1.8, 0.75, 0); bed.add(head)
-  const mattress = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.3, 1.5), WHITE); mattress.position.y = 0.47; bed.add(mattress)
-  const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 1.0), WHITE); pillow.position.set(-1.35, 0.72, 0); bed.add(pillow)
-  const person = new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 16), GREY); person.position.set(-1.25, 0.98, 0); bed.add(person)
-  const blanket = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.28, 1.45), GREY); blanket.position.set(0.35, 0.75, 0); bed.add(blanket)
-  // forearm raised out of the blanket, hand at the top, pivoting at the elbow for a gentle wave
-  const elbow = new THREE.Group(); elbow.position.set(-0.3, 0.88, 0.45); bed.add(elbow)
-  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.1, 12), WHITE); arm.position.y = 0.55; elbow.add(arm)
-  const hand = new THREE.Group(); hand.position.y = 1.18; elbow.add(hand)
-  hand.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.36, 0.1), WHITE))
-  for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.28, 0.08), WHITE); f.position.set(-0.12 + i * 0.08, 0.31, 0); hand.add(f) }
-  const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.2, 0.08), WHITE); thumb.position.set(0.21, 0.02, 0); thumb.rotation.z = -0.6; hand.add(thumb)
-  // bedside table with the laptop
-  const table = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.0, 0.9), DARK); table.position.set(1.35, -1.0, 0.2); scene.add(table)
-  const lap = laptop(); lap.scale.setScalar(0.42); lap.position.set(1.35, -0.48, 0.2); lap.rotation.y = -0.9; scene.add(lap)
-  const lapScreen = new THREE.Object3D(); lapScreen.position.set(0, 0.7, -0.6); lap.add(lapScreen)
-  // caregiver phone, standing on the right, screen lights when the call arrives
-  const phone = new THREE.Group(); phone.position.set(3.25, -0.2, 0.6); phone.rotation.y = -0.45; scene.add(phone)
-  phone.add(new THREE.Mesh(new THREE.BoxGeometry(0.62, 1.2, 0.08), DARK))
-  const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.52, 1.02), PHONE_GLOW); glass.position.z = 0.045; phone.add(glass)
+  pillow(-0.92, MT + 0.12, 0.2); pillow(-0.78, MT + 0.3, 0.9)
+  const blanket = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2, 8, 24), soft)
+  blanket.rotation.x = Math.PI / 2; blanket.scale.set(0.38, 0.36, 0.16); blanket.position.set(0, MT + 0.09, 0.45); scene.add(blanket)
+
+  // bedside table with the laptop (the patient's right), caregiver phone further out
+  const table = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.55, 0.45), bedMat); table.position.set(-0.85, 0.28, -0.55); scene.add(table)
+  const lap = laptop(); lap.scale.setScalar(0.17); lap.position.set(-0.85, 0.565, -0.55); lap.rotation.y = Math.PI * 0.62; scene.add(lap)
+  const lapScreen = new THREE.Object3D(); lapScreen.position.set(0, 0.75, -0.6); lap.add(lapScreen)
+  const phone = new THREE.Group(); phone.position.set(0.55, 0.95, 1.25); scene.add(phone); phone.lookAt(camera.position)
+  phone.add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.31, 0.02), SOFT(0x2a2a2a)))
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.135, 0.26), PHONE_GLOW); glass.position.z = 0.011; phone.add(glass)
+  const handAnchor = new THREE.Object3D(); handAnchor.position.set(-0.3, MT + 0.5, -0.2); scene.add(handAnchor)
+
+  // the explainer's rigged mannequin, reclined about 35 degrees on the pillows, legs straight under the blanket
+  type Rig = { bone: (n: string) => THREE.Bone; q0: (n: string) => THREE.Quaternion; l1: number; l2: number; up: THREE.Vector3; fore: THREE.Vector3; hand: THREE.Vector3; palm: THREE.Vector3; curl: { b: THREE.Bone; q: THREE.Quaternion; axis: THREE.Vector3; k: number }[] }
+  let rig: Rig | null = null
+  new GLTFLoader().load('/models/person/guy.glb', (gltf) => {
+    const root = gltf.scene, bones = new Map<string, THREE.Bone>()
+    const body = new THREE.MeshLambertMaterial({ color: 0xd2d2d0 })
+    root.traverse((o) => {
+      if ((o as THREE.Bone).isBone) bones.set(o.name.replace(/^mixamorig:?/, ''), o as THREE.Bone)
+      const m = o as THREE.Mesh
+      if (!m.isMesh) return
+      if (/^(EyeLeft|EyeRight|Wolf3D_Teeth|Wolf3D_Beard|Wolf3D_Headwear)$/.test(m.name)) m.visible = false
+      ;(m.material as THREE.Material).dispose(); m.material = body; m.frustumCulled = false
+    })
+    const bone = (n: string) => { const b = bones.get(n); if (!b) throw new Error('guy.glb: missing bone ' + n); return b }
+    const at = (n: string) => bone(n).getWorldPosition(new V3())
+    scene.add(root)
+    root.rotation.x = -(55 * Math.PI) / 180 // upright -> reclined 35 degrees above the mattress, facing up the bed
+    root.updateMatrixWorld(true)
+    root.position.add(new V3(0, MT + 0.1, -0.35).sub(at('Hips')))
+    root.updateMatrixWorld(true)
+    const rest = new Map<string, THREE.Quaternion>()
+    for (const [n, b] of bones) rest.set(n, b.getWorldQuaternion(new THREE.Quaternion()))
+    const q0 = (n: string) => rest.get(n)!
+    const dir = (a: string, b: string) => at(b).sub(at(a)).normalize()
+    const X = new V3(1, 0, 0)
+    // legs straight along the bed, under the blanket
+    for (const s of ['Left', 'Right']) {
+      const thigh = dir(s + 'UpLeg', s + 'Leg'), shin = dir(s + 'Leg', s + 'Foot')
+      aim(bone(s + 'UpLeg'), q0(s + 'UpLeg'), thigh, perpTo(X, thigh), new V3(s === 'Left' ? 0.04 : -0.04, -0.06, 1).normalize(), X)
+      aim(bone(s + 'Leg'), q0(s + 'Leg'), shin, perpTo(X, shin), new V3(0, -0.05, 1).normalize(), X)
+    }
+    // left arm resting on the blanket
+    const lUp = dir('LeftArm', 'LeftForeArm'), lFore = dir('LeftForeArm', 'LeftHand')
+    aim(bone('LeftArm'), q0('LeftArm'), lUp, perpTo(X, lUp), new V3(0.15, -0.75, 0.6).normalize(), X)
+    aim(bone('LeftForeArm'), q0('LeftForeArm'), lFore, perpTo(X, lFore), new V3(-0.15, -0.25, 1).normalize(), X)
+    root.updateMatrixWorld(true)
+    const up = dir('RightArm', 'RightForeArm'), hand = dir('RightHand', 'RightHandMiddle1')
+    const across = at('RightHandIndex1').sub(at('RightHandPinky1'))
+    const palm = new V3().crossVectors(hand, across).multiplyScalar(-1).normalize()
+    const r: Rig = { bone, q0, l1: at('RightArm').distanceTo(at('RightForeArm')), l2: at('RightForeArm').distanceTo(at('RightHand')), up, fore: dir('RightForeArm', 'RightHand'), hand, palm, curl: [] }
+    for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) for (let i = 0; i < 3; i++) {
+      const n = 'RightHand' + f + (i + 1)
+      const axis = new V3().crossVectors(dir(n, 'RightHand' + f + (i + 2)), palm).normalize().applyQuaternion(q0(n).clone().invert())
+      r.curl.push({ b: bone(n), q: bone(n).quaternion.clone(), axis, k: [1.3, 1.5, 1.0][i] })
+    }
+    rig = r
+  }, undefined, (e) => console.warn('guy.glb failed to load for the Care scene', e))
+
+  const w = new V3(), pA = new V3(), pE = new V3(), pB = new V3(), tmp = new V3()
+  const ease = (x: number) => { const u = Math.max(0, Math.min(1, x)); return u * u * (3 - 2 * u) }
   return {
-    scene, camera, anchors: { hand, lapScreen, glass, phone },
+    scene, camera, anchors: { hand: handAnchor, lapScreen, glass, phone },
     update(t) {
       careT = t
-      elbow.rotation.z = Math.sin(t * 4.2) * 0.32
-      PHONE_GLOW.emissive.setScalar(careLit(t) ? 0.95 : 0.05)
+      const u = careAt(t)
+      PHONE_GLOW.emissive.setScalar(careCall(u) ? 0.95 : 0.04)
+      const r = rig
+      if (!r) return
+      const sh = r.bone('RightArm').getWorldPosition(pA)
+      // rest: hand on the blanket by the hip; wave: forearm raised, gentle side to side; pain: hand toward the laptop
+      const restW = tmp.set(sh.x - 0.12, MT + 0.14, sh.z + 0.42)
+      let fingers: THREE.Vector3, palmN: THREE.Vector3, curl = 0.15, pole: THREE.Vector3
+      if (careWave(u)) {
+        const k = ease(u / 0.6) * (1 - ease((u - 3.6) / 0.6))
+        w.set(sh.x - 0.22 + Math.sin(u * 4.4) * 0.08 * k, sh.y + 0.4, sh.z + 0.32).lerp(restW, 1 - k)
+        fingers = new V3(Math.sin(u * 4.4) * 0.25 * k, 1, 0.1).normalize(); palmN = new V3(-0.9, 0, 0.3).normalize(); curl = 0.12 * (1 - k) + 0.02
+        pole = new V3(-0.4, -1, 0.3)
+      } else {
+        const v = u - 5.6, k = ease(v / 0.6) * (1 - ease((v - 3.6) / 0.6))
+        w.set(sh.x - 0.45, sh.y + 0.08, sh.z + 0.2).lerp(restW, 1 - k)
+        fingers = new V3(-1, 0.15, -0.25).normalize(); palmN = new V3(0.1, -0.2, 1).normalize()
+        curl = v > 0 && v < 4 ? 0.1 + 0.85 * k * (0.5 - 0.5 * Math.cos(Math.max(0, v - 0.6) * Math.PI * 2 / 1.0)) : 0.15
+        pole = new V3(0, -1, 0.4)
+      }
+      ikElbow(sh, w, r.l1, r.l2, pole, pE)
+      const dU = new V3().subVectors(pE, sh).normalize(), dF = new V3().subVectors(w, pE).normalize()
+      const bend = new V3().crossVectors(dU, dF); if (bend.lengthSq() < 1e-6) bend.copy(pole)
+      aim(r.bone('RightArm'), r.q0('RightArm'), r.up, perpTo(new V3().crossVectors(r.up, r.palm), r.up), dU, bend)
+      r.bone('RightForeArm').getWorldPosition(pB)
+      aim(r.bone('RightForeArm'), r.q0('RightForeArm'), r.fore, perpTo(r.palm, r.fore), dF.subVectors(w, pB), palmN)
+      aim(r.bone('RightHand'), r.q0('RightHand'), r.hand, perpTo(r.palm, r.hand), fingers, palmN)
+      for (const c of r.curl) c.b.quaternion.copy(c.q).multiply(new THREE.Quaternion().setFromAxisAngle(c.axis, c.k * curl))
+      r.bone('RightHand').getWorldPosition(handAnchor.position)
     },
   }
 }, (g, at) => {
-  const [px, py] = at('glass'), [qx, qy] = at('phone', 46)
-  if (careLit(careT)) chip(g, 'HELP', px, py)
-  label(g, 'CAREGIVER', qx, qy + 16)
+  const call = careCall(careAt(careT))
+  const [px, py] = at('glass'), [qx, qy] = at('phone')
+  if (call) chip(g, call, px, py)
+  label(g, 'CAREGIVER', Math.min(qx, DW - 70), qy + 62)
 }, (g, at, t) => {
-  // thin flower-style arcs leaving the hand toward the laptop, fading as they travel; none while the phone shows HELP
-  const [hx, hy] = at('hand'), [lx, ly] = at('lapScreen')
-  const dir = Math.atan2(ly - hy, lx - hx), d = Math.hypot(lx - hx, ly - hy)
-  const p0 = (t % CARE_PERIOD) / (CARE_PERIOD * 0.5)
+  const u = careAt(t)
+  const [hx, hy] = at('hand'), [lx, ly] = at('lapScreen'), [px, py] = at('glass')
   g.lineCap = 'round'
-  for (let i = 0; i < 3; i++) {
-    const p = p0 - i * 0.18
-    if (p < 0 || p > 1) continue
-    const a = 1 - p
-    g.strokeStyle = `rgba(255,255,255,${(0.35 + a * 0.6).toFixed(3)})`
-    g.lineWidth = 2.2
-    g.beginPath(); g.arc(hx, hy, 14 + p * (d - 14), dir - 0.42, dir + 0.42); g.stroke()
+  // faint, thin arcs from the moving hand to the laptop while a gesture is under way
+  if ((u > 0.6 && u < 4) || (u > 6.2 && u < 9.6)) {
+    const dir = Math.atan2(ly - hy, lx - hx), d = Math.hypot(lx - hx, ly - hy)
+    for (let i = 0; i < 3; i++) {
+      const p = (u * 0.8 + i / 3) % 1
+      g.strokeStyle = `rgba(255,255,255,${(0.18 + (1 - p) * 0.3).toFixed(3)})`; g.lineWidth = 1.4
+      g.beginPath(); g.arc(hx, hy, 10 + p * (d - 10), dir - 0.35, dir + 0.35); g.stroke()
+    }
+  }
+  // the event leaves ECHØ: a dotted path from the laptop to the phone, and a bright pulse travelling along it
+  g.setLineDash([2, 6]); g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 1.4
+  const mx = (lx + px) / 2, my = Math.min(ly, py) - 40
+  g.beginPath(); g.moveTo(lx, ly); g.quadraticCurveTo(mx, my, px, py); g.stroke(); g.setLineDash([])
+  const p = carePulse(u)
+  if (p !== null) {
+    const x = (1 - p) * (1 - p) * lx + 2 * (1 - p) * p * mx + p * p * px, y = (1 - p) * (1 - p) * ly + 2 * (1 - p) * p * my + p * p * py
+    const glow = g.createRadialGradient(x, y, 0, x, y, 14); glow.addColorStop(0, 'rgba(255,255,255,1)'); glow.addColorStop(1, 'rgba(255,255,255,0)')
+    g.fillStyle = glow; g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 2); g.fill()
   }
 })
