@@ -22,6 +22,7 @@ export default function CareChapter({ go }: { go: (page: string) => void }) {
             ))}
           </div>
           <ul className="pz__gestures">
+            <li className="pz__gestures-head"><b>Hand gesture</b><span>Function</span></li>
             {GESTURES.map(([g, a]) => <li key={g}><b>{g}</b><span>{a}</span></li>)}
           </ul>
           <p className="pz__line">ECHØ has no lens and stores no audio. Only the event leaves the room.</p>
