@@ -508,3 +508,78 @@ export const pipeline: Scene = {
     })
   },
 }
+
+// ---------- Honest numbers: where it falls short ----------
+// Five small pictograms in solid ink (3 on top, 2 below), each with a two-word tag and a short line.
+const LIMITS = [
+  { name: 'QUIET ROOM', sub: 'calibrate, then keep it', x: 107, y: 70 },
+  { name: 'SMALL DATASET', sub: 'may favour right hands', x: 320, y: 70 },
+  { name: 'HANDS VARY', sub: 'same sign, new motion', x: 533, y: 70 },
+  { name: 'ECHØS CLASH', sub: 'two laptops, metres apart', x: 213, y: 214 },
+  { name: 'TUNED CUTOFFS', sub: 'one threshold per sign', x: 427, y: 214 },
+]
+
+function miniLaptop(g: CanvasRenderingContext2D, x: number, y: number) {
+  g.strokeRect(x - 18, y - 22, 36, 24)
+  g.beginPath(); g.moveTo(x - 24, y + 8); g.lineTo(x + 24, y + 8); g.lineTo(x + 18, y + 2); g.lineTo(x - 18, y + 2); g.closePath(); g.stroke()
+}
+
+export const limits: Scene = {
+  draw(g, t) {
+    g.fillStyle = gray(1); g.strokeStyle = gray(1); g.lineWidth = 2.4
+    { // quiet room: a laptop calibrating, its bar filling, sound rising quietly
+      const { x, y } = LIMITS[0]
+      miniLaptop(g, x, y)
+      g.strokeRect(x - 12, y - 8, 24, 5)
+      g.fillRect(x - 11, y - 7, 22 * smooth((t * 0.3) % 1.15), 3)
+      g.save(); g.beginPath(); g.rect(x - 40, y - 60, 80, 36); g.clip()
+      arcs(g, x, y - 22, -Math.PI / 2, 4, 34, t, { n: 2, speed: 8, spread: 0.7, width: 2 })
+      g.restore()
+    }
+    { // small dataset: five people, one bobbing at a time
+      const { x, y } = LIMITS[1]
+      for (let k = 0; k < 5; k++) {
+        const px = x - 34 + k * 17, b = Math.floor(t * 1.2) % 5 === k ? 4 : 0
+        g.beginPath(); g.arc(px, y - 12 - b, 5, 0, TAU); g.fill()
+        g.beginPath(); g.arc(px, y + 8, 8, Math.PI, 0); g.fill()
+      }
+    }
+    { // hands vary: the same sign drawn three ways
+      const { x, y } = LIMITS[2]
+      for (let k = 0; k < 3; k++) {
+        g.lineWidth = 2
+        g.beginPath()
+        for (let i = 0; i <= 40; i++) {
+          const u = i / 40, xx = x - 36 + u * 72
+          const yy = y - 16 + k * 14 + Math.sin(u * Math.PI * (1 + k * 0.6) - t * (1.2 + k * 0.5)) * (4 + k * 2)
+          i ? g.lineTo(xx, yy) : g.moveTo(xx, yy)
+        }
+        g.stroke()
+      }
+      g.lineWidth = 2.4
+    }
+    { // echos clash: two laptops, waves crossing in the middle
+      const { x, y } = LIMITS[3]
+      miniLaptop(g, x - 44, y); miniLaptop(g, x + 44, y)
+      arcs(g, x - 44, y - 10, 0, 22, 70, t, { n: 2, speed: 14, spread: 0.45, width: 2 })
+      arcs(g, x + 44, y - 10, Math.PI, 22, 70, t + 0.4, { n: 2, speed: 14, spread: 0.45, width: 2, dashed: true })
+    }
+    { // tuned cutoffs: four bars, each with its own threshold tick that settles
+      const { x, y } = LIMITS[4]
+      for (let k = 0; k < 4; k++) {
+        const bx = x - 30 + k * 18, h = 34
+        g.lineWidth = 1.6; g.strokeRect(bx, y - 22, 10, h)
+        const lvl = [0.85, 0.45, 0.95, 0.7][k] + 0.06 * Math.sin(t * 0.9 + k)
+        g.fillRect(bx - 4, y - 22 + h * (1 - lvl) - 1, 18, 3)
+      }
+      g.lineWidth = 2.4
+    }
+  },
+  overlay(g, t) {
+    const a = Math.floor(t / 2.2) % LIMITS.length
+    LIMITS.forEach((l, i) => {
+      if (i === a) tag(g, l.name, l.x, l.y + 42, 17); else label(g, l.name, l.x, l.y + 42, 17, 'center')
+      label(g, l.sub, l.x, l.y + 62, 13, 'center')
+    })
+  },
+}

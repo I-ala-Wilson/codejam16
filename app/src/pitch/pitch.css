@@ -13,12 +13,11 @@
 .pz__stat { border-top: 1px dotted var(--ink); padding-top: 22px; }
 .pz__big { font-size: 76px; line-height: .9; color: var(--ink-strong); white-space: nowrap; }
 .pz__label { font-size: 23px; line-height: 1.25; margin-top: 16px; max-width: 32ch; }
-.pz__limits { margin-top: 48px; border-top: 1px dotted var(--ink); padding-top: 20px; }
-.pz__limitshead { font-size: 21px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
-.pz__limits ol { list-style: none; counter-reset: lim; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 48px; }
-.pz__limits li { counter-increment: lim; display: flex; gap: 14px; font-size: 21px; line-height: 1.3; padding: 12px 0; border-bottom: 1px dotted var(--ink); }
-.pz__limits li::before { content: counter(lim, decimal-leading-zero); font-size: 17px; background: var(--ink); color: var(--bg); padding: 2px 6px 0; height: fit-content; }
-@media (max-width: 900px) { .pz__limits ol { grid-template-columns: 1fr; } }
+.pz__honest { display: grid; grid-template-columns: minmax(240px, 0.8fr) 2fr; gap: 64px; align-items: start; }
+.pz__honeststats { display: grid; gap: 28px; }
+.pz__honeststats .pz__label { margin-top: 10px; }
+@media (max-width: 900px) { .pz__honest { grid-template-columns: 1fr; gap: 36px; } }
+.pz__limitshead { font-size: 21px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; border-top: 1px dotted var(--ink); padding-top: 20px; }
 .pz__small { font-size: 19px; line-height: 1.3; margin: 48px 0 0; max-width: 90ch; border-top: 1px dotted var(--ink); padding-top: 16px; }
 
 .pz--close { text-align: center; padding-top: 72px; padding-bottom: 80px; }

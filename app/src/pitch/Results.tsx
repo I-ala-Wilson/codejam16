@@ -1,35 +1,34 @@
+import DitherCanvas from '../hwb/DitherCanvas.tsx'
+import { limits } from '../hwb/scenes.ts'
 import './pitch.css'
 
 // Home pitch section: the numbers and the limits. 96% is 48 of 50 live trials on the calibrated demo MacBook Pro;
-// 3 m is the furthest live detection in our tests (training takes were at 20 to 50 cm); 6 of 7 is EJ's Habit live test.
+// 3 m is the furthest live detection in our tests (training takes were at 20 to 50 cm).
 const STATS = [
-  { big: '96%', label: 'gestures recognised live, 48 of 50 trials' },
-  { big: '3 m', label: 'furthest detection in a test, trained only up to 50 cm' },
-  { big: '36 h', label: 'from idea to working prototype' },
-]
-const LIMITS = [
-  'It needs a fairly quiet room to calibrate, and that room has to stay the same for detection to stay consistent.',
-  'It learned from a small group, so it can be biased, for example toward right hand gestures.',
-  'The same instruction produces different motions from person to person, open and close most of all.',
-  'Two ECHØ laptops a few metres apart can interfere with each other.',
-  'At first only push, pull and open and close read well; tuning each gesture\'s threshold brought the rest up.',
+  { big: '96%', label: '48 of 50 live trials' },
+  { big: '3 m', label: 'detected, trained at 50 cm' },
+  { big: '36 h', label: 'idea to prototype' },
 ]
 
 export default function Results() {
   return (
     <section className="pz" aria-labelledby="pz-results">
       <h2 id="pz-results" className="pz__title">Honest numbers</h2>
-      <div className="pz__stats">
-        {STATS.map((s) => (
-          <div key={s.big} className="pz__stat">
-            <div className="pz__big">{s.big}</div>
-            <div className="pz__label">{s.label}</div>
+      <div className="pz__honest">
+        <div className="pz__honeststats">
+          {STATS.map((s) => (
+            <div key={s.big} className="pz__stat">
+              <div className="pz__big">{s.big}</div>
+              <div className="pz__label">{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div className="pz__limitshead">Where it falls short</div>
+          <div className="pz__frame">
+            <DitherCanvas scene={limits} label="Five limits: it needs a quiet room to calibrate and the room must stay the same; a small dataset may favour right-hand gestures; the same sign varies from person to person; two ECHØ laptops a few metres apart interfere; each gesture needed its own tuned threshold." />
           </div>
-        ))}
-      </div>
-      <div className="pz__limits">
-        <div className="pz__limitshead">Where it falls short</div>
-        <ol>{LIMITS.map((l) => <li key={l}>{l}</li>)}</ol>
+        </div>
       </div>
       <p className="pz__small">A proof of concept, not a finished medical device.</p>
     </section>
