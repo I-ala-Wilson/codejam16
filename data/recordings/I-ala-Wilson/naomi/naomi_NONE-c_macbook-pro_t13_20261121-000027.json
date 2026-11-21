@@ -1,0 +1,23 @@
+{
+  "person": "Naomi",
+  "gesture": "NONE",
+  "laptop": "macbook-pro",
+  "note": "NONE (c)",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [],
+  "createdAt": "2026-11-21T00:00:27-05:00",
+  "takeKind": "none",
+  "battery": "main",
+  "distanceCm": null,
+  "noneKind": "c",
+  "cueWindowMs": null,
+  "periodMs": null,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "R",
+  "volumePct": 70,
+  "laptopModel": "Macbook Pro",
+  "protocol": "ml/PROTOCOL.md"
+}
