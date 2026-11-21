@@ -89,6 +89,8 @@ export class GestureDetector {
   private zeroRun = 0
   private chain: Stroke[] = []
   private chainIsWave = false
+  /** A small tap toward that is waiting to see whether a second one makes it an UNDO. */
+  private heldTap: Stroke | null = null
   private lastMotionT: number | null = null
   private holdArmed = false
   private pulse: Pulse | null = null
@@ -103,6 +105,7 @@ export class GestureDetector {
     this.zeroRun = 0
     this.chain = []
     this.chainIsWave = false
+    this.heldTap = null
     this.lastMotionT = null
     this.holdArmed = false
     this.pulse = null
@@ -116,6 +119,7 @@ export class GestureDetector {
     const energy = Math.max(frame.energyToward, frame.energyAway)
 
     this.finishChainIfIdle(frame.t, events)
+    this.flushStaleTap(frame.t, events)
     this.trackStroke(frame, dir, events)
     this.trackPulse(frame, dir, energy)
     this.trackHold(frame.t, dir !== 0 || energy > MOTION_DB, events)
@@ -183,13 +187,49 @@ export class GestureDetector {
     for (let i = 0; i < primaries.length; i++) {
       const second = doubleTapPartner(primaries, i)
       if (second !== null) {
+        this.flushHeldTap(events)
         events.push(this.event('UNDO', primaries[second], Math.abs(primaries[second].peakShiftHz)))
         i = second
         continue
       }
-      const stroke = primaries[i]
-      events.push(this.event(stroke.dir > 0 ? 'PUSH' : 'PULL', stroke, Math.abs(stroke.peakShiftHz)))
+      this.emitStroke(primaries[i], events)
     }
+  }
+
+  /**
+   * One settled stroke becomes an event, except a small tap toward: that waits up to UNDO_WINDOW_MS for a second tap,
+   * because a natural double tap has a longer gap than a chain allows (the contract says up to ~600 ms apart).
+   */
+  private emitStroke(stroke: Stroke, events: GestureEvent[]): void {
+    const peak = Math.abs(stroke.peakShiftHz)
+    const held = this.heldTap
+    if (held && stroke.dir < 0 && peak < TAP_MAX_PEAK_HZ && stroke.startT - held.startT <= UNDO_WINDOW_MS) return // a return stroke
+    if (!isTap(stroke)) {
+      this.flushHeldTap(events)
+      events.push(this.event(stroke.dir > 0 ? 'PUSH' : 'PULL', stroke, peak))
+      return
+    }
+    if (held && stroke.startT - held.startT <= UNDO_WINDOW_MS) {
+      this.heldTap = null
+      events.push(this.event('UNDO', stroke, peak))
+      return
+    }
+    this.flushHeldTap(events)
+    this.heldTap = stroke
+  }
+
+  private flushHeldTap(events: GestureEvent[]): void {
+    const held = this.heldTap
+    if (!held) return
+    this.heldTap = null
+    events.push(this.event('PUSH', held, Math.abs(held.peakShiftHz)))
+  }
+
+  /** A waiting tap becomes a plain PUSH once no second tap can still arrive inside the UNDO window. */
+  private flushStaleTap(t: number, events: GestureEvent[]): void {
+    const held = this.heldTap
+    if (!held || t - held.startT <= UNDO_WINDOW_MS || this.open || this.chain.length > 0) return
+    this.flushHeldTap(events)
   }
 
   private event(type: GestureType, stroke: Stroke, peakAbsHz: number): GestureEvent {

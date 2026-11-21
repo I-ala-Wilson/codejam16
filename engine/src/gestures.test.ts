@@ -94,6 +94,30 @@ describe('GestureDetector', () => {
     expect(events[0].speed).toBeGreaterThan(0)
   })
 
+  it.each([200, 300, 450])('reports UNDO for a natural double tap with a %i ms gap (within the 600 ms contract)', (gap) => {
+    const events = run([{ still: 300 }, push(60, 140), { still: gap }, push(60, 140), { still: 1500 }])
+    expect(types(events)).toEqual(['UNDO'])
+    expect(events[0].speed).toBeGreaterThan(0)
+  })
+
+  it('still reports a lone small tap as PUSH, once the UNDO window has passed', () => {
+    const events = run([{ still: 300 }, push(60, 140), { still: 1500 }])
+    expect(types(events)).toEqual(['PUSH'])
+  })
+
+  it('does not delay a normal push waiting for a second tap', () => {
+    const detector = new GestureDetector({ toneHz: TONE_HZ })
+    const seq = frames([push(110, 250), { still: 600 }])
+    const first = seq.map((f) => ({ f, e: detector.push(f) })).find((x) => x.e.length > 0)
+    expect(first?.e[0].type).toBe('PUSH')
+    expect(first!.f.t - seq.find((f) => f.shiftHz !== 0)!.t).toBeLessThan(700) // fires about 250 ms after the motion ends
+  })
+
+  it('does not turn two taps more than 600 ms apart into an UNDO (start to start)', () => {
+    const events = run([push(60, 140), { still: 550 }, push(60, 140), { still: 1500 }])
+    expect(types(events)).toEqual(['PUSH', 'PUSH'])
+  })
+
   it('still reports UNDO when a weak return stroke sits between the two taps', () => {
     const events = run([push(70, 140), pull(40, 100), push(70, 140), { still: 700 }])
     expect(types(events)).toEqual(['UNDO'])
