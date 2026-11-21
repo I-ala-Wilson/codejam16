@@ -148,3 +148,28 @@ thresholds, scored with and without the override on the same models.
 Acceptance: on BOTH seeds the macro recall is higher with the override by more than 0.02, and neither PUSH nor PULL pooled
 recall is lower. If accepted: implement it in `engine/src/classifier.ts` (the engine has the frames), check parity with
 the Python version on fixtures, run all tests, push, post DONE. If not: INFO with what failed.
+
+## Breathing rate from the echo's phase (moonshot, Ian's DIRECT 7064902718). GO / NO-GO PRE-REGISTERED before any breathing recording is looked at
+Written and pushed before `ml/breathing.py` has seen a real take. It is developed on synthetic phase-modulated tones only,
+and every threshold below is fixed now.
+
+Method (offline first, on the raw WAVs): complex-demodulate the mic at the tone frequency f0 (mix with exp(-j 2 pi f0 t),
+low-pass to about 10 Hz, decimate to about 50 Hz); remove the static path (direct speaker-to-mic and room) by subtracting a
+slow moving average of the complex baseband; unwrap the phase (the amplitude is kept as a backup signal); band-pass
+0.1-0.7 Hz; estimate the rate from the FFT peak over 30 s windows stepped by 5 s; try a few bins around f0 and pick the one
+with the most 0.1-0.7 Hz energy (chosen from the signal alone, never from the paced rate).
+
+Per take, the rate estimate is the median over its 30 s windows (windows that overlap a labelled breath-hold are left out).
+The reference is the take's `paced_bpm`; the breaths counted from `inhale_starts_s` are reported next to it.
+
+- GO: the rate is within 2 bpm of the paced rate on at least 75% of the paced takes (3 of every 4), pooled over at least
+  two people.
+- Otherwise, if the apnea check passes it is a PARTIAL GO. Apnea check: breathing strength is the RMS of the band-passed
+  phase in a 10 s window; a breath-hold is flagged when that falls below 30% of the median strength over the take's
+  breathing windows. It passes when, on at least 75% of the breath-hold takes pooled over at least two people, the flag is
+  raised within 10 s of the labelled start of the hold, and the flag is not raised in the first 10 s of the take or in the
+  take's breathing windows more than 20% of the time.
+- Otherwise NO-GO.
+Reported either way: per take the estimate, the paced rate, the error, which bin was chosen and a plot
+(`ml/experiments/breathing/*.png`). No threshold above changes after the first real take is processed. If it is a GO, the
+engine gets a breath estimator (rate in bpm, confidence, apnea flag) with tests, and the API is posted for Ian's Care page.
