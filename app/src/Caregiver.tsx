@@ -59,6 +59,8 @@ export default function Caregiver() {
 }
 
 const label = (e: LocalEvent) =>
+  e.kind === 'cancelled' ? (e.payload.cancelled_kind === 'help' ? 'help cancelled (false alarm)' : `${e.payload.cancelled_kind ?? 'message'} cancelled`)
+    :
   e.kind === 'help' ? `HELP from ${e.device_id}` : e.kind === 'help_cancelled' ? 'help cancelled (false alarm)'
     : e.kind === 'inactive' ? `no movement for ${e.payload.seconds}s` : e.kind === 'habit_detected' ? 'habit nudge'
       : e.kind === 'snoozed' ? 'habit snoozed' : `${e.app} ${e.kind.replace('_', ' ')}`
