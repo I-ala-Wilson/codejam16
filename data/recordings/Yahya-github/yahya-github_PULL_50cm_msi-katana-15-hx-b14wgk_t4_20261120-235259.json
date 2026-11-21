@@ -1,0 +1,143 @@
+{
+  "person": "Yahya-github",
+  "gesture": "PULL",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "PULL at 50 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 143360,
+      "end": 215360,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 287744,
+      "end": 359744,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 432128,
+      "end": 504128,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 575488,
+      "end": 647488,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 719872,
+      "end": 791872,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 864256,
+      "end": 936256,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 1007616,
+      "end": 1079616,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 1152000,
+      "end": 1224000,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 1295360,
+      "end": 1367360,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 1439744,
+      "end": 1511744,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 1584128,
+      "end": 1656128,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 1727488,
+      "end": 1799488,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 1871872,
+      "end": 1943872,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 2016256,
+      "end": 2088256,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 2159616,
+      "end": 2231616,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 2304000,
+      "end": 2376000,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 2448384,
+      "end": 2520384,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 2591744,
+      "end": 2663744,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 2736128,
+      "end": 2808128,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 2880512,
+      "end": 2952512,
+      "label": "PULL",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-20T23:52:59-05:00",
+  "takeKind": "gesture",
+  "battery": "main",
+  "distanceCm": 50,
+  "cueWindowMs": 1500,
+  "periodMs": 3000,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "L",
+  "volumePct": 150,
+  "laptopModel": "MSI Katana 15 HX B14WGK",
+  "protocol": "ml/PROTOCOL.md"
+}

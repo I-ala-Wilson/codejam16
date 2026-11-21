@@ -1,0 +1,23 @@
+{
+  "person": "Yahya-github",
+  "gesture": "NONE",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "NONE (b)",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [],
+  "createdAt": "2026-11-21T00:14:02-05:00",
+  "takeKind": "none",
+  "battery": "main",
+  "distanceCm": null,
+  "noneKind": "b",
+  "cueWindowMs": null,
+  "periodMs": null,
+  "leadInMs": 3000,
+  "leadInMotion": false,
+  "hand": "L",
+  "volumePct": 150,
+  "laptopModel": "MSI Katana 15 HX B14WGK",
+  "protocol": "ml/PROTOCOL.md"
+}

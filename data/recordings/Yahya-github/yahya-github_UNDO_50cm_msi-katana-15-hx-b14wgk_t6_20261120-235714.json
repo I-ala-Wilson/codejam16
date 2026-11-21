@@ -1,0 +1,143 @@
+{
+  "person": "Yahya-github",
+  "gesture": "UNDO",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "UNDO at 50 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 216384,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 288768,
+      "end": 360768,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 433152,
+      "end": 505152,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 576512,
+      "end": 648512,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 720896,
+      "end": 792896,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 865280,
+      "end": 937280,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 1008640,
+      "end": 1080640,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 1153024,
+      "end": 1225024,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 1297408,
+      "end": 1369408,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 1440768,
+      "end": 1512768,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 1585152,
+      "end": 1657152,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 1728512,
+      "end": 1800512,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 1872896,
+      "end": 1944896,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 2017280,
+      "end": 2089280,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 2160640,
+      "end": 2232640,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 2305024,
+      "end": 2377024,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 2449408,
+      "end": 2521408,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 2592768,
+      "end": 2664768,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 2737152,
+      "end": 2809152,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 2881536,
+      "end": 2953536,
+      "label": "UNDO",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-20T23:57:14-05:00",
+  "takeKind": "gesture",
+  "battery": "main",
+  "distanceCm": 50,
+  "cueWindowMs": 1500,
+  "periodMs": 3000,
+  "leadInMs": 3000,
+  "leadInMotion": false,
+  "hand": "L",
+  "volumePct": 150,
+  "laptopModel": "MSI Katana 15 HX B14WGK",
+  "protocol": "ml/PROTOCOL.md"
+}
