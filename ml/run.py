@@ -294,6 +294,7 @@ def main(argv: list[str]) -> int:
             p.add_argument("--person", nargs="+", required=True, help="one or more logins whose calib-* takes are repeated (case-insensitive)")
             p.add_argument("--repeat", type=int, default=DEFAULT_CALIB_REPEAT, help="times the calibration takes count in training")
             p.add_argument("--skip-failed", action="store_true", help="leave calibration takes that FAIL the audit out of training (named on stderr) instead of refusing")
+            p.add_argument("--only-person", action="store_true", help="train on the --person login(s) takes only (a single-laptop model) instead of everyone's")
     args = parser.parse_args(argv)
 
     problem = device_problem(args.device, args.allow_cpu)
@@ -308,6 +309,9 @@ def main(argv: list[str]) -> int:
             sys.stderr.write("--repeat must be at least 1\n")
             return 2
         sessions, calibration = load_corpus_and_calibration(args.root, args.person)
+        if args.only_person:
+            people = {p.lower() for p in args.person}
+            sessions = [s for s in sessions if s.person in people]
         return run_calibration(args, sessions, calibration)
     sessions = load_corpus(args.root)
     if not usable_sessions(sessions):

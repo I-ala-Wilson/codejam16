@@ -545,3 +545,19 @@ Verdict: a second laptop does not matter at a normal distance. It only hurts whe
 almost touching), and then it is the weak WAVE rule detector that goes first, PUSH/PULL lose at most 5-10 points. Limits: rule detectors, not
 the model; constant frequency offset, no drift during the take; a real two-laptop test was not run. The pitch rule (only the demo laptop
 runs sonar) stays.
+
+## Katana-only model `katana-only`, pre-registered Sat 21 Nov about 16:40
+
+Yahya's request: do not depend on the shared model; his laptop plays the tone at 300% sink volume and his spectrograms separate the gestures
+clearly, so a model trained only on his own takes may beat the pooled one. Same train/test split as `calib-yahya`: `ml/run.py calib
+data/recordings --person yahya-github --only-person --skip-failed --repeat 5` (his 36 takes plus calib-1 x5, nobody else's data), tested on
+his livecheck-1 (4 takes, 40 cues) and the 15:25 live UNDO take. Same success rule as `calib-yahya` (70% per class, idle FA <= 2.6/min).
+Reading: pooled `calib-yahya` vs `katana-only` shows whether other people's data helps or hurts on this laptop. Candidate only; no shared
+file, Ian's model and every default stay untouched.
+
+## Rule (a) for calib-three (finished Sat 21 Nov about 16:42)
+`ml/tune.py data/recordings --recipes {"baseline": {}} --seeds 0 1`, 203 takes, 5 people, leave-one-person-out, 2 seeds: macro recall 0.406
+(rule: >= 0.39, MET), idle false alarms 2.66 per minute (rule: <= 2.6, MISSED by 0.06), train F1 0.912, held-out F1 0.567, gap 0.345.
+So rule (a) is met on recall and missed by 2% on false alarms; rules (b) and (c) passed and Ian shipped it (d21f1c7). The model learns from
+calibration takes of the three demo-laptop people, so LOPO (which hides each person's own takes) understates how it behaves with the
+calibration it was built for. Files: `ml/experiments/retrain_calib_three/`.
