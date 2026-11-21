@@ -260,6 +260,24 @@ new files. `gesture.json` differs only in the window count (73208 to 79550); cla
 Honest reading: the held-out numbers are the same as before within noise (0.412 vs 0.421), so this is not an accuracy gain
 on the people we already had. What it adds is a second laptop model (Dell Inspiron 15 3520) in the training set.
 
+## Breathing v2 result: NO-GO (computed once at 12:45:01, Sat 21 Nov, with the frozen rule)
+Test set: every take created at or after 11:05 and pushed by 12:45: EJ 3 (15 bpm, hold, natural), Michael 5 (Dell: 10, 15, 20
+bpm, hold, natural), Ian 4 (MacBook Pro, 12:39-12:43: 10, 15, 20 bpm, hold). 12 takes, 3 people, no choice involved in which
+count. Gate: v2 rejected 0 of 12 (v1's gate would have rejected 8, so v1 on these takes is INSUFFICIENT DATA).
+Paced takes (7), v2 median estimate against the paced rate, error in bpm:
+| person | 10 bpm | 15 bpm | 20 bpm |
+|---|---|---|---|
+| EJ | | 15.4 (+0.4) | |
+| Michael | 19.0 (+9.0) | 19.8 (+4.8) | 20.5 (+0.5) |
+| Ian | 7.3 (-2.7) | 8.1 (-6.9) | 8.1 (-11.9) |
+Within 2 bpm: 2 of 7 (29%), needs 75%, so NO-GO. Natural breathing (no known rate) read 20.5 bpm (EJ) and 22.0 bpm (Michael),
+at the top of the 7.2-30 bpm search band. The estimates do not follow the paced rate: Michael's and EJ's sit near 20 bpm
+whatever the pacing, Ian's near 8 bpm. The apnea check found no flag inside the held 20-40 s window on any of the 3 hold
+takes (EJ, Michael, Ian), so PARTIAL GO fails too.
+Consequence (rule fixed before the takes): breathing rate is dropped from the product, and so is the breath-hold flag as a
+live feature. Not claimed: that breathing cannot be measured with this hardware; only that these two estimators, on
+these 12 takes, do not do it. Raw tables and plots: `breathing/v2test/`.
+
 ## UNDO backup from the rule detector. PRE-REGISTERED before the rule UNDO is scored on the recordings (Sat 21 Nov 12:10)
 Why: EJ reports that on his MacBook Air the engine never emitted UNDO live. The held-out report shows classifier UNDO recall
 of 29% for EJ (86% for Ian). With the model on, `engine/src/index.ts` drops the rules' UNDO (only HOLD and REPETITIVE pass).
