@@ -46,8 +46,8 @@ const INK = 0xf2f2f0
 const ACCENT = INK // no colour accent: echoes are told apart by their dashes
 
 // Each wavefront is a thin expanding spherical cap (a shallow bowl opening along the direction of travel). It is drawn
-// as fine lines of fixed world thickness: a bright rim where the shell is seen edge-on, plus faint latitude rings and
-// meridians so the bowl reads as 3D. Echoes are dashed along the rim and meridians.
+// as fine lines of fixed world thickness: a bright rim where the shell is seen edge-on, plus faint latitude rings so the
+// bowl reads as 3D (no radial meridians). Echoes are dashed along the rim.
 const shellVert = /* glsl */ `
 varying vec3 vL; varying vec3 vN; varying vec3 vW;
 void main() {
@@ -63,15 +63,12 @@ varying vec3 vL; varying vec3 vN; varying vec3 vW;
 float line(float d) { float x = d / 0.0012; return exp(-x * x); }
 void main() {
   float th = acos(clamp(vL.y, -1.0, 1.0));
-  float ph = atan(vL.z, vL.x);
   float ndv = abs(dot(normalize(vN), normalize(cameraPosition - vW)));
   float rim = line(uR * (1.0 - sqrt(max(0.0, 1.0 - ndv * ndv))));
   float rings = line(uR * abs(th - uHalf / 3.0)) + line(uR * abs(th - 2.0 * uHalf / 3.0));
-  float step8 = 6.2831853 / 8.0;
-  float lon = line(uR * sin(th) * abs(fract(ph / step8 + 0.5) - 0.5) * step8) * smoothstep(0.05, 0.25, th);
   float dash = uDash > 0.0 ? step(0.5, fract(th * uDash * 1.6)) : 1.0;
   float edge = 1.0 - smoothstep(uHalf * 0.6, uHalf, th);
-  float a = uAlpha * edge * ((rim + 0.3 * lon) * dash + 0.3 * rings);
+  float a = uAlpha * edge * (rim * dash + 0.3 * rings);
   if (a < 0.004) discard;
   gl_FragColor = vec4(uColor, min(a, 1.0));
 }`
