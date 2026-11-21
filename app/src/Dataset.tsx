@@ -32,7 +32,7 @@ const BATTERY: Take[] = [
 
 const takeName = (t: Take) => t.kind === 'gesture' ? `${t.gesture} at ${t.distanceCm} cm` : `NONE (${t.noneKind})`
 
-type Phase = 'idle' | 'leadin' | 'cue' | 'rest' | 'none' | 'saving'
+type Phase = 'idle' | 'away' | 'leadin' | 'cue' | 'rest' | 'none' | 'saving'
 
 export default function Dataset() {
   const [login, setLogin] = useState(localStorage.getItem('echo.login') ?? '')
@@ -78,6 +78,9 @@ export default function Dataset() {
     if (engine.health().snrDb < 30) setWarn('Tone health is below 30 dB: turn the volume up before recording.')
     const person = login.trim()
     const laptop = laptopModel.trim().toLowerCase().replace(/\s+/g, '-')
+    // Grace period BEFORE recording: the click itself moves your hand, so it must not land in the still lead-in.
+    setP('away')
+    for (let s = 2; s > 0; s--) { setCount(s); await sleep(1000) }
     try {
       engine.startRecording({ person, gesture: t.kind === 'gesture' ? t.gesture : 'FREE', laptop, note: takeName(t) })
     } catch (e) { setError(String(e)); return }
@@ -179,7 +182,8 @@ export default function Dataset() {
         <Box title={`${takeName(t)}${phase === 'cue' || phase === 'rest' ? `: rep ${rep} of ${REPS}` : ''}`}>
           <div style={{ fontSize: 64, fontWeight: 900, textAlign: 'center', padding: '28px 0', border: '2px solid #000', borderRadius: 8,
             background: phase === 'cue' ? '#000' : '#fff', color: phase === 'cue' ? '#fff' : '#000' }}>
-            {phase === 'leadin' && `Hands off… ${count}`}
+            {phase === 'away' && `Take your hands away… ${count}`}
+            {phase === 'leadin' && `Hands off, keep still… ${count}`}
             {phase === 'cue' && `GO: ${cueText}`}
             {phase === 'rest' && 'rest'}
             {phase === 'none' && `${count}s`}
