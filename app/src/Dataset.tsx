@@ -167,7 +167,7 @@ export default function Dataset() {
                 <p style={{ fontSize: 22 }}>Next: <b>{takeName(t)}</b></p>
                 <p>{t.how}</p>
                 {t.kind === 'gesture'
-                  ? <p>Hand at <b>{t.distanceCm} cm</b>. 3 s hands off, then {REPS} cues every {t.periodMs / 1000} s (alternating natural and brisk). Do one rep per GO. About {Math.round((LEAD_IN_MS + REPS * t.periodMs) / 1000)} s.</p>
+                  ? <p>Hand at <b>{t.distanceCm} cm</b>. 3 s hands off, then {REPS} cues every {t.periodMs / 1000} s (alternating natural and brisk). Do one rep per GO, then put your hand back at the same rest spot and keep it still until the next beep. About {Math.round((LEAD_IN_MS + REPS * t.periodMs) / 1000)} s.</p>
                   : <p>3 s hands off, then 60 s of the activity above.</p>}
                 <button onClick={runTake} disabled={!running} style={{ fontSize: 18 }}>Record this take</button>
               </>
@@ -185,7 +185,7 @@ export default function Dataset() {
             {phase === 'away' && `Take your hands away… ${count}`}
             {phase === 'leadin' && `Hands off, keep still… ${count}`}
             {phase === 'cue' && `GO: ${cueText}`}
-            {phase === 'rest' && 'rest'}
+            {phase === 'rest' && 'hand back to rest, stay still'}
             {phase === 'none' && `${count}s`}
             {phase === 'saving' && 'saving…'}
           </div>
