@@ -17,8 +17,8 @@ type Step =
 type RepResult = { move: Move; dist: Dist; peak: number; ok: boolean }
 
 const DIST_TEXT: Record<Dist, string> = {
-  near: 'about 20 cm (a hand-span) in front of the screen, above the keyboard',
-  far: 'about 50 cm (an arm\'s length) in front of the screen',
+  near: 'around 15-30 cm in front of the screen, above the keyboard',
+  far: 'around 45-60 cm in front of the screen',
 }
 
 export default function RoomTest() {
@@ -147,11 +147,17 @@ export default function RoomTest() {
           {step.resting ? (
             <>
               <Big>Get ready...</Big>
-              <p>Next: {step.move === 'push' ? 'PUSH' : 'PULL'} {step.rep} of {REPS}. Hold your hand still.</p>
+              <p>
+                <b>Slowly</b> move your hand back to the start ({step.move === 'push'
+                  ? (step.reps === 'near' ? 'about 30 cm' : 'about 60 cm')
+                  : (step.reps === 'near' ? 'about 15 cm' : 'about 45 cm')} from the screen) and hold it still.
+                Next: {step.move === 'push' ? 'PUSH' : 'PULL'} {step.rep} of {REPS}.
+              </p>
             </>
           ) : (
             <>
               <Big>{step.move === 'push' ? 'PUSH toward the screen' : 'PULL away from the screen'}</Big>
+              <p>One brisk move of about 15 cm (like pressing a doorbell), then stop and hold.</p>
               <p>Rep {step.rep} of {REPS} · {countdown}s left</p>
             </>
           )}

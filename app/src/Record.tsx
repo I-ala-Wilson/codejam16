@@ -9,8 +9,8 @@ const REST_MS = 1200
 
 type Item = { gesture: GestureType | 'FREE'; how: string }
 const GESTURES: Item[] = [
-  { gesture: 'PUSH', how: 'Flat hand, palm to the screen, push toward the screen about 15 cm.' },
-  { gesture: 'PULL', how: 'Start close to the screen, pull your hand back about 15 cm.' },
+  { gesture: 'PUSH', how: 'Start about 30 cm away. On GO, one brisk push of about 15 cm (doorbell speed), then hold. During rest, drift back SLOWLY.' },
+  { gesture: 'PULL', how: 'Start about 15 cm away. On GO, one brisk pull back of about 15 cm, then hold. During rest, drift forward SLOWLY.' },
   { gesture: 'WAVE', how: 'Wave side to side, fast, for the whole GO window.' },
   { gesture: 'OPEN_CLOSE', how: 'Hand toward the screen: open and close your fist 3 times quickly.' },
   { gesture: 'UNDO', how: 'Two quick pulls back to back (pull, reset, pull).' },
@@ -98,7 +98,7 @@ export default function Record() {
         <Box title={`Recording ${current.gesture}: rep ${rep} of ${REPS}`}>
           <p>{current.how}</p>
           <div style={{ fontSize: 72, fontWeight: 900, textAlign: 'center', padding: '30px 0', border: '2px solid #000', borderRadius: 8, background: phase === 'go' ? '#000' : '#fff', color: phase === 'go' ? '#fff' : '#000' }}>
-            {phase === 'go' ? 'GO' : 'rest...'}
+            {phase === 'go' ? 'GO' : 'rest: slowly back to start'}
           </div>
           <p>Keep everyone else still and away from the laptop while recording.</p>
         </Box>
