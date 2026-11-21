@@ -1,5 +1,6 @@
 import type { Engine, EngineOptions, GestureEvent, SpectrumFrame } from '../../contracts/engine.ts'
 import { startCapture, type CaptureOptions, type CaptureSession } from './audio.ts'
+import { GestureDetector } from './gestures.ts'
 import { FramePipeline } from './pipeline.ts'
 import { SessionRecorder } from './recorder.ts'
 
@@ -27,6 +28,17 @@ function reportAsync(error: unknown): void {
   })
 }
 
+/** Call every listener; one that throws must not starve the others. */
+function notify<T>(listeners: ReadonlySet<(value: T) => void>, value: T): void {
+  for (const listener of listeners) {
+    try {
+      listener(value)
+    } catch (error: unknown) {
+      reportAsync(error)
+    }
+  }
+}
+
 export function createEngine(opts: EngineOptions = {}): Engine {
   return createEngineWith({ startCapture }, opts)
 }
@@ -47,26 +59,20 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
   /** Bumped on every teardown so a start() that was still waiting can tell it was cancelled. */
   let generation = 0
 
-  const emitFrame = (frame: SpectrumFrame): void => {
-    for (const listener of frameListeners) {
-      try {
-        listener(frame)
-      } catch (error: unknown) {
-        reportAsync(error) // one bad listener must not starve the others
-      }
-    }
-  }
+  const detector = new GestureDetector({ toneHz })
 
   const onChunk = (chunk: Float32Array): void => {
     recorder?.pushChunk(chunk)
     const frame = pipeline?.push(chunk, performance.now())
     if (!frame) return
     recorder?.pushFrame(frame)
-    emitFrame(frame)
+    notify(frameListeners, frame)
+    for (const gesture of detector.push(frame)) notify(gestureListeners, gesture)
   }
 
   const teardown = (reason: string): void => {
     generation += 1
+    detector.reset()
     const live = session
     const livePipeline = pipeline
     session = null

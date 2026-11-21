@@ -3,7 +3,9 @@
 ## Now
 - #3 pushed (fa572a3) and DONE posted. Left OPEN on purpose until Ian (or I) confirms on a real mic: snrDb >= 30 and a push gives positive shiftHz. Then `gh issue close 3 -c "..."`.
 - #9 part 1 (recording) pushed: `engine/src/recorder.ts` + `startRecording/stopRecording` in index.ts. Reps are auto-marked from motion energy (>10 dB for 3 frames, ends after 8 quiet frames); thresholds untuned on real data.
-- Next: #9 part 2, rule detectors PUSH/PULL/WAVE/HOLD/OPEN_CLOSE/UNDO (new file in engine/src, wire into `onGesture` in index.ts; tune on tonight's recordings, report per-gesture scores in ml/REPORT.md). Then #15, #14. #18 (ASL) is parked until M2 Floor is done (Ian agreed on the board).
+- #9 part 2 (first version): `engine/src/gestures.ts` rule detectors wired into `onGesture`; shift fix `c3d0f76` is already on main. All thresholds are first guesses.
+- Next: tune thresholds on real recordings (Ian's room test numbers, then the 23:45 session in data/recordings/*/), report per-gesture scores in ml/REPORT.md (needs a loader in ml/). Then #15 (REPETITIVE), #14 (classifier).
+- QA agent runs in ~/codejam-qa (role qa, never work in it). If a [QA] post arrives it goes to Yahya-github/qa. #18 (ASL) is parked until M2 Floor is done (Ian agreed on the board).
 - Human tasks pending (Ian, #7055273193): GPU check in ml/.venv, start the QA clone (after #3 is in, which it now is).
 
 ## Done
@@ -21,6 +23,8 @@
 - Frame `t` comes from the hop count (origin = first frame's arrival), so main-thread stalls do not bunch timestamps. Rules for UNDO (600 ms) can rely on it.
 - Bins within 2 of the carrier are ignored (main lobe, about +-23 Hz), so hand speeds under about 0.2 m/s are invisible. Shifts are measured from the true tone, not the centre bin.
 - Not handled: an AudioContext that goes `suspended` mid-session (tab backgrounded); frames just stop.
+- Shift estimate (dsp.ts): searches only +-350 Hz, needs a cluster of 3+ contiguous bins above the floor, centroid of the strongest cluster's lobe (within 12 dB of peak), 0 when both sides are about equally strong. Real mic showed +-508 Hz saturation with the old power-weighted centroid; keep the edge-spike tests.
+- Gestures (gestures.ts): frame direction when |shift| >= 30 Hz; strokes (>= 3 frames, peak >= 45 Hz) chain when < 250 ms apart; in a chain only strokes >= 50% of the strongest count (wind-up and recoil dropped); 4+ alternating strokes over >= 1 s is a WAVE; PULL then PULL within 600 ms starts becomes PULL, UNDO; HOLD after 1.5 s still following motion; OPEN_CLOSE = direction-less 10 dB pulses grouped by 600 ms. Events fire about 250 ms after the motion ends (chain latency).
 - Only `start/stop/health/onFrame/calibrate` exist. `onGesture` never fires and recording throws until #9.
 - The audio shell (`audio.ts`) is NOT verified on a real mic yet; only the pure pipeline is covered by tests.
 - Found, not mine: `extension/background.js` accepts UNLOCK from any `*.vercel.app` or localhost page (Ian's file; not yet reported on the board).

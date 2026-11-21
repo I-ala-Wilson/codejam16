@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { GestureEvent } from '../../contracts/engine.ts'
 import type { CaptureOptions, CaptureSession } from './audio.ts'
 import { createEngineWith } from './index.ts'
 import { HOP } from './pipeline.ts'
@@ -29,6 +30,23 @@ function fakeCapture(opts: { hold?: Deferred; sampleRate?: number } = {}) {
     for (let i = 0; i < n; i++) sessions[sessions.length - 1].options.onChunk(new Float32Array(HOP))
   }
   return { startCapture, sessions, pushChunks }
+}
+
+/** Continuous synthetic mic stream (tone plus optional Doppler echo plus noise), chunked by HOP. */
+function makeStream(echoHz: number | null, seed = 7): () => Float32Array {
+  const amp = (db: number): number => 10 ** (db / 20)
+  let sample = 0
+  let s = seed
+  return () => {
+    const out = new Float32Array(HOP)
+    for (let i = 0; i < HOP; i++, sample++) {
+      s = (s * 1664525 + 1013904223) >>> 0
+      let v = (s / 0xffffffff - 0.5) * 2 * amp(-100) + amp(-36) * Math.sin((2 * Math.PI * 20000 * sample) / 48000)
+      if (echoHz !== null) v += amp(-56) * Math.sin((2 * Math.PI * echoHz * sample) / 48000)
+      out[i] = v
+    }
+    return out
+  }
 }
 
 afterEach(() => {
@@ -158,6 +176,68 @@ describe('createEngineWith', () => {
     sessions[0].options.onEnded('microphone unplugged')
     await expect(pending).rejects.toThrow(/microphone unplugged/)
     expect(engine.health().running).toBe(false)
+  })
+
+  describe('gestures', () => {
+    async function runningEngine() {
+      const fake = fakeCapture()
+      const engine = createEngineWith({ startCapture: fake.startCapture })
+      await engine.start()
+      const send = (next: () => Float32Array, chunks: number): void => {
+        for (let i = 0; i < chunks; i++) fake.sessions[0].options.onChunk(next())
+      }
+      return { engine, send }
+    }
+
+    it('turns a real push, from raw audio through the whole stack, into one PUSH event', async () => {
+      const { engine, send } = await runningEngine()
+      const got: GestureEvent[] = []
+      engine.onGesture((e) => got.push(e))
+      send(makeStream(null), 70) // warm-up, then the 1 s auto-calibration of the still room
+      send(makeStream(20117, 5), 12) // a hand moving toward the laptop for about 250 ms
+      send(makeStream(null, 9), 40)
+      expect(got.map((e) => e.type)).toEqual(['PUSH'])
+      expect(got[0].source).toBe('rules')
+      expect(got[0].speed).toBeGreaterThan(0)
+    })
+
+    it('turns a pull into a PULL', async () => {
+      const { engine, send } = await runningEngine()
+      const got: GestureEvent[] = []
+      engine.onGesture((e) => got.push(e))
+      send(makeStream(null), 70)
+      send(makeStream(19883, 5), 12)
+      send(makeStream(null, 9), 40)
+      expect(got.map((e) => e.type)).toEqual(['PULL'])
+      expect(got[0].speed).toBeLessThan(0)
+    })
+
+    it('stays silent in a still room and stops notifying after unsubscribe', async () => {
+      const { engine, send } = await runningEngine()
+      const got: GestureEvent[] = []
+      const off = engine.onGesture((e) => got.push(e))
+      send(makeStream(null), 400)
+      expect(got).toEqual([])
+      off()
+      send(makeStream(20117, 5), 12)
+      send(makeStream(null, 9), 40)
+      expect(got).toEqual([])
+    })
+
+    it('keeps notifying other listeners when one gesture listener throws', async () => {
+      const { engine, send } = await runningEngine()
+      const spy = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation(() => undefined)
+      const good = vi.fn()
+      engine.onGesture(() => {
+        throw new Error('bad listener')
+      })
+      engine.onGesture(good)
+      send(makeStream(null), 70)
+      send(makeStream(20117, 5), 12)
+      send(makeStream(null, 9), 40)
+      spy.mockRestore()
+      expect(good).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('recording', () => {
