@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import DitherCanvas from './hwb/DitherCanvas.tsx'
-import { agents, model, tradeoffs } from './hwb/scenes.ts'
+import { agents, model, pipeline, tradeoffs } from './hwb/scenes.ts'
 
 // "How we built it": the section under How it works on Home. Three dithered visuals, one number and one line each,
 // then a small FAQ. Numbers come from ml/REPORT.md and ml/experiments/RESULTS.md.
@@ -9,7 +9,8 @@ const PANELS = [
   {
     title: 'The model', big: '202 recordings', scene: model,
     alt: 'A scrolling spectrogram with gesture streaks feeds a small convolutional network that picks one of seven outputs: five gestures, Habit, or nothing.',
-    caption: 'We recorded 202 sessions from five people performing each gesture on cue, so every second of echo has an exact label without any hand labelling. Our model is a small convolutional neural network of about 32,000 parameters that reads one second of the Doppler spectrogram around the 20 kHz tone and decides between five gestures, Habit, and nothing. We trained it in PyTorch on a single laptop GPU in about three minutes, tested it only on people it had never seen, and exported it so that it runs inside the browser with no server and no audio ever leaving the device.',
+    caption: 'We recorded 202 sessions from five people, so every second of echo has an exact label. A small neural network learned the shape of each gesture in about three minutes, and it runs entirely in your browser.',
+    scene2: pipeline, alt2: 'Record, label, train, model, run: five people make 202 takes, cue beeps label them, three minutes on one GPU, a 32k-parameter model, running in the browser about twelve times a second.',
     specs: [
       ['Input', '1 s window: 48 frames × 87 frequency bins around 20 kHz, in dB above the room’s noise floor'],
       ['Model', 'CNN: 3 conv blocks (16, 32, 64 channels), mean + max pooling, 64-unit dense layer, 7 outputs; 32k parameters, 128 KB'],
@@ -41,6 +42,7 @@ const FAQ = [
 
 export default function HowWeBuilt() {
   const [open, setOpen] = useState(0)
+  const [card, setCard] = useState(false)
   return (
     <section className="hwb">
       <div className="hwb__grid">
@@ -51,12 +53,20 @@ export default function HowWeBuilt() {
               <span className="hwb__big">{p.big}{'unit' in p && <small className="hwb__unit">{p.unit}</small>}</span>
             </div>
             <div className="hwb__frame"><DitherCanvas scene={p.scene} label={p.alt} /></div>
+            {'scene2' in p && p.scene2 && <div className="hwb__frame hwb__frame2"><DitherCanvas scene={p.scene2} label={p.alt2} /></div>}
             <figcaption className="hwb__cap">
               {p.caption}
               {'specs' in p && p.specs && (
-                <dl className="hwb__specs">
-                  {p.specs.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
-                </dl>
+                <>
+                  <button className="hwb__q hwb__card" aria-expanded={card} onClick={() => setCard(!card)}>
+                    <span className="hwb__sign">{card ? '−' : '+'}</span>Model card
+                  </button>
+                  {card && (
+                    <dl className="hwb__specs">
+                      {p.specs.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+                    </dl>
+                  )}
+                </>
               )}
             </figcaption>
           </figure>
