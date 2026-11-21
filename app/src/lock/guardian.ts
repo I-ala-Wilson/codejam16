@@ -3,7 +3,7 @@ import { engine } from '../engine.ts'
 import { ensureSonar } from '../sonar.ts'
 import { sendEvent } from '../events.ts'
 import { sendToExtension } from '../extension.ts'
-import { addEvent, emptyInput, loadPassword, type InputState } from './password.ts'
+import { addEvent, emptyInput, loadPassword, RESET_AFTER_MS, type InputState } from './password.ts'
 
 // Secret mode. Whenever the sonar is running (any page of the app, even in a background tab), the guardian listens
 // for the hand-sign password. Each correct sign in order sends PROGRESS so the veiled page shows one more tiny dot;
@@ -28,8 +28,11 @@ export function useGuardian() {
   useEffect(() => {
     let state: InputState = emptyInput()
     let sent = 0
+    let timer = 0
     const progress = (n: number) => { if (n !== sent) { sent = n; sendToExtension({ type: 'PROGRESS', n }).catch(() => {}) } }
-    return engine.onGesture((e) => {
+    // a half-done attempt expires on the clock, so a stray sign never leaves dots on the next locked page
+    const expireLater = () => { clearTimeout(timer); timer = window.setTimeout(() => { state = emptyInput(); progress(0) }, RESET_AFTER_MS) }
+    const off = engine.onGesture((e) => {
       const password = loadPassword()
       if (!password || guardian.paused) return
       let next = addEvent(state, e)
@@ -43,7 +46,7 @@ export function useGuardian() {
       }
       state = next
       if (state.signs.length === password.length) {
-        state = emptyInput(); progress(0)
+        state = emptyInput(); progress(0); clearTimeout(timer)
         sendToExtension({ type: 'STATUS' })
           .then((st) => sendToExtension(st.locked ? { type: 'UNLOCK' } : { type: 'LOCK', sites: lockSites(), appUrl: location.origin }))
           .then((r) => sendEvent('lock', r.locked ? 'locked' : 'unlock_ok'))
@@ -51,7 +54,9 @@ export function useGuardian() {
         return
       }
       progress(state.signs.length)
+      if (state.signs.length > 0) expireLater(); else clearTimeout(timer)
     })
+    return () => { off(); clearTimeout(timer) }
   }, [])
 }
 

@@ -54,7 +54,7 @@ chrome.runtime.onMessageExternal.addListener((msg, _sender, reply) => {
       await chrome.storage.local.set({ locked: false, progress: 0 })
       await applyVeil([]); reply({ ok: true, locked: false, until: null })
     } else if (msg.type === 'PROGRESS') {
-      await chrome.storage.local.set({ progress: Math.max(0, Math.min(8, msg.n | 0)) }); reply({ ok: true })
+      await chrome.storage.local.set({ progress: Math.max(0, Math.min(8, msg.n | 0)), progressAt: Date.now() }); reply({ ok: true })
     } else if (msg.type === 'STATUS') {
       reply({ locked: st.locked, sites: st.sites, until: null })
     } else reply({ ok: false, error: 'unknown type' })

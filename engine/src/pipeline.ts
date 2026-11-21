@@ -136,7 +136,15 @@ export class FramePipeline {
     if (finished.length === 0) return
     this.calibrations = this.calibrations.filter((c) => !finished.includes(c))
     const longest = finished.reduce((a, b) => (b.frames.length > a.frames.length ? b : a))
-    this.floor = buildFloor(longest.frames)
+    this.floor = buildFloor(quietest(longest.frames))
     finished.forEach((c) => c.resolve())
   }
+}
+
+/** A hand moving during calibration must not raise the floor (that silenced every later gesture), so the floor is
+ *  learned from the quietest third of the frames only: about 1 s still out of a 3 s calibration is enough. */
+export function quietest(frames: ReadonlyArray<Float32Array>): Float32Array[] {
+  const keep = Math.max(Math.min(frames.length, 8), Math.ceil(frames.length / 3))
+  const level = (f: Float32Array) => { let sum = 0; for (const v of f) sum += v; return sum }
+  return frames.map((f) => ({ f, l: level(f) })).sort((a, b) => a.l - b.l).slice(0, keep).map((x) => x.f)
 }

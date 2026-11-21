@@ -35,7 +35,7 @@
   paint()
   chrome.runtime.sendMessage({ type: 'VEIL_UP' }).catch(() => {})
   const dots = (n) => { const d = document.getElementById('dots'); if (d) d.innerHTML = '<i></i>'.repeat(n) }
-  chrome.storage.local.get({ progress: 0 }).then(({ progress }) => dots(progress))
+  chrome.storage.local.get({ progress: 0, progressAt: 0 }).then(({ progress, progressAt }) => dots(Date.now() - progressAt < 8000 ? progress : 0))
   chrome.storage.onChanged.addListener((ch) => {
     if (ch.locked && ch.locked.newValue === false) location.reload()
     if (ch.progress) dots(ch.progress.newValue)
