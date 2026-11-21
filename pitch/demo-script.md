@@ -14,5 +14,5 @@ Setup: laptop on the table, volume up, webcam taped over, phone showing the care
 ## 4. Habit (2:30 - 3:00)
 "Habit catches repetitive motion like scratching or nail-biting." (fake scratching) "The nudge chime fires and it's logged. Double tap toward the screen, like double-clicking the air, to undo it and snooze the nudge. Undo works the same way in every app."
 
-## 5. Honesty slide (see slides.md)
+## 5. Honesty slide (see SLIDES.md slide 6)
 "We measured it: range [range: __ cm], accuracy [accuracy: __ %]. Where a camera is better, we say so."
