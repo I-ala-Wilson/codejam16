@@ -23,7 +23,7 @@ Working name **"Echo"**; the team renames it in the BRIEF review.
 ## Gesture vocabulary v1 (engine output)
 - **Basic motions:** PUSH, PULL, WAVE (fast back-and-forth ≥1 s), HOLD (still).
 - **OPEN-CLOSE ×N:** hand pulses, counted.
-- **UNDO:** a quick double-pull.
+- **UNDO:** a flick away (one very fast, short flick of the fingers away from the screen; changed in SPEC v3).
 - **SWIPE L/R:** Moonshot, needs two-tone.
 - **Each event:** `{type, confidence, t, speed}` plus the raw spectrogram frame for the classifier.
 
