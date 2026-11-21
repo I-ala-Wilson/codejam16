@@ -110,10 +110,10 @@ export const costTile3D = make3D(() => {
       lap.rotation.y = -0.5 + Math.sin(t * 0.35 + 1) * 0.2
     },
   }
-}, () => {}, (g, at) => {
-  // the prices are painted into the dither, like everything else in this section
+}, (g, at) => {
+  // prices stay crisp on top of the dither so they read at a glance
   const [cx, cy] = at('rig'), [lx, ly] = at('lap')
-  soft(g, '$$$', cx, cy - 78, 46); soft(g, '$0', lx, ly - 150, 46)
+  price(g, '$$$', cx, cy - 78); price(g, '$0', lx, ly - 150)
 })
 
 export const privacyTile3D = make3D(() => {
@@ -153,9 +153,8 @@ export const darkTile3D = make3D(() => {
   }
 })
 
-/** Text painted under the dither (so it dithers like the flower), not crisp on top. */
-function soft(g: CanvasRenderingContext2D, s: string, x: number, y: number, size: number) {
-  g.font = `${size}px VT323, monospace`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(255,255,255,0.9)'; g.fillText(s, x, y)
+function price(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
+  g.font = '40px VT323, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = INK; g.fillText(s, x, y)
 }
 function label(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
   g.font = '26px VT323, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = INK; g.fillText(s, x, y)
