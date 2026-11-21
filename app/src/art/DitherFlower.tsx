@@ -8,6 +8,7 @@ import { engine } from '../engine.ts'
 
 const REF_W = 1920, REF_H = 1080
 const STEM_X = 952, STEM_Y = 1080
+const SHIFT_X = 0.16 // flower sits right of centre, clear of the headline
 const BLUR = 2 // px radius of each of the two box-blur passes, just enough to dissolve the digit shapes
 const GAIN = 1.25 // dither density tracks the reference's own ink coverage, so the tone matches it
 const BAYER = [
@@ -50,7 +51,7 @@ function buildField(img: HTMLImageElement, W: number, H: number) {
   const ctx = c.getContext('2d', { willReadFrequently: true })!
   ctx.fillStyle = '#1e1f21'
   ctx.fillRect(0, 0, W, H)
-  const ox = (W - REF_W * s) / 2, oy = (H - REF_H * s) / 2
+  const ox = (W - REF_W * s) / 2 + W * SHIFT_X, oy = (H - REF_H * s) / 2
   ctx.drawImage(img, ox, oy, REF_W * s, REF_H * s)
   const data = ctx.getImageData(0, 0, W, H).data
   let a = new Float32Array(W * H)
