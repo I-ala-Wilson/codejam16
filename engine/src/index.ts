@@ -1,5 +1,13 @@
 import type { Engine, EngineOptions, GestureEvent, SpectrumFrame } from '../../contracts/engine.ts'
 import { startCapture, type CaptureOptions, type CaptureSession } from './audio.ts'
+import {
+  ClassifierRuntime,
+  DEFAULT_DECODER,
+  createOnnxRunner,
+  type ClassifierEvent,
+  type DecoderConfig,
+  type ModelRunner,
+} from './classifier.ts'
 import { GestureDetector } from './gestures.ts'
 import { FramePipeline } from './pipeline.ts'
 import { SessionRecorder } from './recorder.ts'
@@ -12,8 +20,45 @@ const AUTO_CALIBRATION_MS = 1000
 /** calibrate() gives up this long after it should have finished if no audio frames are arriving. */
 const CALIBRATION_TIMEOUT_SLACK_MS = 2000
 
+/** Where the onnxruntime-web .wasm files are served from; the app has to publish them there. */
+const ORT_WASM_PATHS = '/ort/'
+
+export interface LoadedClassifier {
+  readonly runner: ModelRunner
+  readonly decoder: DecoderConfig
+}
+
 export interface EngineDeps {
   readonly startCapture: (opts: CaptureOptions) => Promise<CaptureSession>
+  /** Loads the gesture model; only used when EngineOptions.useClassifier is on. */
+  readonly loadClassifier?: (modelUrl: string) => Promise<LoadedClassifier>
+}
+
+/** The model at `modelUrl` (.onnx) plus its decoder settings from the .json next to it (defaults if that is missing). */
+async function loadClassifierFromUrl(modelUrl: string): Promise<LoadedClassifier> {
+  const runner = await createOnnxRunner(modelUrl, { wasmPaths: ORT_WASM_PATHS })
+  try {
+    const response = await fetch(modelUrl.replace(/\.onnx$/, '.json'))
+    if (!response.ok) return { runner, decoder: DEFAULT_DECODER }
+    const config = (await response.json()) as { thresholds?: Record<string, number>; decoder?: Partial<DecoderConfig> }
+    const d = config.decoder ?? {}
+    return {
+      runner,
+      decoder: {
+        thresholds: config.thresholds ?? DEFAULT_DECODER.thresholds,
+        smooth: d.smooth ?? DEFAULT_DECODER.smooth,
+        confirm: d.confirm ?? DEFAULT_DECODER.confirm,
+        refractoryMs: d.refractoryMs ?? DEFAULT_DECODER.refractoryMs,
+        waveRefractoryMs: d.waveRefractoryMs ?? DEFAULT_DECODER.waveRefractoryMs,
+      },
+    }
+  } catch {
+    return { runner, decoder: DEFAULT_DECODER }
+  }
+}
+
+function toGestureEvent(e: ClassifierEvent): GestureEvent {
+  return { type: e.cls, t: e.tMs, confidence: e.probability, source: 'classifier' }
 }
 
 function assertValid(toneHz: number, toneDbfs: number): void {
@@ -40,7 +85,7 @@ function notify<T>(listeners: ReadonlySet<(value: T) => void>, value: T): void {
 }
 
 export function createEngine(opts: EngineOptions = {}): Engine {
-  return createEngineWith({ startCapture }, opts)
+  return createEngineWith({ startCapture, loadClassifier: loadClassifierFromUrl }, opts)
 }
 
 /** createEngine with the audio capture injected, so the lifecycle can be tested without a browser. */
@@ -48,6 +93,7 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
   const toneHz = opts.toneHz ?? DEFAULT_TONE_HZ
   const toneDbfs = opts.toneDbfs ?? DEFAULT_TONE_DBFS
   assertValid(toneHz, toneDbfs)
+  if (opts.useClassifier && !opts.modelUrl) throw new RangeError('useClassifier needs modelUrl (the .onnx model path)')
 
   const frameListeners = new Set<(f: SpectrumFrame) => void>()
   const gestureListeners = new Set<(e: GestureEvent) => void>()
@@ -60,6 +106,8 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
   let generation = 0
 
   const detector = new GestureDetector({ toneHz })
+  /** The trained model, once loaded. While it is set it decides the gestures and the rules only keep HOLD. */
+  let classifier: ClassifierRuntime | null = null
 
   const onChunk = (chunk: Float32Array): void => {
     recorder?.pushChunk(chunk)
@@ -67,12 +115,37 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
     if (!frame) return
     recorder?.pushFrame(frame)
     notify(frameListeners, frame)
-    for (const gesture of detector.push(frame)) notify(gestureListeners, gesture)
+    const ruleGestures = detector.push(frame)
+    if (classifier) {
+      const scaled = pipeline?.scaledExcess(frame.bins)
+      if (scaled) classifier.push(scaled, frame.t)
+      else classifier.reset() // no floor yet, or it is being re-learned
+    }
+    for (const gesture of ruleGestures) if (!classifier || gesture.type === 'HOLD') notify(gestureListeners, gesture)
+  }
+
+  const attachClassifier = async (myGeneration: number): Promise<void> => {
+    try {
+      if (!deps.loadClassifier) throw new Error('no classifier loader available')
+      const loaded = await deps.loadClassifier(opts.modelUrl as string)
+      if (generation !== myGeneration) return
+      classifier = new ClassifierRuntime({
+        runner: loaded.runner,
+        decoder: loaded.decoder,
+        onEvent: (event) => notify(gestureListeners, toGestureEvent(event)),
+        onError: reportAsync,
+      })
+    } catch (error: unknown) {
+      const reason = error instanceof Error ? error.message : String(error)
+      reportAsync(new Error(`Classifier unavailable, using the rule detectors: ${reason}`))
+    }
   }
 
   const teardown = (reason: string): void => {
     generation += 1
     detector.reset()
+    classifier?.reset()
+    classifier = null
     const live = session
     const livePipeline = pipeline
     session = null
@@ -105,6 +178,7 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
     pipeline.beginCalibration(AUTO_CALIBRATION_MS).catch(() => {
       // cancelled by stop(): nobody is waiting on the automatic calibration
     })
+    if (opts.useClassifier) await attachClassifier(myGeneration)
   }
 
   return {

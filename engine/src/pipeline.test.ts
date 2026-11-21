@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { buildFloor } from './dsp.ts'
 import { FramePipeline, HOP, WINDOW } from './pipeline.ts'
@@ -175,6 +176,24 @@ describe('FramePipeline', () => {
     expect(p.isCalibrated).toBe(true)
     const frames = feed(p, makeStream([carrier, { hz: 20117, amp: dbToAmp(-56) }], noise, 5), WINDOW / HOP + 4)
     expect(frames[frames.length - 1].shiftHz).toBeGreaterThan(60)
+  })
+
+  it('produces the same frames as ml/features.py for the same audio (training and live inference must agree)', () => {
+    const { samples, bins } = JSON.parse(readFileSync(new URL('./fixtures/spectrum-parity.json', import.meta.url), 'utf8')) as {
+      samples: number[]
+      bins: number[][]
+    }
+    const p = new FramePipeline({ sampleRate: FS, toneHz: 20000 })
+    const frames = []
+    for (let i = 0; i + HOP <= samples.length; i += HOP) {
+      const frame = p.push(Float32Array.from(samples.slice(i, i + HOP)), i)
+      if (frame) frames.push(frame)
+    }
+    expect(frames.length).toBe(bins.length)
+    frames.forEach((frame, f) => {
+      expect(frame.bins.length).toBe(bins[f].length)
+      frame.bins.forEach((value, k) => expect(Math.abs(value - bins[f][k])).toBeLessThan(0.01))
+    })
   })
 
   it('rejects a chunk of the wrong size', () => {

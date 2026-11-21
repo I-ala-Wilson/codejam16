@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { GestureEvent } from '../../contracts/engine.ts'
 import type { CaptureOptions, CaptureSession } from './audio.ts'
-import { createEngineWith } from './index.ts'
+import { CLASS_NAMES, DEFAULT_DECODER, type ModelRunner } from './classifier.ts'
+import { createEngineWith, type LoadedClassifier } from './index.ts'
 import { HOP } from './pipeline.ts'
 
 interface Deferred {
@@ -237,6 +238,79 @@ describe('createEngineWith', () => {
       send(makeStream(null, 9), 40)
       spy.mockRestore()
       expect(good).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('classifier mode', () => {
+    const modelSaying = (name: (typeof CLASS_NAMES)[number]): ModelRunner => ({
+      async run() {
+        const logits = new Float32Array(CLASS_NAMES.length)
+        logits[CLASS_NAMES.indexOf(name)] = 6
+        return logits
+      },
+    })
+
+    async function engineWith(loader: () => Promise<LoadedClassifier>) {
+      const fake = fakeCapture()
+      const engine = createEngineWith(
+        { startCapture: fake.startCapture, loadClassifier: loader },
+        { useClassifier: true, modelUrl: '/models/gesture.onnx' },
+      )
+      await engine.start()
+      const got: GestureEvent[] = []
+      engine.onGesture((e) => got.push(e))
+      const send = async (next: () => Float32Array, chunks: number): Promise<void> => {
+        for (let i = 0; i < chunks; i++) {
+          fake.sessions[0].options.onChunk(next())
+          if (i % 4 === 3) await new Promise((r) => setTimeout(r, 0)) // let the model's promises settle, as real time would
+        }
+      }
+      return { engine, got, send }
+    }
+    const loaded = (runner: ModelRunner): (() => Promise<LoadedClassifier>) => async () => ({
+      runner,
+      decoder: DEFAULT_DECODER,
+    })
+
+    it('needs a model URL when the classifier is switched on', () => {
+      const { startCapture } = fakeCapture()
+      expect(() => createEngineWith({ startCapture }, { useClassifier: true })).toThrow(RangeError)
+    })
+
+    it('fires the model\'s answer as a classifier event once the floor is learned and a window has filled', async () => {
+      const { got, send } = await engineWith(loaded(modelSaying('PUSH')))
+      await send(makeStream(null), 220)
+      const fromModel = got.filter((e) => e.source === 'classifier')
+      expect(fromModel.length).toBeGreaterThanOrEqual(1)
+      expect(fromModel[0].type).toBe('PUSH')
+      expect(fromModel[0].confidence).toBeGreaterThan(0.9)
+    })
+
+    it('lets the model replace the rules: a real push is not reported by the rule detector', async () => {
+      const { got, send } = await engineWith(loaded(modelSaying('NONE')))
+      await send(makeStream(null), 70)
+      await send(makeStream(20117, 5), 12)
+      await send(makeStream(null, 9), 40)
+      expect(got.filter((e) => e.type === 'PUSH' || e.type === 'PULL')).toEqual([])
+    })
+
+    it('falls back to the rules, and says so, when the model cannot be loaded', async () => {
+      const reported: unknown[] = []
+      const spy = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((cb) => {
+        try {
+          cb()
+        } catch (e) {
+          reported.push(e)
+        }
+      })
+      const { got, send } = await engineWith(async () => Promise.reject(new Error('404 gesture.onnx')))
+      await send(makeStream(null), 70)
+      await send(makeStream(20117, 5), 12)
+      await send(makeStream(null, 9), 40)
+      spy.mockRestore()
+      expect(got.map((e) => e.type)).toContain('PUSH')
+      expect(got.every((e) => e.source === 'rules')).toBe(true)
+      expect(reported.some((e) => String(e).includes('404 gesture.onnx'))).toBe(true)
     })
   })
 

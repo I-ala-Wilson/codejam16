@@ -1,4 +1,5 @@
 import type { SpectrumFrame } from '../../contracts/engine.ts'
+import { scaleExcess } from './classifier.ts'
 import { analyzeFrame, buildFloor, centerBinIndex, hann, sliceAroundTone, snrDb, spectrumDb } from './dsp.ts'
 
 /** FFT window in samples (about 85 ms at 48 kHz, 11.7 Hz per bin). */
@@ -81,6 +82,13 @@ export class FramePipeline {
   /** Use a floor learned elsewhere (offline scoring of a recording) instead of calibrating live. */
   setFloor(floor: Float32Array): void {
     this.floor = floor
+  }
+
+  /** The model input for a frame this pipeline just returned (dB over the floor, clipped and scaled); null until a floor exists. */
+  scaledExcess(bins: Float32Array): Float32Array | null {
+    const floor = this.floor
+    if (!floor || this.calibrations.length > 0) return null
+    return Float32Array.from(bins, (b, k) => scaleExcess(b - floor[k]))
   }
 
   /** Reject every calibration still waiting (engine stopped, capture lost). */
