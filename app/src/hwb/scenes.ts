@@ -357,13 +357,15 @@ export const agents: Scene = {
 // ---------- 4. The trade-offs ----------
 // What sound gives up: the same gestures in a quiet room, a noisy room and on a weaker laptop. What it gains: three tags.
 const ROOMS = [
-  { name: 'QUIET ROOM', word: 'CLEAR', noise: 0.16, speck: 0, carrier: 0.92, strength: 0.95 },
-  { name: 'NOISY ROOM', word: 'NOISY', noise: 0.12, speck: 0.75, carrier: 0.92, strength: 0.95 },
-  { name: 'WEAKER LAPTOP', word: 'FAINT', noise: 0.14, speck: 0, carrier: 0.42, strength: 0.42 },
+  { name: 'QUIET ROOM', word: 'READ', conf: 0.95, noise: 0.06, speck: 0, bursts: 0, carrier: 0.92, strength: 1 },
+  { name: 'NOISY ROOM', word: 'UNSURE', conf: 0.5, noise: 0.12, speck: 0.7, bursts: 0.55, carrier: 0.92, strength: 0.8 },
+  { name: 'WEAKER LAPTOP', word: 'MISSED', conf: 0.15, noise: 0.08, speck: 0, bursts: 0, carrier: 0.4, strength: 0.32 },
 ]
-const RB = { xs: [16, 228, 440], w: 184, y0: 44, y1: 176 }
+const RB = { xs: [16, 228, 440], w: 184, y0: 44, y1: 160 }
 const GAINS = ['$0 HARDWARE', 'WORKS IN THE DARK', 'NO IMAGE, EVER']
 const GX = [112, 320, 528], GSTEP = 2.4
+// how strongly a gesture is passing the right edge of the boxes right now
+const nowOn = (t: number) => streak(t - 0.3).on
 
 export const tradeoffs: Scene = {
   draw(g, t) {
@@ -372,12 +374,14 @@ export const tradeoffs: Scene = {
     ROOMS.forEach((r, i) => {
       const x0 = RB.xs[i]
       for (let c = 0; c < w; c += cell) {
-        const col = nowCol - (w - c)
+        const col = nowCol - (w - c), cc = Math.floor(col / cell)
         const s = streak(col / SCROLL)
+        // a noisy room: random bright speckle plus loud broadband bursts (claps, voices) that smear the whole column
+        const burst = r.bursts && hash(Math.floor(cc / 3), 7) > 0.82 ? r.bursts * hash(Math.floor(cc / 3), 9) : 0
         for (let y = y0; y < y1; y += cell) {
           const fy = -((y - y0) / (y1 - y0)) * 2 + 1
-          let v = 0.05 + hash(Math.floor(col / cell) + i * 97, y) * r.noise
-          if (r.speck) v += r.speck * hash(Math.floor(col / cell) * 3 + 11, y * 7 + 5) ** 3
+          let v = 0.03 + hash(cc + i * 97, y) * r.noise + burst * (0.4 + 0.6 * hash(cc, y * 3))
+          if (r.speck) v += r.speck * hash(cc * 3 + 11, y * 7 + 5) ** 3
           v += r.carrier * Math.exp(-((fy / 0.035) ** 2))
           if (s.on > 0) {
             v += s.on * r.strength * Math.exp(-(((fy - s.shift) / 0.07) ** 2))
@@ -395,9 +399,15 @@ export const tradeoffs: Scene = {
   },
   overlay(g, t) {
     label(g, 'WHAT SOUND GIVES UP', 16, 24, 17)
+    const on = nowOn(t)
     ROOMS.forEach((r, i) => {
-      label(g, r.name, RB.xs[i], 194, 16)
-      label(g, r.word, RB.xs[i] + RB.w, 194, 16, 'right')
+      const x = RB.xs[i]
+      label(g, r.name, x, 176, 16)
+      // what the model makes of it: a confidence bar that fills as each gesture passes, and the verdict
+      const bw = 110, f = r.conf * Math.max(0.06, on)
+      g.strokeStyle = INK; g.lineWidth = 1.2; g.strokeRect(x, 196, bw, 12)
+      g.fillStyle = INK; g.fillRect(x + 2, 198, (bw - 4) * f, 8)
+      if (on > 0.4) tag(g, r.word, x + RB.w, 202, 16, 'right'); else label(g, r.word, x + RB.w, 202, 16, 'right')
     })
     label(g, 'WHAT IT GAINS', 16, 264, 17)
     const a = Math.floor(t / GSTEP) % GAINS.length
