@@ -1,0 +1,58 @@
+{
+  "person": "miguel982",
+  "gesture": "FREE",
+  "laptop": "dell-inspiron-15-3520",
+  "note": "breath hold, paced 15 bpm, laptop 30-40 cm from chest, screen angled at torso",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 23552,
+      "end": 50176,
+      "label": "FREE"
+    },
+    {
+      "start": 232448,
+      "end": 237568,
+      "label": "FREE"
+    },
+    {
+      "start": 256000,
+      "end": 275456,
+      "label": "FREE"
+    },
+    {
+      "start": 357376,
+      "end": 366592,
+      "label": "FREE"
+    },
+    {
+      "start": 463872,
+      "end": 471040,
+      "label": "FREE"
+    }
+  ],
+  "createdAt": "2026-11-21T11:13:22-05:00",
+  "breath": {
+    "take": "hold",
+    "paced_bpm": 15,
+    "hold": [
+      20,
+      40
+    ],
+    "inhale_starts_s": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      40,
+      44,
+      48,
+      52,
+      56,
+      60
+    ]
+  }
+}

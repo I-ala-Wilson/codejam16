@@ -1,0 +1,23 @@
+{
+  "person": "miguel982",
+  "gesture": "FREE",
+  "laptop": "dell-inspiron-15-3520",
+  "note": "breath natural, paced 0 bpm, laptop 30-40 cm from chest, screen angled at torso",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 39936,
+      "end": 51200,
+      "label": "FREE"
+    }
+  ],
+  "createdAt": "2026-11-21T11:14:33-05:00",
+  "breath": {
+    "take": "natural",
+    "paced_bpm": 0,
+    "hold": null,
+    "inhale_starts_s": []
+  }
+}
