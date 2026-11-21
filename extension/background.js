@@ -21,12 +21,28 @@ chrome.runtime.onInstalled.addListener(async () => {
   await applyVeil(locked ? sites : [])
 })
 
+// A veiled page just loaded: make sure an Echo app tab is open and its sonar is running, with no click.
+// The app tab is opened pinned and in the background, then poked to start the sonar itself.
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type === 'VEIL_UP') ensureListener()
+})
+async function ensureListener() {
+  const { appUrl } = await chrome.storage.local.get({ appUrl: null })
+  if (!appUrl) return
+  let tab = (await chrome.tabs.query({})).find((t) => t.url?.startsWith(`${appUrl}/`))
+  if (!tab) {
+    tab = await chrome.tabs.create({ url: `${appUrl}/`, active: false, pinned: true })
+    return // the app autostarts its sonar on load when a password is set
+  }
+  await chrome.scripting.executeScript({ target: { tabId: tab.id }, world: 'MAIN', func: () => window.echoAutostart?.() }).catch(() => {})
+}
+
 let queue = Promise.resolve() // handle one message at a time: no LOCK/UNLOCK race
 chrome.runtime.onMessageExternal.addListener((msg, _sender, reply) => {
   queue = queue.then(async () => {
     const st = await chrome.storage.local.get({ locked: false, sites: [] })
     if (msg.type === 'LOCK') {
-      await chrome.storage.local.set({ locked: true, sites: msg.sites, progress: 0 })
+      await chrome.storage.local.set({ locked: true, sites: msg.sites, progress: 0, appUrl: msg.appUrl || null })
       await applyVeil(msg.sites); reply({ ok: true, locked: true })
     } else if (msg.type === 'UNLOCK') {
       // stays unlocked until the next LOCK (no expiry); veiled tabs reload themselves when they see locked=false

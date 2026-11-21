@@ -31,6 +31,7 @@
     document.getElementById('rel').onclick = () => location.reload()
   }
   paint()
+  chrome.runtime.sendMessage({ type: 'VEIL_UP' }).catch(() => {})
   const dots = (n) => { const d = document.getElementById('dots'); if (d) d.innerHTML = '<i></i>'.repeat(n) }
   chrome.storage.local.get({ progress: 0 }).then(({ progress }) => dots(progress))
   chrome.storage.onChanged.addListener((ch) => {

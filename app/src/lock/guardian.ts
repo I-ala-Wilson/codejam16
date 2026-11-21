@@ -11,7 +11,21 @@ import { addEvent, emptyInput, loadPassword, type InputState } from './password.
 
 export const guardian = { paused: false } // the Lock setup page pauses it while a password is being typed
 
+// Starts the sonar with no click, so a locked site is already listening when it loads. Runs when the app opens with
+// a password set, and again whenever the extension pokes this tab (window.echoAutostart) because a veiled page loaded.
+let starting: Promise<void> | null = null
+export function autostart(): Promise<void> {
+  if (!loadPassword() || engine.health().running) return Promise.resolve()
+  starting ??= engine.start().then(() => engine.calibrate(3000)).then(() => undefined).catch(() => undefined).finally(() => { starting = null })
+  return starting
+}
+declare global { interface Window { echoAutostart?: () => Promise<void> } }
+
 export function useGuardian() {
+  useEffect(() => {
+    window.echoAutostart = autostart
+    autostart()
+  }, [])
   useEffect(() => {
     let state: InputState = emptyInput()
     let sent = 0
@@ -32,7 +46,7 @@ export function useGuardian() {
       if (state.signs.length === password.length) {
         state = emptyInput(); progress(0)
         sendToExtension({ type: 'STATUS' })
-          .then((st) => sendToExtension(st.locked ? { type: 'UNLOCK' } : { type: 'LOCK', sites: lockSites() }))
+          .then((st) => sendToExtension(st.locked ? { type: 'UNLOCK' } : { type: 'LOCK', sites: lockSites(), appUrl: location.origin }))
           .then((r) => sendEvent('lock', r.locked ? 'locked' : 'unlock_ok'))
           .catch(() => {})
         return

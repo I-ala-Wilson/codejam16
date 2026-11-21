@@ -50,7 +50,7 @@ export default function Lock() {
   const lockNow = async () => {
     setError('')
     try {
-      setStatus(await sendToExtension({ type: 'LOCK', sites }))
+      setStatus(await sendToExtension({ type: 'LOCK', sites, appUrl: location.origin }))
       setMessage('')
     } catch (e) { setError(String(e)) }
   }
