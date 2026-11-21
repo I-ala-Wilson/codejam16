@@ -6,7 +6,7 @@ const GATE = process.env.QA_GATE ?? 'M1'
 const SHOTS = join(__dirname, '..', '..', 'docs', 'qa', 'shots', GATE)
 mkdirSync(SHOTS, { recursive: true })
 
-const TABS = ['home', 'room', 'dataset', 'habit', 'gestures', 'live', 'record', 'lock'] as const
+const TABS = ['home', 'lock', 'care', 'caregiver', 'habit-app', 'room', 'dataset', 'habit', 'gestures', 'live', 'breath', 'record'] as const
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'mobile', width: 390, height: 844 },
@@ -54,12 +54,12 @@ test('hash router rejects prototype keys (#constructor must land on a real page)
   expect(bold, 'exactly one nav tab highlighted').toBe(1)
 })
 
-test('hash change in an open tab switches page (blocked.html link back to /#lock)', async ({ page }) => {
+test('hash change in an open tab switches page (a link to /#lock opened in the running app)', async ({ page }) => {
   await page.goto('/#room')
   await page.waitForLoadState('networkidle')
   await page.evaluate(() => { location.hash = 'lock' })
-  // Lock page shows its extension controls; an unchanged Room page would not.
-  await expect(page.getByRole('button', { name: /unlock/i }).first()).toBeVisible({ timeout: 3000 })
+  // The Lock control panel carries an "ECHØ LOCK" eyebrow; an unchanged Room page would not.
+  await expect(page.getByText('ECHØ LOCK').first()).toBeVisible({ timeout: 3000 })
 })
 
 test('lock page without an extension id shows a friendly message, not a crash', async ({ page }) => {
@@ -73,27 +73,28 @@ test('lock page without an extension id shows a friendly message, not a crash', 
   expect(body).not.toMatch(/ReferenceError/)
 })
 
-test('lock page implements the secret rhythm (demo step 2), not just extension buttons', async ({ page }) => {
+test('lock page implements the secret password (demo step 2), not just extension buttons', async ({ page }) => {
   await page.goto('/#lock')
   await page.waitForLoadState('networkidle')
   const body = (await page.locator('body').innerText()).toLowerCase()
-  // Demo needs a real control to set the secret sequence (issue #12). A sentence that merely
-  // mentions "secret rhythm" (the "Next (#12)" placeholder) must not count.
   expect(body, 'placeholder copy must be gone').not.toMatch(/next \(#\d+\)/)
-  await expect(page.getByRole('button', { name: /set (the )?(secret|password|sequence)|record (the )?(secret|sequence)/i }).first()).toBeVisible({ timeout: 2000 })
+  // No password yet: the page must offer to start the sonar so one can be set, and say the password is not set.
+  await expect(page.getByRole('button', { name: /start sonar/i }).first()).toBeVisible({ timeout: 2000 })
+  expect(body).toMatch(/password\s+not set/)
 })
 
-test('lock: an existing password cannot be replaced without knowing it (kid bypass)', async ({ page }) => {
+test('lock: an existing password cannot be replaced without knowing it (kid bypass, #25)', async ({ page }) => {
   // A parent already set a password; a child now sits at the open Echo tab with the mic allowed.
   await page.addInitScript(() => localStorage.setItem('echo.lock.password', JSON.stringify(['PUSH', 'PULL', 'WAVE', 'OPEN_CLOSE'])))
   await page.goto('/#lock')
   await page.waitForLoadState('networkidle')
   await page.getByRole('button', { name: /start sonar/i }).first().click()
   await page.waitForTimeout(4500) // calibrate(3000)
-  const change = page.getByRole('button', { name: /change password|set password/i })
+  await page.getByRole('button', { name: /change password/i }).click()
   await page.screenshot({ path: join(SHOTS, 'lock-change-password.png'), fullPage: true })
-  const reachable = (await change.count()) > 0 && (await change.first().isEnabled())
-  expect(reachable, 'Change password must require the current password (or be hidden while locked)').toBe(false)
+  // Must land on the verify step, never on "Make your password" (the set step).
+  await expect(page.getByText(/first, the current password/i)).toBeVisible()
+  await expect(page.getByText(/make your password/i)).toHaveCount(0)
 })
 
 test('dataset: switching tabs mid-take must not wedge the next take', async ({ page }) => {
@@ -130,7 +131,7 @@ test('double-click on primary buttons does not throw', async ({ page }) => {
     const noise = watch(page)
     await page.goto(`/#${tab}`)
     await page.waitForLoadState('networkidle')
-    const buttons = page.locator('div > button').filter({ hasNotText: /^(Room test|Dataset recording|Habit recording|Gesture test|Live test|Pilot record|Lock)/ })
+    const buttons = page.locator('div > button').filter({ hasNotText: /^(ECHØ|Lock|Care|Caregiver|Habit|Room test|Dataset recording|Habit recording|Gesture test|Live test|Breathing takes|Pilot record)/ })
     const count = await buttons.count()
     for (let i = 0; i < Math.min(count, 6); i++) {
       const b = buttons.nth(i)
