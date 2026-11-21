@@ -17,7 +17,7 @@ export type Scene = {
   overlay?: (g: CanvasRenderingContext2D, t: number) => void
 }
 
-export default function DitherCanvas({ scene, label }: { scene: Scene; label: string }) {
+export default function DitherCanvas({ scene, label, dot = DOT, soft = 0 }: { scene: Scene; label: string; dot?: number; soft?: number }) {
   const ref = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function DitherCanvas({ scene, label }: { scene: Scene; label: st
       const cw = c.clientWidth, ch = c.clientHeight
       if (!cw || !ch) return
       const dpr = Math.min(2, window.devicePixelRatio || 1)
-      const w = Math.ceil(cw / DOT), h = Math.ceil(ch / DOT)
+      const w = Math.ceil(cw / dot), h = Math.ceil(ch / dot)
       if (off.width !== w || off.height !== h) {
         off.width = bits.width = w; off.height = bits.height = h
         frame = b.createImageData(w, h)
@@ -52,6 +52,13 @@ export default function DitherCanvas({ scene, label }: { scene: Scene; label: st
       g.fillRect(0, 0, w, h)
       g.setTransform(w / DW, 0, 0, h / DH, 0, 0)
       scene.draw(g, t)
+      if (soft) {
+        // like the flower: soften the grayscale a little before dithering, so edges break into dots instead of lines
+        g.setTransform(1, 0, 0, 1, 0, 0)
+        g.filter = `blur(${soft}px)`
+        g.drawImage(off, 0, 0)
+        g.filter = 'none'
+      }
       const src = g.getImageData(0, 0, w, h).data
       const px = new Uint32Array(frame!.data.buffer)
       for (let y = 0; y < h; y++) {
@@ -61,7 +68,7 @@ export default function DitherCanvas({ scene, label }: { scene: Scene; label: st
       b.putImageData(frame!, 0, 0)
       ctx.setTransform(1, 0, 0, 1, 0, 0)
       ctx.imageSmoothingEnabled = false
-      ctx.drawImage(bits, 0, 0, w * DOT * dpr, h * DOT * dpr)
+      ctx.drawImage(bits, 0, 0, w * dot * dpr, h * dot * dpr)
       if (scene.overlay) {
         ctx.setTransform((cw * dpr) / DW, 0, 0, (ch * dpr) / DH, 0, 0)
         scene.overlay(ctx, t)
@@ -74,7 +81,7 @@ export default function DitherCanvas({ scene, label }: { scene: Scene; label: st
     })
     io.observe(c)
     return () => { cancelAnimationFrame(raf); io.disconnect() }
-  }, [scene])
+  }, [scene, dot, soft])
 
   return <canvas ref={ref} className="hwb__canvas" role="img" aria-label={label} />
 }

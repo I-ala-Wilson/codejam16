@@ -13,11 +13,11 @@ export default function CameraLimits({ go: _go }: { go: (page: string) => void }
   return (
     <section className="pz" aria-labelledby="pz-camera">
       <h2 id="pz-camera" className="pz__title">Why not a camera</h2>
-      <div className="pz__cards">
+      <div className="pz__cards pz__cards--soft">
         {TILES.map((t, i) => (
           <figure key={t.name} className="pz__card pz__tile">
             <div className="pz__cardhead"><span className="pz__idx">0{i + 1}</span>{t.name}</div>
-            <div className="pz__frame"><DitherCanvas scene={t.scene} label={t.alt} /></div>
+            <div className="pz__frame"><DitherCanvas scene={t.scene} label={t.alt} dot={1} soft={1.2} /></div>
             <figcaption className="pz__line">{t.line}</figcaption>
           </figure>
         ))}

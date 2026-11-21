@@ -19,7 +19,7 @@ let renderer: THREE.WebGLRenderer | null = null
 function shared(): THREE.WebGLRenderer {
   if (!renderer) {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true })
-    renderer.setSize(480, 240, false)
+    renderer.setSize(640, 320, false)
     renderer.setClearColor(0x000000, 1)
   }
   return renderer
@@ -106,14 +106,14 @@ export const costTile3D = make3D(() => {
   return {
     scene, camera, anchors: { rig: vc, lap },
     update(t) {
-      rig.rotation.y = -0.6 + Math.sin(t * 0.6) * 0.35
-      lap.rotation.y = -0.5 + Math.sin(t * 0.6 + 1) * 0.3
+      rig.rotation.y = -0.6 + Math.sin(t * 0.35) * 0.25
+      lap.rotation.y = -0.5 + Math.sin(t * 0.35 + 1) * 0.2
     },
   }
-}, (g, at) => {
-  const [cx, cy] = at('rig'), [lx] = at('lap')
-  chip(g, '$$$', cx, cy - 72); chip(g, '$0', lx, 38)
-  label(g, 'CAMERA / LIDAR', cx, 312); label(g, 'YOUR LAPTOP', lx, 312)
+}, () => {}, (g, at) => {
+  // the prices are painted into the dither, like everything else in this section
+  const [cx, cy] = at('rig'), [lx, ly] = at('lap')
+  soft(g, '$$$', cx, cy - 78, 46); soft(g, '$0', lx, ly - 150, 46)
 })
 
 export const privacyTile3D = make3D(() => {
@@ -122,11 +122,10 @@ export const privacyTile3D = make3D(() => {
   const vc = videoCamera(); vc.scale.setScalar(1.25); vc.position.set(-0.3, 0.05, 0); scene.add(vc)
   return {
     scene, camera, anchors: { vc },
-    update(t) { vc.rotation.y = -0.5 + Math.sin(t * 0.6) * 0.6 },
+    update(t) { vc.rotation.y = -0.5 + Math.sin(t * 0.35) * 0.45 },
   }
-}, (g) => {
-  noSign(g, DW / 2, 150, 118)
-  label(g, 'NOT ALLOWED IN PRIVATE SPACES', DW / 2, 300)
+}, () => {}, (g) => {
+  noSign(g, DW / 2, 160, 128)
 })
 
 export const darkTile3D = make3D(() => {
@@ -139,10 +138,7 @@ export const darkTile3D = make3D(() => {
     scene, camera, anchors: { lap, screen },
     update(t) { lap.rotation.y = -0.75 + Math.sin(t * 0.4) * 0.18 },
   }
-}, (g, at) => {
-  const [lx] = at('lap')
-  label(g, 'LIGHTS OFF, STILL LISTENING', lx, 312)
-}, (g, at, t) => {
+}, () => {}, (g, at, t) => {
   softMoon(g, 120, 78, 34)
   // sound leaving the screen: thin arcs fanning toward the viewer, fading as they travel, like the flower's waves
   const [sx, sy] = at('screen')
@@ -157,6 +153,10 @@ export const darkTile3D = make3D(() => {
   }
 })
 
+/** Text painted under the dither (so it dithers like the flower), not crisp on top. */
+function soft(g: CanvasRenderingContext2D, s: string, x: number, y: number, size: number) {
+  g.font = `${size}px VT323, monospace`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(255,255,255,0.9)'; g.fillText(s, x, y)
+}
 function label(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
   g.font = '26px VT323, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = INK; g.fillText(s, x, y)
 }
@@ -178,7 +178,7 @@ function softMoon(g: CanvasRenderingContext2D, x: number, y: number, r: number) 
   g.fillStyle = shade; g.beginPath(); g.arc(x + r * 0.5, y - r * 0.2, r * 1.05, 0, Math.PI * 2); g.fill()
 }
 function noSign(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
-  g.strokeStyle = INK; g.lineWidth = 9
+  g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 12
   g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke()
   const a = Math.PI / 4
   g.beginPath(); g.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r); g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); g.stroke()

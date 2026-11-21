@@ -72,3 +72,8 @@
   .pz__split > * { min-width: 0; }
   .pz__chrome { padding: 36px 8% 52px; }
 }
+
+/* Why not a camera: borderless, flower-like tiles (fine dots, no rules) */
+.pz__cards--soft .pz__card { border-top: 0; padding-top: 0; }
+.pz__cards--soft .pz__frame { margin: 8px 0 10px; }
+.pz__cards--soft .hwb__canvas { aspect-ratio: 2 / 1.15; }
