@@ -2,15 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import { Timeline } from '@ui/index.ts'
 import { engine } from '../engine.ts'
 import { ensureSonar } from '../sonar.ts'
-import { cancelSnooze, habitDemo, habitOn, hourCounts, lastWeek, longestCalm, setHabitDemo, setHabitOn, snooze, snoozedUntil, today } from './store.ts'
+import { cancelSnooze, habitDemo, habitLog, habitOn, hourCounts, lastWeek, setHabitDemo, setHabitOn, snooze, snoozedUntil, today } from './store.ts'
 import './habit.css'
 
 // ECHØ Habit: turn the watcher on (after a 10 s still-hands calibration), then see today's nudges by hour,
-// the longest calm stretch, and the last 7 days.
+// the time since the last scratch, and the last 7 days.
 const CALIBRATE_S = 10
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const span = (ms: number) => {
+  if (ms < 60000) return `${Math.floor(ms / 1000)}s`
   const m = Math.floor(ms / 60000)
   return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`
 }
@@ -47,7 +48,9 @@ export default function HabitPage() {
   const nowH = new Date().getHours()
   const week = lastWeek()
   const snoozeLeft = Math.max(0, Math.ceil((snoozedUntil() - Date.now()) / 60000))
-  const calm = longestCalm()
+  const yesterday = week[5].count, diff = events.length - yesterday
+  const lastAny = habitLog().at(-1)
+  const since = lastAny ? Date.now() - lastAny : 0
 
   if (count > 0) {
     return (
@@ -80,8 +83,15 @@ export default function HabitPage() {
         {failed && <p className="hb-warn">The sonar did not start. Allow the microphone and try again.</p>}
 
         <div className="hb-nums">
-          <div><div className="hb-big">{events.length}</div><div className="hb-label">nudges today</div></div>
-          <div><div className="hb-big">{calm ? span(calm) : '-'}</div><div className="hb-label">longest calm stretch today</div></div>
+          <div>
+            <div className="hb-big">{events.length}</div>
+            <div className="hb-label">scratches today</div>
+            <div className="hb-delta">{diff === 0 ? 'same as yesterday' : `${diff < 0 ? '↓' : '↑'} ${Math.abs(diff)} vs yesterday`}</div>
+          </div>
+          <div>
+            <div className="hb-big">{lastAny ? span(since) : '-'}</div>
+            <div className="hb-label">since the last scratch</div>
+          </div>
         </div>
 
         <section className="hb-section">

@@ -68,15 +68,6 @@ export const lastWeek = () => {
   })
 }
 
-/** Longest stretch today with no nudge, in ms, counted from when watching started today (or midnight). */
-export const longestCalm = () => {
-  if (!read(STARTED())) return 0
-  const start = Math.max(midnight(), Number(read(STARTED()) ?? 0))
-  const stops = [start, ...today().filter((t) => t >= start), Date.now()]
-  let best = 0
-  for (let i = 1; i < stops.length; i++) best = Math.max(best, stops[i] - stops[i - 1])
-  return best
-}
 
 /** True the first time it is called in each clock hour: the bottom bar shows once an hour. */
 export const firstNudgeThisHour = () => {
