@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import DitherBloom from './art/DitherBloom.tsx'
+import DitherFlower from './art/DitherFlower.tsx'
 import { engine } from './engine.ts'
 
-// Landing screen: the live digit bloom, one line of pitch, the three apps. Style per docs/STYLE.md.
+// Landing screen: Ian's flower as a full-screen ordered dither, the headline top-left, the apps bottom-left. Style per docs/STYLE.md.
 export default function Home({ go }: { go: (page: string) => void }) {
   const [running, setRunning] = useState(engine.health().running)
   const [error, setError] = useState('')
@@ -12,20 +12,19 @@ export default function Home({ go }: { go: (page: string) => void }) {
   }
   return (
     <div className="home">
-      <DitherBloom height={Math.min(620, window.innerHeight * 0.68)} />
+      <DitherFlower />
       <div className="home__text">
-        <div className="mono-label">ECHO · SONAR, NOT A CAMERA</div>
         <h1 className="serif-display">Your laptop can hear your hands.</h1>
-        <p>An inaudible tone and its echo. No camera, no images, works in the dark.</p>
+        <div className="mono-label">ECHO · SONAR, NOT A CAMERA · WORKS IN THE DARK</div>
+      </div>
+      <div className="home__apps">
         {!running
           ? <button className="dot-btn" onClick={start}>Start sonar</button>
-          : <p className="mono-label">sonar on · move your hand toward the screen</p>}
-        {error && <p>{error}</p>}
-        <div className="home__apps">
-          <button className="dot-btn" onClick={() => go('lock')}>Lock</button>
-          <button className="dot-btn" onClick={() => go('care')} disabled>Care (soon)</button>
-          <button className="dot-btn" onClick={() => go('habit-app')} disabled>Habit (soon)</button>
-        </div>
+          : <span className="mono-label">sonar on · move your hand</span>}
+        <button className="dot-btn" onClick={() => go('lock')}>Lock</button>
+        <button className="dot-btn" onClick={() => go('care')} disabled>Care (soon)</button>
+        <button className="dot-btn" onClick={() => go('habit-app')} disabled>Habit (soon)</button>
+        {error && <span className="mono-label">{error}</span>}
       </div>
     </div>
   )

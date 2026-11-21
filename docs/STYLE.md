@@ -1,7 +1,7 @@
 # Echo visual style (owned by the lead; every UI change follows this)
 
 ## The one idea
-**Sound drawn as a 1-bit dither.** The hero art is a living "sound flower": wave-lobed petals with rippling, waveform-like rims, a bright seed centre, echo rings pulsing outward and a thin wavering stem, rendered in grayscale and then **8x8 Bayer ordered-dithered to pure white on pure black**, blitted chunky and pixel-crisp (one dither pixel = 3 CSS px). It is modelled on Ian's references: dithered flowers, a horse and the Golden Gate in white-on-black Bayer dots, with thin dotted guide lines and a horizon rule. **No digit art** (tried and rejected by Ian).
+**Ian's reference flower as a 1-bit ordered dither.** The Home hero (`app/src/art/DitherFlower.tsx`) takes the exact shape and density of Ian's reference flower (`app/public/art/flower-ref.png`), smooths it into a grayscale field and **8x8 Bayer ordered-dithers it to off-white on charcoal #1e1f21**, blitted pixel-crisp (one dither pixel = 3 CSS px), full screen. Motion is **only a gentle sway** (the head bends sideways from a fixed stem base, ~6 s cycle); it **never scales, pulses or shimmers**. Hand motion only brightens the petals on that side. **No digit art** (tried twice, rejected by Ian). Other pages keep the black dither style below; `DitherBloom.tsx` is the older procedural bloom.
 
 ## Palette
 | Token | Value | Use |
@@ -21,7 +21,7 @@ No grey text. Hierarchy comes from **size, density and inversion**, never from d
 - Body: system sans, 15px, light.
 - Lots of empty charcoal space. Content sits centred in a narrow column (max 760px) or around the art.
 
-## The dither bloom (primary art, app/src/art/DitherBloom.tsx)
+## The procedural dither bloom (secondary art, app/src/art/DitherBloom.tsx)
 - Grayscale field per frame on a 1/3-resolution canvas, then Bayer threshold to 1-bit, upscaled with smoothing off.
 - Idle: slow breathing, rim ripples travel, rings drift outward. Hand motion (`energyToward/away`) swells the petals on that side; a fast move (|shiftHz| > 40) pulses the whole flower and brightens the rings.
 - 24 fps visible, 10 fps hidden.
