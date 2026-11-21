@@ -14,7 +14,6 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",
     "@types/three": "^0.187.0",
-    "katex": "^0.19.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "three": "^0.187.0"

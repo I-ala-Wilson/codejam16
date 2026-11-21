@@ -12,9 +12,13 @@
 .ex__sub { font-size: 30px; margin-top: 14px; letter-spacing: .02em; }
 .ex__readout { position: absolute; left: 48px; bottom: 40px; width: 380px; box-sizing: border-box; padding: 20px; border: 1px dotted var(--ink); background: rgba(11, 11, 12, .82); line-height: 1.2; }
 .ex__label { font: 400 18px/1 var(--pixel); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
-.ex__formula { margin-top: 14px; font-size: 22px; color: #f2f2f0; }
-.ex__sub-tex { margin-top: 14px; font-size: 16px; color: #f2f2f0; text-align: center; white-space: nowrap; }
-.ex__formula .katex, .ex__sub-tex .katex { color: #f2f2f0; font-weight: normal; }
+/* fractions in VT323: left side, a stacked numerator over denominator with a 1px rule, optional result */
+.ex__formula, .ex__sub-tex { display: flex; align-items: center; gap: 10px; color: #f2f2f0; font-family: var(--pixel); }
+.ex__formula { margin-top: 12px; font-size: 34px; }
+.ex__sub-tex { margin-top: 12px; font-size: 21px; justify-content: center; }
+.fx-frac { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.05; }
+.fx-frac > span:first-child { padding: 0 6px 3px; border-bottom: 1px solid #f2f2f0; }
+.fx-frac > span:last-child { padding: 3px 6px 0; }
 .ex__result { margin-top: 14px; font: 400 44px/1 var(--pixel); color: var(--ink-strong); }
 .ex__echo { margin-top: 6px; font: 400 18px/1 var(--pixel); letter-spacing: .02em; color: var(--ink); }
 .ex__spec { display: block; width: 100%; height: 72px; margin-top: 16px; }

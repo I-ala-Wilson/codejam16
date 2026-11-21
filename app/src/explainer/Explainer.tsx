@@ -1,7 +1,5 @@
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
-import katex from 'katex'
-import 'katex/dist/katex.min.css'
 import { createExplainer, GESTURES, F0, C, type Frame } from './scene.ts'
 import './explainer.css'
 
@@ -40,6 +38,11 @@ function drawSpectrum(cv: HTMLCanvasElement, df: number) {
 
 const fmt = (n: number, d: number) => (n >= 0 ? '+' : '-') + Math.abs(n).toFixed(d)
 
+// A fraction in the site's pixel font: 'left = numerator over denominator (= result)', built from plain spans.
+const frac = (left: string, num: string, den: string, result?: string) =>
+  `<span class="fx">${left} =</span><span class="fx-frac"><span>${num}</span><span>${den}</span></span>` +
+  (result ? `<span class="fx">= ${result}</span>` : '')
+
 export default function Explainer({ embedded = false, children }: { embedded?: boolean; children?: React.ReactNode }) {
   const root = useRef<HTMLDivElement>(null)
   const host = useRef<HTMLDivElement>(null)
@@ -54,7 +57,7 @@ export default function Explainer({ embedded = false, children }: { embedded?: b
 
   useEffect(() => {
     let shown = -1, heldAt = -1e9, heldKey = ''
-    katex.render(String.raw`\Delta f = \dfrac{2\,v\,f_0}{c}`, formulaEl.current!)
+    formulaEl.current!.innerHTML = frac('Δf', '2·v·f₀', 'c')
     const onFrame = (f: Frame) => {
       if (f.gesture !== shown) { shown = f.gesture; setGesture(f.gesture) }
       // One sample of v drives every number on the panel, refreshed together about 8 times a second
@@ -66,7 +69,7 @@ export default function Explainer({ embedded = false, children }: { embedded?: b
       const key = `${v}|${df}`
       if (key === heldKey) return
       heldKey = key
-      katex.render(String.raw`\Delta f = \dfrac{2 \times (${fmt(v, 2)}) \times ${F0}}{${C}} = ${fmt(df, 0)}\ \text{Hz}`, subEl.current!)
+      subEl.current!.innerHTML = frac('Δf', `2 × (${fmt(v, 2)}) × ${F0}`, `${C}`, `${fmt(df, 0)} Hz`)
       dfEl.current!.textContent = `${fmt(df, 0)} Hz`
       echoEl.current!.textContent = `echo ${F0 + df} Hz${df > 0 ? ' · pitch up' : df < 0 ? ' · pitch down' : ''}`
       drawSpectrum(spec.current!, df)
