@@ -15,6 +15,8 @@ type Mode = 'home' | 'set' | 'confirm' | 'unlock'
 export default function Lock() {
   const params = new URLSearchParams(location.search)
   const returnUrl = params.get('return')
+  // only ever redirect to a real web page (blocks javascript:, data: and other schemes in a crafted link)
+  const safeReturn = (() => { try { const u = new URL(returnUrl ?? ''); return u.protocol === 'https:' || u.protocol === 'http:' ? u.toString() : null } catch { return null } })()
   const [mode, setMode] = useState<Mode>(params.get('unlock') ? 'unlock' : 'home')
   const [extId, setExtId] = useState(extensionId())
   const [sites, setSites] = useState(localStorage.getItem('echo.lock.sites') ?? DEFAULT_SITES.join(', '))
@@ -59,7 +61,7 @@ export default function Lock() {
       setFails(0); setMessage('✓ Correct. Unlocked.')
       sendEvent('lock', 'unlock_ok')
       sendToExtension({ type: 'UNLOCK' }).then(setStatus).catch((e) => setError(String(e)))
-      if (returnUrl) setTimeout(() => { location.href = returnUrl }, 1000)
+      if (safeReturn) setTimeout(() => { location.href = safeReturn }, 1000)
       else setTimeout(() => setMode('home'), 1200)
     } else {
       const n = fails + 1
