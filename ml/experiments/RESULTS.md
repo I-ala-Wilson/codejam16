@@ -130,6 +130,30 @@ If a candidate is accepted: train the final model with it, mirror it in the engi
 tests, push model and engine together, post DONE with the numbers. If none is accepted: post INFO with what failed and
 change nothing. PUSH and PULL recall and their mutual confusion are reported either way, but are not part of the rule.
 
+### Round 3 result: all three candidates REFUSED (leave-one-person-out, 5 people, 2 seeds, default thresholds)
+Judged by `tune.decide` with `fa_slack = 0` and the per-seed pairing check, exactly as pre-registered.
+
+| recipe | macro recall | false alarms/min | held-out F1 | gain vs baseline | better for | verdict |
+|---|---|---|---|---|---|---|
+| baseline | 0.421 | 2.11 | 0.555 | | | |
+| coord | 0.430 | 2.27 | 0.553 | +0.009 (margin 0.036) | 3 of 5 people | refused: gain inside noise, 3 of 5 not 4, more false alarms |
+| snrnorm | 0.398 | 2.09 | 0.535 | -0.023 | 1 of 5 | refused: worse on both seeds |
+| coord_snrnorm | 0.403 | 1.99 | 0.545 | -0.017 | 2 of 5 | refused: below the baseline on both seeds |
+
+Per-class recall (mean over the two seeds), reported but not part of the rule:
+
+| recipe | PUSH | PULL | WAVE | OPEN_CLOSE | UNDO |
+|---|---|---|---|---|---|
+| baseline | 0.50 | 0.47 | 0.46 | 0.43 | 0.46 |
+| coord | 0.48 | 0.53 | 0.47 | 0.40 | 0.49 |
+| snrnorm | 0.46 | 0.48 | 0.41 | 0.43 | 0.45 |
+| coord_snrnorm | 0.45 | 0.53 | 0.45 | 0.41 | 0.47 |
+
+Reading: telling the model which side of the carrier the energy is on (coord) moves PULL up by 0.06 and PUSH down by
+0.02, which is inside the noise, so the architecture was not what limits PUSH vs PULL. Scaling the input by each take's
+tone strength (snrnorm) made things worse for 4 of 5 people, so laptop strength is not the main cross-person problem
+either. Nothing changes: the shipped model and engine stay as they are (no mirroring, no normalization).
+
 ### Round 3b: Doppler-sign override for PUSH vs PULL. PRE-REGISTERED before any evaluation of it
 Disclosure: before writing this I looked at the rule detector's per-take hit rates (`engine/tools/score.ts`) for the five
 people: on PUSH and PULL takes the rule detector answers the right class in roughly 90-100% of cues (it also fires many
