@@ -1,0 +1,143 @@
+{
+  "person": "EJ2007",
+  "gesture": "UNDO",
+  "laptop": "macbook-air-m2",
+  "note": "UNDO at 20 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 216384,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 289792,
+      "end": 361792,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 433152,
+      "end": 505152,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 577536,
+      "end": 649536,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 721920,
+      "end": 793920,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 866304,
+      "end": 938304,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 1010688,
+      "end": 1082688,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 1154048,
+      "end": 1226048,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 1298432,
+      "end": 1370432,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 1442816,
+      "end": 1514816,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 1587200,
+      "end": 1659200,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 1730560,
+      "end": 1802560,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 1874944,
+      "end": 1946944,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 2019328,
+      "end": 2091328,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 2163712,
+      "end": 2235712,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 2308096,
+      "end": 2380096,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 2452480,
+      "end": 2524480,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 2595840,
+      "end": 2667840,
+      "label": "UNDO",
+      "speed": "brisk"
+    },
+    {
+      "start": 2740224,
+      "end": 2812224,
+      "label": "UNDO",
+      "speed": "natural"
+    },
+    {
+      "start": 2884608,
+      "end": 2956608,
+      "label": "UNDO",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T12:52:02-05:00",
+  "takeKind": "gesture",
+  "battery": "main",
+  "distanceCm": 20,
+  "cueWindowMs": 1500,
+  "periodMs": 3000,
+  "leadInMs": 3000,
+  "leadInMotion": false,
+  "hand": "R",
+  "volumePct": 70,
+  "laptopModel": "MacBook Air M2",
+  "protocol": "ml/PROTOCOL.md"
+}
