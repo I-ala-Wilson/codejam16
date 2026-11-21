@@ -19,6 +19,10 @@ const UNDO_WINDOW_MS = 6000
 const TAP_PAIR_MS = 1500
 const INPUT_QUIET_MS = 2500
 const COOLDOWN_MS = 8000
+// Recording and test tabs: Habit stays silent there so its chime and nudge never land in a take (App.tsx keeps the
+// current page in location.hash).
+const QUIET_PAGES = new Set(['calib', 'dataset', 'habit', 'live', 'room', 'breath', 'record', 'gestures'])
+const onQuietPage = () => QUIET_PAGES.has(location.hash.slice(1))
 const TOAST_MS = 3500
 const BAR_MS = 2000
 
@@ -50,7 +54,7 @@ export default function HabitWatch() {
   }, [])
 
   useEffect(() => engine.onGesture((g) => {
-    if (!habitOn()) return
+    if (!habitOn() || onQuietPage()) return
     const t = Date.now()
     const pair = g.type === 'PUSH' && t - lastPush.current < TAP_PAIR_MS
     if (g.type === 'PUSH') lastPush.current = pair ? 0 : t
