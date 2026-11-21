@@ -242,12 +242,13 @@ type AgentNode = { key: string; agent: string; role: string; who: string; x: num
 const NODES: AgentNode[] = [
   { key: 'lead', agent: 'CLAUDE', role: 'lead: app + lock', who: 'IAN', x: 96, y: 50 },
   { key: 'ml', agent: 'CLAUDE', role: 'model + engine', who: 'YAHYA', x: 544, y: 50 },
-  { key: 'qa', agent: 'CLAUDE', role: 'tester', who: 'YAHYA', x: 96, y: 214 },
-  { key: 'ui', agent: 'CLAUDE', role: 'design + pitch', who: 'EJ', x: 544, y: 214 },
+  { key: 'qa', agent: 'CLAUDE', role: 'tester', who: 'YAHYA', x: 544, y: 214 },
+  { key: 'ui', agent: 'CLAUDE', role: 'design + pitch', who: 'EJ', x: 96, y: 214 },
   { key: 'dash', agent: 'CODEX', role: 'dashboard', who: 'MICHAEL', x: 320, y: 236 },
 ]
 const HUB = { x: 320, y: 128, w: 150, h: 92 }
-const humanAt = (n: AgentNode) => (Math.abs(n.x - HUB.x) < 40 ? { x: n.x - 64, y: n.y } : { x: n.x + (n.x < HUB.x ? -58 : 58), y: n.y })
+// Yahya drives two agents (model + tester), so one Yahya node sits between them on the right
+const humanAt = (n: AgentNode) => n.who === 'YAHYA' ? { x: 616, y: 132 } : (Math.abs(n.x - HUB.x) < 40 ? { x: n.x - 64, y: n.y } : { x: n.x + (n.x < HUB.x ? -58 : 58), y: n.y })
 const node = (k: string) => NODES.find((n) => n.key === k)!
 const MSGS: { from: string; to: string[]; text: string }[] = [
   { from: 'qa', to: ['lead'], text: 'BUG FOUND' },
@@ -282,9 +283,10 @@ export const agents: Scene = {
       g.strokeStyle = gray(live ? 1 : 0.55); g.lineWidth = live ? 2 : 1.2; g.setLineDash(live ? [] : [2, 5])
       g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); g.setLineDash([])
       // the person who drives this agent, joined by a short solid line
-      const h = humanAt(n), dir = Math.sign(h.x - n.x)
+      const h = humanAt(n), hl = Math.hypot(h.x - n.x, h.y - n.y), ux = (h.x - n.x) / hl, uy = (h.y - n.y) / hl
       g.strokeStyle = gray(1); g.lineWidth = 1.6
-      g.beginPath(); g.moveTo(n.x + dir * 19, n.y); g.lineTo(h.x - dir * 15, h.y); g.stroke()
+      const sx0 = n.who === 'YAHYA' ? n.x + 18 : n.x + ux * 20, sy0 = n.who === 'YAHYA' ? n.y : n.y + uy * 20 // Yahya's links leave from the tile's right side, clear of the labels
+      g.beginPath(); g.moveTo(sx0, sy0); g.lineTo(h.x - ux * 15, h.y - uy * 15); g.stroke()
       g.fillStyle = gray(0.3)
       g.beginPath(); g.arc(h.x, h.y, 14, 0, TAU); g.fill(); g.stroke()
       g.fillStyle = gray(1)
@@ -322,7 +324,7 @@ export const agents: Scene = {
     for (const n of NODES) {
       label(g, n.agent, n.x, n.y + 31, 15, 'center')
       label(g, n.role, n.x, n.y + 45, 12, 'center')
-      const h = humanAt(n); label(g, n.who, h.x, h.y + 31, 13, 'center')
+      if (n.key !== 'qa') { const h = humanAt(n); label(g, n.who, h.x, h.y + 31, 13, 'center') } // one label per person
     }
     // the board is drawn crisp on top (no dither) so its log stays readable
     { const land = u > 0.4 && u < 0.6 ? 1 - Math.abs(u - 0.5) * 10 : 0
