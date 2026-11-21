@@ -10,7 +10,7 @@ const BAYER = [
   2, 50, 14, 62, 1, 49, 13, 61, 34, 18, 46, 30, 33, 17, 45, 29, 10, 58, 6, 54, 9, 57, 5, 53, 42, 26, 38, 22, 41, 25, 37, 21,
 ].map((v) => (v + 0.5) / 64)
 const SCALE = 3 // one dither pixel = 3 CSS px, chunky like the references
-const PETALS = 9
+const PETALS = 10
 
 export default function DitherBloom({ height = 560 }: { height?: number }) {
   const canvas = useRef<HTMLCanvasElement>(null)
@@ -53,20 +53,35 @@ export default function DitherBloom({ height = 560 }: { height?: number }) {
           const dx = x - cx, dy = (y - cy) * 1.08
           const r = Math.hypot(dx, dy)
           const a = Math.atan2(dy, dx)
-          // petal outline: lobes whose rim ripples like a waveform; the side facing the hand swells
+          // Two rings of distinct petals (back ring offset by half a petal). Each petal is a rounded teardrop with a
+          // black gap between neighbours, a bright rim, a darker base and a centre vein, so every petal reads alone.
           const lean = Math.cos(a + Math.PI / 2)
-          const lobes = 0.62 + 0.38 * Math.abs(Math.cos((a * PETALS) / 2 + t * 0.15))
-          const ripple = 0.045 * Math.sin(a * 37 + t * 3) + 0.03 * Math.sin(a * 61 - t * 2.2)
           const swell = 1 + 0.25 * (lean > 0 ? toward * lean : away * -lean)
-          const edge = R * (lobes + ripple) * swell
+          const ripple = 0.025 * Math.sin(a * 37 + t * 3)
           let g = 0
-          if (r < edge) {
-            const u = r / edge
-            // bright rim and veins, darker hollow centre (like a petal photographed in strong light)
-            const vein = 0.18 * Math.pow(Math.abs(Math.cos((a * PETALS) / 2 + t * 0.15)), 8)
-            g = 0.25 + 0.55 * Math.pow(u, 1.6) + vein + 0.08 * Math.sin(r * 0.9 - t * 4)
-            if (u < 0.12) g = 0.95 // bright seed centre
+          let edge = 0
+          for (const layer of [1, 0]) { // back ring first, front ring drawn over it
+            const n = PETALS
+            const rot = layer ? Math.PI / n : 0
+            const slot = (a - rot + t * 0.04) * n / (2 * Math.PI)
+            const d = (slot - Math.round(slot)) * 2 // -1..1 across this petal
+            const k = ((Math.round(slot) % n) + n) % n
+            const len = R * (layer ? 1.0 : 0.78) * (0.85 + 0.15 * Math.abs(Math.sin(k * 2.3))) * swell
+            const shape = Math.sqrt(Math.max(0, 1 - d * d)) // rounded petal width profile
+            const pr = len * (0.35 + 0.65 * shape) * (1 + ripple)
+            if (r < pr && Math.abs(d) < 0.9) {
+              const u = r / pr
+              const rim = u > 0.86 || Math.abs(d) > 0.74 ? 0.4 : 0 // bright outline
+              const vein = Math.abs(d) < 0.07 && u > 0.2 ? 0.25 : 0 // centre vein
+              const shade = (layer ? 0.2 : 0.32) + 0.45 * u * (1 - 0.35 * d * d) + 0.05 * Math.sin(r * 0.8 - t * 4)
+              g = Math.min(1, shade + rim + vein)
+              edge = Math.max(edge, pr)
+            } else if (r < pr * 1.04 && Math.abs(d) < 0.98 && layer === 0) {
+              g = 0 // black gap separating front petals from what's behind
+            }
           }
+          if (r < R * 0.13) g = 0.97 - 0.5 * (r / (R * 0.13)) * (0.5 + 0.5 * Math.sin(a * 12 + t)) // seed head
+          if (edge === 0) edge = R * 0.13
           // echo rings travelling outward from the flower
           const ring = Math.sin((r - t * 18) * 0.22)
           if (r > edge && r < R * 2.1) g = Math.max(g, (0.16 + 0.35 * e.pulse) * Math.max(0, ring) * (1 - r / (R * 2.1)))

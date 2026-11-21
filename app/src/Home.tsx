@@ -15,7 +15,7 @@ export default function Home({ go }: { go: (page: string) => void }) {
       <DitherBloom height={Math.min(620, window.innerHeight * 0.68)} />
       <div className="home__text">
         <div className="mono-label">ECHO · SONAR, NOT A CAMERA</div>
-        <h1 className="serif-display">Your laptop can feel your hands.</h1>
+        <h1 className="serif-display">Your laptop can hear your hands.</h1>
         <p>An inaudible tone and its echo. No camera, no images, works in the dark.</p>
         {!running
           ? <button className="dot-btn" onClick={start}>Start sonar</button>
