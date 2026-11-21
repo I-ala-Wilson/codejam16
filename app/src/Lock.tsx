@@ -152,7 +152,8 @@ export default function Lock() {
             {!running
               ? <button className="lk__btn lk__btn--primary" onClick={startSonar}>Start sonar</button>
               : <button className="lk__btn lk__btn--primary" onClick={() => go(password ? 'verify' : 'set')}>{password ? 'Change password' : 'Set password'}</button>}
-            {password && <>{' '}<button className="lk__btn" onClick={() => { localStorage.removeItem('echo.lock.password'); setPassword(null); setMessage('') }}>Reset password</button></>}
+            {/* owner-only escape hatch for forgotten passwords: shown only with ?owner in the URL, never to a kid */}
+            {password && new URLSearchParams(location.search).has('owner') && <>{' '}<button className="lk__btn" onClick={() => { localStorage.removeItem('echo.lock.password'); setPassword(null); setMessage('') }}>Reset password</button></>}
           </section>
 
           <section>
