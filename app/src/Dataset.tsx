@@ -12,8 +12,8 @@ const LEAD_IN_MS = 3000
 const REPS = 20
 
 type Take =
-  | { kind: 'gesture'; gesture: GestureType; distanceCm: number; cueWindowMs: number; periodMs: number; how: string }
-  | { kind: 'none'; noneKind: 'a' | 'b' | 'c' | 'd'; durationMs: number; how: string }
+  | { kind: 'gesture'; gesture: GestureType; distanceCm: number; cueWindowMs: number; periodMs: number; how: string; variant?: string }
+  | { kind: 'none'; noneKind: 'a' | 'b' | 'c' | 'd' | 'e'; durationMs: number; how: string }
 
 const G = (gesture: GestureType, dists: [number, number], cueWindowMs: number, periodMs: number, how: string): Take[] =>
   dists.map((distanceCm) => ({ kind: 'gesture', gesture, distanceCm, cueWindowMs, periodMs, how }))
@@ -30,7 +30,20 @@ const BATTERY: Take[] = [
   { kind: 'none', noneKind: 'd', durationMs: 60000, how: 'Let your hand wander slowly in front of the screen without making any gesture.' },
 ]
 
-const takeName = (t: Take) => t.kind === 'gesture' ? `${t.gesture} at ${t.distanceCm} cm` : `NONE (${t.noneKind})`
+// Habit add-on (Sat morning): repetitive habit motions + extra typing as the false-alarm counterexample.
+const HABIT: Take[] = [
+  { kind: 'gesture', gesture: 'REPETITIVE', variant: 'scratch', distanceCm: 20, cueWindowMs: 3000, periodMs: 5000,
+    how: 'Scratch your forearm in front of the laptop for the whole GO window (small, fast, repeated), then rest your arm still.' },
+  { kind: 'gesture', gesture: 'REPETITIVE', variant: 'nailbite', distanceCm: 20, cueWindowMs: 3000, periodMs: 5000,
+    how: 'Bring your hand to your mouth and do a nail-biting motion for the whole GO window, then lower your hand and keep still.' },
+  { kind: 'none', noneKind: 'e', durationMs: 120000, how: 'Type normally for 2 minutes (write anything). This teaches Habit that typing is NOT a habit.' },
+]
+
+const BATTERIES = { main: BATTERY, habit: HABIT } as const
+type BatteryName = keyof typeof BATTERIES
+
+const takeName = (t: Take) => t.kind === 'gesture'
+  ? `${t.variant ? t.variant.toUpperCase() : t.gesture} at ${t.distanceCm} cm` : `NONE (${t.noneKind})`
 
 type Phase = 'idle' | 'away' | 'leadin' | 'cue' | 'rest' | 'none' | 'saving'
 
@@ -41,7 +54,9 @@ export default function Dataset() {
   const [volumePct, setVolumePct] = useState(Number(localStorage.getItem('echo.volume') ?? 70))
   const [running, setRunning] = useState(engine.health().running)
   const [snr, setSnr] = useState(0)
-  const [idx, setIdx] = useState(Number(localStorage.getItem('echo.takeIdx') ?? 0))
+  const [battery, setBattery] = useState<BatteryName>((localStorage.getItem('echo.battery') as BatteryName) ?? 'main')
+  const LIST = BATTERIES[battery]
+  const [idx, setIdx] = useState(Number(localStorage.getItem(`echo.takeIdx.${battery}`) ?? 0))
   const [phase, setPhase] = useState<Phase>('idle')
   const [cueText, setCueText] = useState('')
   const [count, setCount] = useState(0)
@@ -60,7 +75,8 @@ export default function Dataset() {
   useEffect(() => { localStorage.setItem('echo.laptop', laptopModel) }, [laptopModel])
   useEffect(() => { localStorage.setItem('echo.hand', hand) }, [hand])
   useEffect(() => { localStorage.setItem('echo.volume', String(volumePct)) }, [volumePct])
-  useEffect(() => { localStorage.setItem('echo.takeIdx', String(idx)) }, [idx])
+  useEffect(() => { localStorage.setItem(`echo.takeIdx.${battery}`, String(idx)) }, [idx, battery])
+  const switchBattery = (b: BatteryName) => { localStorage.setItem('echo.battery', b); setBattery(b); setIdx(Number(localStorage.getItem(`echo.takeIdx.${b}`) ?? 0)) }
 
   useEffect(() => engine.onFrame((f) => {
     frames.current += 1
@@ -77,7 +93,7 @@ export default function Dataset() {
   }
 
   const runTake = async () => {
-    const t = BATTERY[idx]
+    const t = LIST[idx]
     setError(''); setWarn('')
     if (engine.health().snrDb < 30) setWarn('Tone health is below 30 dB: turn the volume up before recording.')
     const person = login.trim()
@@ -117,13 +133,15 @@ export default function Dataset() {
     try {
       const s = await engine.stopRecording()
       const stamp = s.filename.match(/_(\d{8}-\d{6})\.wav$/)?.[1] ?? Date.now().toString()
-      const tag = t.kind === 'gesture' ? `${t.gesture}_${t.distanceCm}cm` : `NONE-${t.noneKind}`
-      const base = `${person.toLowerCase()}_${tag}_${laptop}_t${idx + 1}_${stamp}`
+      const tag = t.kind === 'gesture' ? `${t.gesture}${t.variant ? '-' + t.variant : ''}_${t.distanceCm}cm` : `NONE-${t.noneKind}`
+      const base = `${person.toLowerCase()}_${tag}_${laptop}_${battery === 'habit' ? 'h' : 't'}${idx + 1}_${stamp}`
       const meta = {
         ...(s.meta as Record<string, unknown>),
         gesture: t.kind === 'gesture' ? t.gesture : 'NONE',
         reps,
         takeKind: t.kind,
+        battery,
+        variant: t.kind === 'gesture' ? t.variant : undefined,
         distanceCm: t.kind === 'gesture' ? t.distanceCm : null,
         noneKind: t.kind === 'none' ? t.noneKind : undefined,
         cueWindowMs: t.kind === 'gesture' ? t.cueWindowMs : null,
@@ -135,14 +153,14 @@ export default function Dataset() {
       }
       download(await toPcm16(s.wav), `${base}.wav`)
       download(new Blob([JSON.stringify(meta, null, 2)], { type: 'application/json' }), `${base}.json`)
-      setIdx((i) => Math.min(i + 1, BATTERY.length))
+      setIdx((i) => Math.min(i + 1, LIST.length))
     } catch (e) { setError(String(e)) }
     setP('idle'); setRep(0)
   }
 
   const ready = login.trim() !== '' && laptopModel.trim() !== ''
-  const done = idx >= BATTERY.length
-  const t = BATTERY[Math.min(idx, BATTERY.length - 1)]
+  const done = idx >= LIST.length
+  const t = LIST[Math.min(idx, LIST.length - 1)]
   const busy = phase !== 'idle'
 
   return (
@@ -160,9 +178,11 @@ export default function Dataset() {
             {running ? <>On · tone health <b>{snr.toFixed(0)} dB</b> {snr >= 30 ? '✓' : '✗ turn the volume up'}</> :
               <button onClick={startSonar} disabled={!ready}>Start sonar and calibrate (hands off 3 s)</button>}
           </Box>
-          <Box title={`3. Takes: ${Math.min(idx, BATTERY.length)} of ${BATTERY.length} done`}>
+          <Box title={`3. ${battery === 'main' ? 'Main battery' : 'Habit add-on'}: ${Math.min(idx, LIST.length)} of ${LIST.length} done`}>
+            <p>Battery: <button onClick={() => switchBattery('main')} style={{ fontWeight: battery === 'main' ? 800 : 400 }}>Main (14 takes, ~17 min)</button>{' '}
+              <button onClick={() => switchBattery('habit')} style={{ fontWeight: battery === 'habit' ? 800 : 400 }}>Habit add-on (3 takes, ~6 min)</button></p>
             <div style={{ height: 14, border: '2px solid #000', borderRadius: 4, overflow: 'hidden', marginBottom: 10 }}>
-              <div style={{ width: `${(Math.min(idx, BATTERY.length) / BATTERY.length) * 100}%`, height: '100%', background: '#000' }} />
+              <div style={{ width: `${(Math.min(idx, LIST.length) / LIST.length) * 100}%`, height: '100%', background: '#000' }} />
             </div>
             {done ? (
               <p><b>All takes done.</b> Tell your agent: <b>"move my Echo dataset files from Downloads into data/recordings/{login || '<my login>'}/ and push them"</b>. Then post DONE to Yahya-github.</p>
@@ -177,8 +197,8 @@ export default function Dataset() {
               </>
             )}
             {' '}<button onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}>Redo last take</button>
-            {' '}Jump to take: <select value={Math.min(idx, BATTERY.length - 1)} onChange={(e) => setIdx(Number(e.target.value))}>
-              {BATTERY.map((b, i) => <option key={i} value={i}>{i + 1}. {takeName(b)}</option>)}
+            {' '}Jump to take: <select value={Math.min(idx, LIST.length - 1)} onChange={(e) => setIdx(Number(e.target.value))}>
+              {LIST.map((b, i) => <option key={i} value={i}>{i + 1}. {takeName(b)}</option>)}
             </select>
             {' '}<button onClick={() => setIdx(0)}>Restart battery</button>
           </Box>
