@@ -23,6 +23,6 @@ Four humans worked with five AI agents (three Claude Code, one QA, one Codex) on
 
 **Why not a camera?** A camera captures your face and room and fails in the dark, while sonar sees only motion.
 
-**How accurate is it?** About 45% of gestures for someone the model has never seen, and about 71-77% on a laptop it has a few minutes of your recordings from.
+**How accurate is it?** About 45% of gestures for someone the model has never seen, and about 71-77% on our presenter's laptop after a few minutes of his own recordings (one person measured so far).
 
 **What did the AI do, and what did you do?** The agents wrote the code; we chose the idea, recorded every take, tested it and made each decision.
