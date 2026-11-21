@@ -26,7 +26,10 @@
   <div class="row"><button class="det">Details</button><button class="rel" id="rel">Reload</button></div>
   </div><div id="dots"></div></body></html>`
   const paint = () => {
-    document.open(); document.write(html); document.close()
+    // replace the whole document with the fake error page (document.write at document_start can leave no body)
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    document.replaceChild(document.importNode(doc.documentElement, true), document.documentElement)
+    document.title = host
     document.getElementById('rel').onclick = () => location.reload()
   }
   paint()
