@@ -1,1 +1,21 @@
-body { margin: 0; }
+/* App-level dark theme per docs/STYLE.md (ui/ components get restyled by EJ's #19). */
+:root { --bg: #1e1f21; --bg-deep: #141516; --ink: #f2f2f0; --ink-strong: #fff; color-scheme: dark; }
+html, #root { background: var(--bg); min-height: 100vh; }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 300 15px/1.5 -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+.mono-label { font: 500 12px/1.4 "JetBrains Mono", "SF Mono", Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+.serif-display { font: italic 400 38px/1.15 Georgia, "Times New Roman", serif; color: var(--ink-strong); margin: 10px 0; }
+.dot-btn { font: 500 12px "JetBrains Mono", "SF Mono", Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); background: transparent; border: 1px dotted var(--ink); border-radius: 2px; padding: 9px 14px; cursor: pointer; }
+.dot-btn:hover:not(:disabled) { background: var(--ink); color: var(--bg); }
+.dot-btn:disabled { cursor: default; opacity: .55; }
+.home__text { max-width: 760px; margin: 0 auto; padding: 8px 24px 40px; text-align: center; }
+.home__apps { display: flex; gap: 12px; justify-content: center; margin-top: 18px; }
+nav.top { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px dotted var(--ink); }
+nav.top button { font: 500 11px "JetBrains Mono", "SF Mono", Menlo, monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); background: transparent; border: 1px dotted transparent; padding: 6px 10px; cursor: pointer; }
+nav.top button.on, nav.top button:hover { border-color: var(--ink); }
+/* until ui/ is restyled: make the light components readable on charcoal */
+.echo-window { background: var(--bg-deep) !important; color: var(--ink); border: 1px dotted var(--ink) !important; box-shadow: none !important; }
+.echo-window__bar { background: transparent !important; color: var(--ink-strong) !important; font: 500 12px "JetBrains Mono", Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; border-bottom: 1px dotted var(--ink); }
+input, select { background: var(--bg-deep); color: var(--ink); border: 1px dotted var(--ink); padding: 4px 6px; }
+button { color: var(--ink); background: transparent; border: 1px dotted var(--ink); padding: 5px 10px; cursor: pointer; }
+button:hover:not(:disabled) { background: var(--ink); color: var(--bg); }
+a { color: var(--ink-strong); }

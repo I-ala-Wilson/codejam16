@@ -1,25 +1,26 @@
 import { useState } from 'react'
 import RoomTest from './RoomTest.tsx'
+import Home from './Home.tsx'
 import Record from './Record.tsx'
 import Lock from './Lock.tsx'
 import Gestures from './Gestures.tsx'
 import Dataset from './Dataset.tsx'
 import LiveTest from './LiveTest.tsx'
 
-const PAGES = { room: 'Room test', dataset: 'Dataset recording', habit: 'Habit recording', gestures: 'Gesture test', live: 'Live test (cued)', record: 'Pilot record (old)', lock: 'Lock' } as const
+const PAGES = { home: 'Echo', room: 'Room test', dataset: 'Dataset recording', habit: 'Habit recording', gestures: 'Gesture test', live: 'Live test (cued)', record: 'Pilot record (old)', lock: 'Lock' } as const
 type Page = keyof typeof PAGES
 
 export default function App() {
-  const [page, setPage] = useState<Page>(location.pathname === '/lock' ? 'lock' : ((location.hash.slice(1) as Page) in PAGES ? (location.hash.slice(1) as Page) : 'room'))
+  const [page, setPage] = useState<Page>(location.pathname === '/lock' ? 'lock' : ((location.hash.slice(1) as Page) in PAGES ? (location.hash.slice(1) as Page) : 'home'))
   const go = (p: Page) => { setPage(p); location.hash = p }
   return (
     <div>
-      <nav style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
+      <nav className="top">
         {(Object.keys(PAGES) as Page[]).map((p) => (
-          <button key={p} onClick={() => go(p)} style={{ fontWeight: page === p ? 800 : 400 }}>{PAGES[p]}</button>
+          <button key={p} onClick={() => go(p)} className={page === p ? 'on' : ''}>{PAGES[p]}</button>
         ))}
       </nav>
-      {page === 'room' ? <RoomTest /> : page === 'gestures' ? <Gestures /> : page === 'live' ? <LiveTest /> : page === 'dataset' ? <Dataset key="main" only="main" /> : page === 'habit' ? <Dataset key="habit" only="habit" /> : page === 'record' ? <Record /> : <Lock />}
+      {page === 'home' ? <Home go={(p) => go(p as Page)} /> : page === 'room' ? <RoomTest /> : page === 'gestures' ? <Gestures /> : page === 'live' ? <LiveTest /> : page === 'dataset' ? <Dataset key="main" only="main" /> : page === 'habit' ? <Dataset key="habit" only="habit" /> : page === 'record' ? <Record /> : <Lock />}
     </div>
   )
 }
