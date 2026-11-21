@@ -36,3 +36,39 @@
 
 .pz__team a { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; }
 .pz__team a:hover { border-bottom-style: solid; }
+
+/* Chapters (CameraLimits, Care, Lock, Habit) */
+.pz__frame { margin-top: 18px; }
+.pz__tile { margin: 0; }
+.pz__tile .pz__frame { margin: 18px 0 16px; }
+.pz__tags { display: flex; gap: 10px; margin-bottom: 18px; }
+.pz__tags span { font-size: 20px; letter-spacing: .08em; text-transform: uppercase; background: var(--ink); color: var(--bg); padding: 1px 8px; }
+.pz__split { display: grid; grid-template-columns: minmax(320px, 1fr) 1.4fr; gap: 64px; align-items: start; }
+.pz__stats--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 32px; }
+.pz__gestures { list-style: none; padding: 0; margin: 0 0 28px; display: grid; gap: 10px; }
+.pz__gestures li { display: flex; gap: 16px; align-items: baseline; font-size: 23px; border-bottom: 1px dotted var(--ink); padding-bottom: 8px; }
+.pz__gestures b { font-weight: 400; min-width: 13ch; color: var(--ink-strong); }
+.pz__gestures span { text-transform: uppercase; letter-spacing: .06em; }
+.pz__line--lead { font-size: 28px; color: var(--ink-strong); margin-bottom: 20px; }
+.pz__split .pz__line { margin: 0 0 22px; max-width: 44ch; }
+.pz__btn { font: 400 24px/1 var(--pixel); letter-spacing: .04em; color: var(--bg); background: var(--ink); border: 1px solid var(--ink); border-radius: 0; padding: 11px 20px 12px; margin-top: 6px; cursor: pointer; }
+.pz__btn:hover:not(:disabled) { background: transparent; color: var(--ink); }
+
+/* Miniature of Chrome's net-error page (light), as shown by extension/veil.js */
+.pz__chrome { position: relative; background: #fff; color: #3c4043; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; padding: 56px 12% 64px; min-height: 300px; box-sizing: border-box; }
+.pz__chrome-icon { width: 56px; height: 56px; display: block; margin-bottom: 26px; }
+.pz__chrome-h { font-size: 24px; font-weight: 500; color: #202124; margin-bottom: 14px; }
+.pz__chrome-p { font-size: 14px; line-height: 1.6; }
+.pz__chrome-code { font-size: 11px; letter-spacing: .02em; color: #5f6368; margin-top: 14px; text-transform: uppercase; }
+.pz__chrome-row { margin-top: 34px; display: flex; justify-content: flex-end; }
+.pz__chrome-btn { background: #1a73e8; color: #fff; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 4px; }
+.pz__chrome-dots { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; gap: 6px; }
+.pz__chrome-dots i { width: 4px; height: 4px; border-radius: 50%; background: #dadce0; display: block; }
+
+@media (max-width: 900px) {
+  .pz__split { grid-template-columns: 1fr; gap: 32px; }
+  .pz__stats--2 { grid-template-columns: 1fr; gap: 20px; }
+  .pz__big { font-size: 60px; }
+  .pz__split > * { min-width: 0; }
+  .pz__chrome { padding: 36px 8% 52px; }
+}
