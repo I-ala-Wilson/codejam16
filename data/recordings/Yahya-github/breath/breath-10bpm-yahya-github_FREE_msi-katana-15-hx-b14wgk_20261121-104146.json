@@ -1,0 +1,40 @@
+{
+  "person": "yahya-github",
+  "gesture": "FREE",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "breath 10bpm, paced 10 bpm, laptop 30-40 cm from chest, screen angled at torso",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 0,
+      "end": 10240,
+      "label": "FREE"
+    }
+  ],
+  "createdAt": "2026-11-21T10:41:46-05:00",
+  "breath": {
+    "take": "10bpm",
+    "paced_bpm": 10,
+    "hold": null,
+    "inhale_starts_s": [
+      0,
+      6,
+      12,
+      18,
+      24,
+      30,
+      36,
+      42,
+      48,
+      54,
+      60
+    ]
+  },
+  "corrected": {
+    "person": "yahya",
+    "laptop": "ian-mbp",
+    "reason": "the recording form defaulted to Ian's MacBook; this take is Yahya on the MSI Katana 15 HX B14WGK, speaker volume 300% (wpctl)"
+  }
+}

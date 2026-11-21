@@ -33,9 +33,17 @@ class Session:
     meta: dict[str, Any]
 
 
+#: Folders that hold other experiments' recordings (the breathing takes), not gesture sessions.
+NON_GESTURE_FOLDERS = frozenset({"breath"})
+
+
 def find_sessions(root: Path) -> list[Path]:
-    """Every <name>.json under root that has a sibling <name>.wav, in a stable order."""
-    return sorted(p for p in root.rglob("*.json") if p.with_suffix(".wav").exists())
+    """Every <name>.json under root that has a sibling <name>.wav, in a stable order. Breathing takes are skipped."""
+    return sorted(
+        p
+        for p in root.rglob("*.json")
+        if p.with_suffix(".wav").exists() and not NON_GESTURE_FOLDERS & set(p.relative_to(root).parts[:-1])
+    )
 
 
 def load_session(json_path: Path) -> Session:

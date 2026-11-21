@@ -85,6 +85,12 @@ class TestSessions:
         orphan.write_text("{}")
         assert find_sessions(tmp_path) == [good]
 
+    def test_breathing_takes_are_not_gesture_sessions(self, tmp_path: Path):
+        # data/recordings/<person>/breath/ holds the breathing experiment (ml/breathing.py); it is not gesture training data
+        good = write_session(tmp_path, "ian", tone(1.0), [])
+        write_session(tmp_path / "ian" / "breath", "ian", tone(1.0), [])
+        assert find_sessions(tmp_path) == [good]
+
     def test_loads_pcm16_as_floats_with_the_metadata(self, tmp_path: Path):
         path = write_session(tmp_path, "ian", tone(1.0), [{"start": 6000, "end": 12000, "label": "PUSH"}])
         s = load_session(path)

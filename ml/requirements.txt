@@ -4,3 +4,4 @@ soundfile
 torch
 onnx
 scikit-learn
+matplotlib
