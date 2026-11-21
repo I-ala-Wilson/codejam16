@@ -1,14 +1,15 @@
 # Miguel982
 
 ## Now
-- Expanded issue #8 deployment.
-- Temporary Vercel preview works; next step is human Vercel authentication/claim for a persistent URL, then final phone smoke test.
+- Expanded issue #8 is complete and deployed.
+- Next: phone smoke test the production dashboard, then proceed with the next assigned issue or board instruction.
 
 ## Done
 - WSL setup, GitHub authentication, sync, and recovery completed.
 - SPEC v1 ACKed; ownership is `backend/*` and `dashboard/*`.
 - Issue #4: events schema, realtime publication, RLS, anon SELECT/INSERT grants, and HTTP 201 live acceptance.
 - Issue #8: dashboard loads the latest 50 events, receives realtime inserts, and implements the expanded caregiver display (HELP takeover/beep/cancel, inactivity, 60-sample activity strip, filtered feed, phone styling); live HELP delivered in 421 ms.
+- Production dashboard: https://dashboard-pi-six-14.vercel.app
 
 ## How to run my lane
 - Backend: execute `backend/schema.sql` in the Supabase SQL editor.
