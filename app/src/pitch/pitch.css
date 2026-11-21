@@ -13,7 +13,6 @@
 .pz__stat { border-top: 1px dotted var(--ink); padding-top: 22px; }
 .pz__big { font-size: 76px; line-height: .9; color: var(--ink-strong); white-space: nowrap; }
 .pz__label { font-size: 23px; line-height: 1.25; margin-top: 16px; max-width: 32ch; }
-.pz__note { font-size: 19px; letter-spacing: .04em; text-transform: uppercase; margin-top: 12px; max-width: 40ch; }
 .pz__small { font-size: 19px; line-height: 1.3; margin: 48px 0 0; max-width: 90ch; border-top: 1px dotted var(--ink); padding-top: 16px; }
 
 .pz--close { text-align: center; padding-top: 72px; padding-bottom: 80px; }
@@ -28,9 +27,6 @@
 }
 
 .pz__cards--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.pz__compute { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: baseline; margin-top: 48px; border-top: 1px dotted var(--ink); padding-top: 18px; font-size: 23px; }
-.pz__compute b { font-weight: 400; color: var(--ink-strong); background: var(--ink); color: var(--bg); padding: 0 5px; }
-.pz__computehead { font-size: 20px; letter-spacing: .08em; text-transform: uppercase; }
 @media (max-width: 1200px) { .pz__cards--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .pz__cards--4 { grid-template-columns: 1fr; } }
 
@@ -44,6 +40,7 @@
 .pz__tags { display: flex; gap: 10px; margin-bottom: 18px; }
 .pz__tags span { font-size: 20px; letter-spacing: .08em; text-transform: uppercase; background: var(--ink); color: var(--bg); padding: 1px 8px; }
 .pz__split { display: grid; grid-template-columns: minmax(320px, 1fr) 1.4fr; gap: 64px; align-items: start; }
+.pz__stats--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .pz__stats--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 32px; }
 .pz__gestures { list-style: none; padding: 0; margin: 0 0 28px; display: grid; gap: 10px; }
 .pz__gestures li { display: flex; gap: 16px; align-items: baseline; font-size: 23px; border-bottom: 1px dotted var(--ink); padding-bottom: 8px; }
@@ -72,6 +69,7 @@
 @media (max-width: 900px) {
   .pz__split { grid-template-columns: 1fr; gap: 32px; }
   .pz__stats--2 { grid-template-columns: 1fr; gap: 20px; }
+  .pz__stats--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
   .pz__big { font-size: 60px; }
   .pz__split > * { min-width: 0; }
   .pz__chrome { padding: 36px 8% 52px; }
