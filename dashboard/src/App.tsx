@@ -135,7 +135,7 @@ export default function App() {
 
   return (
     <>
-      <Window title="Echo caregiver dashboard">
+      <Window title="ECHØ caregiver dashboard">
         <div className="dashboard-status" aria-live="polite">
           <span className="dashboard-status__dot" /> Live · {events.length} recent events
         </div>
