@@ -2,7 +2,7 @@
 
 ## Now
 - CARE communication board in `app/src/Care.tsx`, `app/src/Caregiver.tsx`, `app/src/care/*`, and `dashboard/*`.
-- Next: implement PAIN/YES/NO/cancelled per the updated event contract while Michael records the 14 Dell gesture takes.
+- Next: implement PAIN/YES/NO/cancelled per the updated event contract.
 
 ## Done
 - WSL setup, GitHub authentication, sync, and recovery completed.
@@ -11,6 +11,7 @@
 - Issue #8: dashboard loads the latest 50 events, receives realtime inserts, and implements the expanded caregiver display (HELP takeover/beep/cancel, inactivity, 60-sample activity strip, filtered feed, phone styling); live HELP delivered in 421 ms.
 - Production dashboard: https://dashboard-pi-six-14.vercel.app
 - Five Dell breathing takes validated as mono 16-bit PCM at 48 kHz and pushed under `data/recordings/Miguel982/breath/`.
+- Fourteen Dell gesture takes validated and prepared under `data/recordings/Miguel982/battery1/` for Yahya's dataset audit.
 
 ## How to run my lane
 - Backend: execute `backend/schema.sql` in the Supabase SQL editor.
@@ -22,4 +23,4 @@
 - Anonymous users may INSERT and SELECT events only; no UPDATE or DELETE policies.
 
 ## Waiting on
-- Michael: finish and download the separate 14-take Dell gesture battery before 13:00 Toronto.
+- Yahya: audit the pushed Dell gesture battery; CARE live test follows the implementation push.
