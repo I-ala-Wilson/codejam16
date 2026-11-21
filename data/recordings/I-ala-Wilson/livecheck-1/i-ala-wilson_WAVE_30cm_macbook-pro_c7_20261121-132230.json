@@ -1,0 +1,83 @@
+{
+  "person": "I-ala-wilson",
+  "gesture": "WAVE",
+  "laptop": "macbook-pro",
+  "note": "livecheck-1: WAVE at 30 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 264384,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 335872,
+      "end": 455872,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 528384,
+      "end": 648384,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 720896,
+      "end": 840896,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 912384,
+      "end": 1032384,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1104896,
+      "end": 1224896,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1297408,
+      "end": 1417408,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1488896,
+      "end": 1608896,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1681408,
+      "end": 1801408,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1872896,
+      "end": 1992896,
+      "label": "WAVE",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T13:22:30-05:00",
+  "takeKind": "gesture",
+  "battery": "calib",
+  "distanceCm": 30,
+  "cueWindowMs": 2500,
+  "periodMs": 4000,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "L",
+  "volumePct": 70,
+  "laptopModel": "Macbook Pro",
+  "protocol": "ml/PROTOCOL.md"
+}
