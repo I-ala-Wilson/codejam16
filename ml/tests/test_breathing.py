@@ -384,7 +384,7 @@ class TestQualityGate:
 
     def test_rejected_takes_are_listed_with_their_reason_in_the_summary(self, tmp_path):
         write_take(tmp_path / "takes", synth_audio(15, 2.0, seconds=60.0, snr_db=25.0), {"paced_bpm": 15}, name="good")
-        write_take(tmp_path / "takes", with_gain(synth_audio(15, 2.0, seconds=60.0), [(30.0, -20.0)]), name="dead_tone")
+        write_take(tmp_path / "takes", with_gain(synth_audio(15, 2.0, seconds=60.0), [(30.0, -20.0)]), {"paced_bpm": 15}, name="dead_tone")
         out = tmp_path / "out"
         assert main([str(tmp_path / "takes"), "--out", str(out), "--no-plots"]) == 0
         rows = {r["take"]: r for r in json.loads((out / "summary.json").read_text())}
@@ -514,3 +514,51 @@ class TestCli:
 
 def test_the_module_docstring_points_at_the_pre_registered_rule():
     assert "RESULTS.md" in (breathing.__doc__ or "")
+
+
+class TestFindBreathTakes:
+    def write(self, folder: Path, name: str) -> Path:
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / f"{name}.json").write_text("{}")
+        sf.write(folder / f"{name}.wav", np.zeros(100), 48000)
+        return folder / f"{name}.json"
+
+    def test_it_finds_takes_in_breath_folders_of_every_person_and_nothing_else(self, tmp_path: Path):
+        ian = self.write(tmp_path / "Ian" / "breath", "breath-10bpm")
+        yahya = self.write(tmp_path / "Yahya" / "breath", "breath-15bpm")
+        self.write(tmp_path / "Ian", "gesture-take")
+        assert breathing.find_breath_takes(tmp_path) == sorted([ian, yahya])
+
+    def test_a_breath_folder_given_directly_works_too(self, tmp_path: Path):
+        take = self.write(tmp_path / "Ian" / "breath", "breath-10bpm")
+        assert breathing.find_breath_takes(tmp_path / "Ian" / "breath") == [take]
+
+    def test_a_json_without_its_wav_is_ignored(self, tmp_path: Path):
+        folder = tmp_path / "Ian" / "breath"
+        folder.mkdir(parents=True)
+        (folder / "orphan.json").write_text("{}")
+        assert breathing.find_breath_takes(tmp_path) == []
+
+
+class TestTheRecordingAppsRealJsonLayout:
+    """The Breathing takes tab nests its fields under a `breath` key; the first version read them at the top level."""
+
+    NESTED = {"breath": {"take": "hold", "paced_bpm": 15, "hold": [20, 40], "inhale_starts_s": [0, 4, 8, 12, 16, 40, 44, 48, 52, 56, 60]}}
+
+    def test_paced_rate_counted_rate_and_hold_window_are_read_from_the_nested_fields(self, tmp_path: Path):
+        audio = synth_audio(15, 2.0, seconds=60.0, snr_db=25.0)
+        result = breathing.analyze_take(write_take(tmp_path, audio, self.NESTED).with_suffix(".wav"), tmp_path / "ian_BREATH_mbp-ian_20261121-100000.json")
+        assert result["paced_bpm"] == 15
+        assert result["counted_bpm"] is not None
+        assert result["hold_window_s"] == (20.0, 40.0) or list(result["hold_window_s"]) == [20.0, 40.0]
+
+    def test_a_null_hold_in_the_nested_fields_means_no_hold(self, tmp_path: Path):
+        audio = synth_audio(10, 2.0, seconds=60.0, snr_db=25.0)
+        nested = {"breath": {"take": "10bpm", "paced_bpm": 10, "hold": None, "inhale_starts_s": [0, 6, 12]}}
+        result = breathing.analyze_take(write_take(tmp_path, audio, nested).with_suffix(".wav"), tmp_path / "ian_BREATH_mbp-ian_20261121-100000.json")
+        assert result["paced_bpm"] == 10 and result["hold_window_s"] is None
+
+    def test_takes_are_found_by_their_breath_metadata_wherever_they_sit(self, tmp_path: Path):
+        found = write_take(tmp_path / "anywhere", synth_audio(15, 2.0, seconds=40.0, snr_db=25.0), self.NESTED, name="a")
+        write_take(tmp_path / "gestures", synth_audio(15, 2.0, seconds=40.0, snr_db=25.0), None, name="b")  # no breathing metadata
+        assert breathing.find_breath_takes(tmp_path) == [found]

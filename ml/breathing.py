@@ -20,7 +20,6 @@ import numpy as np
 import soundfile as sf
 from scipy import signal as sp
 
-from data import find_sessions
 
 #: Breathing band: 6 to 42 breaths per minute.
 BAND_HZ = (0.1, 0.7)
@@ -305,7 +304,7 @@ def analyze_take(wav_path: Path, json_path: Path) -> dict[str, Any]:
 
     paced_bpm, inhale_starts_s and the hold window are read only to be reported next to the estimate (and to leave hold
     windows out of the median); the demodulation bin and the rates are computed without them."""
-    meta = json.loads(json_path.read_text())
+    meta = _flatten_breath(json.loads(json_path.read_text()))
     samples, sample_rate = _read_mono(wav_path, int(meta["sampleRate"]))
     tone_hz = float(meta["toneHz"])
     times, levels = tone_level_db(samples, sample_rate, tone_hz)
@@ -442,13 +441,38 @@ def summary_table(rows: list[dict[str, Any]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _flatten_breath(meta: dict[str, Any]) -> dict[str, Any]:
+    """The Breathing takes tab keeps paced_bpm, hold and inhale_starts_s in a nested `breath` object; the readers above look
+    at the top level, so the nested fields are lifted up (a take without that object is returned unchanged)."""
+    nested = meta.get("breath")
+    return {**meta, **nested} if isinstance(nested, dict) else meta
+
+
+def _is_breath_take(json_path: Path) -> bool:
+    """In a `breath` folder, or its metadata says so (a `breath` object or a paced_bpm)."""
+    if "breath" in json_path.parts:
+        return True
+    try:
+        meta = json.loads(json_path.read_text())
+    except (OSError, ValueError):
+        return False
+    return isinstance(meta, dict) and ("breath" in meta or "paced_bpm" in meta)
+
+
+def find_breath_takes(root: Path) -> list[Path]:
+    """Every <name>.json with a sibling <name>.wav under (or at) root that is a breathing take, in a stable order.
+
+    The gesture loader (data.find_sessions) skips `breath` folders on purpose, so the breathing experiment finds its own."""
+    return sorted(p for p in root.rglob("*.json") if p.with_suffix(".wav").exists() and _is_breath_take(p))
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("path", type=Path, help="a recording .json, or a folder searched for <name>.json + <name>.wav")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--no-plots", action="store_true", help="write the summary only (no matplotlib needed)")
     args = parser.parse_args(argv)
-    json_paths = [args.path] if args.path.is_file() else find_sessions(args.path)
+    json_paths = [args.path] if args.path.is_file() else find_breath_takes(args.path)
     if not json_paths:
         print(f"no recordings (<name>.json with a <name>.wav) under {args.path}", file=sys.stderr)
         return 1
