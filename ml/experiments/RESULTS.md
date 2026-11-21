@@ -561,3 +561,12 @@ file, Ian's model and every default stay untouched.
 So rule (a) is met on recall and missed by 2% on false alarms; rules (b) and (c) passed and Ian shipped it (d21f1c7). The model learns from
 calibration takes of the three demo-laptop people, so LOPO (which hides each person's own takes) understates how it behaves with the
 calibration it was built for. Files: `ml/experiments/retrain_calib_three/`.
+
+Result `calib-yahya` (pooled, Yahya calib-1 x5; trained 224 s, 111061 windows; Sat 21 Nov about 17:00). Held-out Katana takes, cue recall:
+| take set | shipped calib-three | calib-yahya |
+|---|---|---|
+| livecheck-1 (4 takes, 10 cues each) | PUSH 90, PULL 50, UNDO 30, WAVE 100 | PUSH 100, PULL 70, UNDO 80, WAVE 100 |
+| 15:25 live UNDO take (10 cues) | UNDO about 10 (probability peaks 0.02-0.83 under the 0.95 threshold) | UNDO 50 |
+Misses of calib-yahya: PULL read as PUSH 3, UNDO read as WAVE 2. Success rule (70% per class on livecheck-1): MET for PUSH, PULL (exactly 70),
+UNDO and WAVE. NOT MEASURABLE on held-out data: OPEN_CLOSE (livecheck-1 has no OPEN_CLOSE cue) and idle false alarms (no idle-only held-out
+take). 10 cues per class means about +-15 points of noise. Candidate only: `ml/models/candidates/calib-yahya`, nothing shared changes.
