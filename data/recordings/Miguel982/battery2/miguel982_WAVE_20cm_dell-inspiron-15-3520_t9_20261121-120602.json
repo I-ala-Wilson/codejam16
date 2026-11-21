@@ -1,0 +1,143 @@
+{
+  "person": "Miguel982",
+  "gesture": "WAVE",
+  "laptop": "dell-inspiron-15-3520",
+  "note": "WAVE at 20 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 264384,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 336896,
+      "end": 456896,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 529408,
+      "end": 649408,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 720896,
+      "end": 840896,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 914432,
+      "end": 1034432,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1105920,
+      "end": 1225920,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1298432,
+      "end": 1418432,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1490944,
+      "end": 1610944,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1683456,
+      "end": 1803456,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1874944,
+      "end": 1994944,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2068480,
+      "end": 2188480,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 2260992,
+      "end": 2380992,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2453504,
+      "end": 2573504,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 2646016,
+      "end": 2766016,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2838528,
+      "end": 2958528,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3031040,
+      "end": 3151040,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3223552,
+      "end": 3343552,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3416064,
+      "end": 3536064,
+      "label": "WAVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3608576,
+      "end": 3728576,
+      "label": "WAVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3800064,
+      "end": 3920064,
+      "label": "WAVE",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T12:06:02-05:00",
+  "takeKind": "gesture",
+  "battery": "main",
+  "distanceCm": 20,
+  "cueWindowMs": 2500,
+  "periodMs": 4000,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "L",
+  "volumePct": 100,
+  "laptopModel": "Dell Inspiron 15 3520",
+  "protocol": "ml/PROTOCOL.md"
+}

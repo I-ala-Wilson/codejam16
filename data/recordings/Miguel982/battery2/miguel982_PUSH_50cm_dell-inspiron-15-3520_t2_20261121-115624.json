@@ -1,0 +1,143 @@
+{
+  "person": "Miguel982",
+  "gesture": "PUSH",
+  "laptop": "dell-inspiron-15-3520",
+  "note": "PUSH at 50 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 216384,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 288768,
+      "end": 360768,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 434176,
+      "end": 506176,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 578560,
+      "end": 650560,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 722944,
+      "end": 794944,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 867328,
+      "end": 939328,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 1011712,
+      "end": 1083712,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 1156096,
+      "end": 1228096,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 1300480,
+      "end": 1372480,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 1444864,
+      "end": 1516864,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 1590272,
+      "end": 1662272,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 1734656,
+      "end": 1806656,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 1879040,
+      "end": 1951040,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 2024448,
+      "end": 2096448,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 2168832,
+      "end": 2240832,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 2313216,
+      "end": 2385216,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 2457600,
+      "end": 2529600,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 2601984,
+      "end": 2673984,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 2746368,
+      "end": 2818368,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 2891776,
+      "end": 2963776,
+      "label": "PUSH",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T11:56:24-05:00",
+  "takeKind": "gesture",
+  "battery": "main",
+  "distanceCm": 50,
+  "cueWindowMs": 1500,
+  "periodMs": 3000,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "L",
+  "volumePct": 100,
+  "laptopModel": "Dell Inspiron 15 3520",
+  "protocol": "ml/PROTOCOL.md"
+}
