@@ -19,7 +19,7 @@ Categories said out loud: Health (Care), Touch Grass + Undo (Lock), Undo (Habit)
 ## 3. How the sonar works
 - The speaker plays a 20 kHz tone that's too high to hear.
 - A moving hand bounces it back slightly shifted (the Doppler effect): toward = higher, away = lower.
-- The mic hears that shift, and a small model turns it into gestures: push, pull, wave, hold, open/close, undo.
+- The mic hears that shift, and a small model turns it into five gestures (push, pull, wave, open/close, undo), plus a Habit mode that notices scratching.
 - No camera, no image, works in the dark, runs in the browser on the laptop you already have.
 - Visual: the live dithered waterfall with a hand streak.
 
@@ -37,6 +37,6 @@ Categories said out loud: Health (Care), Touch Grass + Undo (Lock), Undo (Habit)
 
 ## 6. How we built it, honest limits, the team
 - **Agent:** 4 humans and 5 AI agents (three Claude Code, one QA, one Codex) on one GitHub issue board. Git hooks enforced folder ownership, and every agent acknowledged each new spec version.
-- **Limits:** a brand-new person gets about 1 in 2 gestures right today, better after 5 minutes of calibration. PUSH and PULL still get confused at times.
+- **Limits:** a brand-new person gets about 45% of gestures right (5 people, 3 laptop models). On a presenter's own laptop with a few minutes of their own recordings it reaches about 71-77%. Habit caught 6 of 7 scratches live, but only about 22% on people the model never saw. PUSH and PULL still get confused at times.
 - Team: Ian (lead, app, Chrome extension, integration), Yahya (sonar engine and ML model), EJ (UI, Habit, pitch, dataset), Michael (Supabase backend and caregiver dashboard).
 - Close: "Your laptop can hear your hands."

@@ -7,7 +7,7 @@ Categories: Health, Touch Grass, Undo, People First, Agent.
 Cameras hit three walls. They aren't allowed in patient rooms or bathrooms, they fail in the dark, and they record you. Yet those are exactly the places where hands-free help matters most. Every laptop already has a speaker and a microphone, so we asked whether sound could do the job instead. It fixes all three: no image, works in the dark, allowed anywhere.
 
 ## What it does
-ECHØ turns any laptop into sonar. The speaker plays a 20 kHz tone that's too high to hear. A hand moving toward the screen bounces the tone back slightly higher, and a hand moving away bounces it back lower (the Doppler effect). The mic picks up that shift, and a small model turns it into gestures: push, pull, wave, hold, open/close and undo.
+ECHØ turns any laptop into sonar. The speaker plays a 20 kHz tone that's too high to hear. A hand moving toward the screen bounces the tone back slightly higher, and a hand moving away bounces it back lower (the Doppler effect). The mic picks up that shift, and a small model turns it into five gestures: push, pull, wave, open/close and undo. A separate Habit mode listens for repeated hand motion like scratching.
 
 One engine powers three apps:
 - **Care (Health):** a hands-free help call for hospital beds and bathrooms, where cameras aren't allowed, and for people who can't easily speak or reach a call button.
@@ -28,7 +28,7 @@ Ultrasound behaves differently on every laptop, so we tested each of ours. Telli
 Hand sensing with no camera on an ordinary laptop, shared by three apps. A team of four humans and five agents kept one spec in sync from start to finish.
 
 ## What we learned
-A speaker and a mic make a surprisingly capable sensor. Being honest about our numbers makes the project more convincing, not less: today a brand-new person gets about 1 in 2 gestures right, and that improves after 5 minutes of calibration.
+A speaker and a mic make a surprisingly capable sensor. Being honest about our numbers makes the project more convincing, not less: on people the model has never seen it gets about 45% of gestures right, and on our presenter's MacBook Pro it goes from 66% to 71% with about 5 minutes of his own recordings (77% with more). Habit is weaker: it caught 6 of 7 scratches in a live test but about 22% on unseen people.
 
 ## What's next for ECHØ
 Fix the PUSH/PULL confusion by retraining on more data, raise accuracy for new users, and grow Care's hand-sign vocabulary.
