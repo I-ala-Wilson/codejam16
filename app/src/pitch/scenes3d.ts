@@ -8,32 +8,47 @@ const INK = '#f2f2f0'
 const WHITE = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.05 })
 const GREY = new THREE.MeshStandardMaterial({ color: 0x8a8a8a, roughness: 0.6 })
 const DARK = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.7 })
+const SCREEN = new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0x6a6a6a, roughness: 0.3 })
 
 type Build = { scene: THREE.Scene; camera: THREE.PerspectiveCamera; update: (t: number) => void; anchors?: Record<string, THREE.Object3D> }
 type At = (name: string, dy?: number) => [number, number]
 
-function make3D(build: () => Build, overlay: (g: CanvasRenderingContext2D, at: At) => void): Scene {
-  let r: { renderer: THREE.WebGLRenderer; b: Build } | null = null
+// ONE WebGL context for every tile: each draw renders and is copied out immediately, so the tiles take turns.
+// Separate contexts (plus dev hot reloads) pushed Chrome past its context limit and it killed the 3D explainer.
+let renderer: THREE.WebGLRenderer | null = null
+function shared(): THREE.WebGLRenderer {
+  if (!renderer) {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true })
+    renderer.setSize(480, 240, false)
+    renderer.setClearColor(0x000000, 1)
+  }
+  return renderer
+}
+if (import.meta.hot) import.meta.hot.dispose(() => { renderer?.dispose(); renderer?.forceContextLoss(); renderer = null })
+
+function make3D(
+  build: () => Build,
+  overlay: (g: CanvasRenderingContext2D, at: At) => void,
+  paint?: (g: CanvasRenderingContext2D, at: At, t: number) => void,
+): Scene {
+  let r: { b: Build } | null = null
+  const v = new THREE.Vector3()
+  // anchors are projected into DitherCanvas's 640 x 320 design space, so 2D marks follow the 3D objects
+  const at: At = (name, dy = 0) => {
+    r!.b.anchors![name].getWorldPosition(v).project(r!.b.camera)
+    return [(v.x + 1) / 2 * DW, (1 - v.y) / 2 * DH + dy]
+  }
   return {
     draw(g, t) {
-      if (!r) {
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true })
-        renderer.setSize(480, 240, false)
-        renderer.setClearColor(0x000000, 1)
-        r = { renderer, b: build() }
-      }
+      if (!r) r = { b: build() }
+      const renderer = shared()
       r.b.update(t)
-      r.renderer.render(r.b.scene, r.b.camera)
-      g.drawImage(r.renderer.domElement, 0, 0, DW, DH)
+      renderer.render(r.b.scene, r.b.camera)
+      g.drawImage(renderer.domElement, 0, 0, DW, DH)
+      paint?.(g, at, t)
     },
     overlay(g) {
       if (!r) return
-      const b = r.b, v = new THREE.Vector3()
-      // labels follow the 3D objects: project the anchor into the 640 x 320 design space
-      const at: At = (name, dy = 0) => {
-        b.anchors![name].getWorldPosition(v).project(b.camera)
-        return [(v.x + 1) / 2 * DW, (1 - v.y) / 2 * DH + dy]
-      }
       overlay(g, at)
     },
   }
@@ -78,30 +93,9 @@ function laptop(open = 1.85): THREE.Group {
   const keys = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.01, 0.75), GREY); keys.position.set(0, 0.045, -0.15); g.add(keys)
   const hinge = new THREE.Group(); hinge.position.set(0, 0.04, -0.67); g.add(hinge)
   const lid = new THREE.Mesh(new THREE.BoxGeometry(2, 1.3, 0.05), WHITE); lid.position.y = 0.65; hinge.add(lid)
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.1), DARK); screen.position.set(0, 0.65, 0.03); hinge.add(screen)
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.1), SCREEN); screen.position.set(0, 0.65, 0.03); hinge.add(screen)
   hinge.rotation.x = -(open - Math.PI / 2)
   return g
-}
-
-/** Expanding sound shells: thin rings that grow outward from a point and fade, like the explainer's waves. */
-function shells(n: number, dir: THREE.Vector3): { group: THREE.Group; update: (t: number) => void } {
-  const group = new THREE.Group()
-  const rings: THREE.Mesh[] = []
-  for (let i = 0; i < n; i++) {
-    const m = new THREE.Mesh(new THREE.TorusGeometry(1, 0.022, 6, 96), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true }))
-    m.lookAt(dir)
-    group.add(m); rings.push(m)
-  }
-  return {
-    group,
-    update(t) {
-      rings.forEach((m, i) => {
-        const p = (t * 0.55 + i / n) % 1
-        m.scale.setScalar(0.2 + p * 1.4)
-        ;(m.material as THREE.MeshBasicMaterial).opacity = 1 - p
-      })
-    },
-  }
 }
 
 export const costTile3D = make3D(() => {
@@ -136,21 +130,31 @@ export const privacyTile3D = make3D(() => {
 })
 
 export const darkTile3D = make3D(() => {
-  // the room is dark: the laptop is barely lit, and only its sound is bright
-  const scene = stage(0.35), camera = cam()
-  const lap = laptop(); lap.scale.setScalar(1.05); lap.position.set(0.3, -1.1, 0); scene.add(lap)
-  const s = shells(3, new THREE.Vector3(0, 1.1, 6.6)); s.group.position.set(0.3, -0.15, 0.2); scene.add(s.group)
+  // a dark room: the laptop is lit only by its own screen and a faint key light; the sound is the brightest thing
+  const scene = stage(0.6), camera = cam()
+  const lap = laptop(); lap.scale.setScalar(1.15); lap.position.set(0.55, -1.05, 0); scene.add(lap)
+  const glow = new THREE.PointLight(0xffffff, 6, 4); glow.position.set(0.55, -0.2, 0.9); scene.add(glow)
+  const screen = new THREE.Object3D(); screen.position.set(0, 0.75, -0.55); lap.add(screen)
   return {
-    scene, camera, anchors: { lap },
-    update(t) {
-      s.update(t)
-      lap.rotation.y = -0.35 + Math.sin(t * 0.4) * 0.2
-    },
+    scene, camera, anchors: { lap, screen },
+    update(t) { lap.rotation.y = -0.75 + Math.sin(t * 0.4) * 0.18 },
   }
 }, (g, at) => {
   const [lx] = at('lap')
-  moon(g, 110, 70, 30)
   label(g, 'LIGHTS OFF, STILL LISTENING', lx, 312)
+}, (g, at, t) => {
+  softMoon(g, 120, 78, 34)
+  // sound leaving the screen: thin arcs fanning toward the viewer, fading as they travel, like the flower's waves
+  const [sx, sy] = at('screen')
+  g.lineCap = 'round'
+  for (let i = 0; i < 4; i++) {
+    const p = (t * 0.45 + i / 4) % 1
+    const rad = 30 + p * 150
+    const a = 1 - p
+    g.strokeStyle = `rgba(255,255,255,${(a * a * 0.9).toFixed(3)})`
+    g.lineWidth = 2.2
+    g.beginPath(); g.arc(sx, sy, rad, Math.PI * 1.08, Math.PI * 1.92); g.stroke()
+  }
 })
 
 function label(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
@@ -162,9 +166,16 @@ function chip(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
   g.fillStyle = INK; g.fillRect(x - w / 2, y - 14, w, 28)
   g.fillStyle = '#000'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(s, x, y + 0.5)
 }
-function moon(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
-  g.fillStyle = INK; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill()
-  g.fillStyle = '#000'; g.beginPath(); g.arc(x + r * 0.45, y - r * 0.25, r * 0.9, 0, Math.PI * 2); g.fill()
+function softMoon(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  const halo = g.createRadialGradient(x, y, r * 0.6, x, y, r * 2.4)
+  halo.addColorStop(0, 'rgba(255,255,255,0.22)'); halo.addColorStop(1, 'rgba(255,255,255,0)')
+  g.fillStyle = halo; g.beginPath(); g.arc(x, y, r * 2.4, 0, Math.PI * 2); g.fill()
+  const body = g.createRadialGradient(x - r * 0.35, y - r * 0.3, r * 0.1, x, y, r)
+  body.addColorStop(0, '#ffffff'); body.addColorStop(1, '#9a9a9a')
+  g.fillStyle = body; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill()
+  const shade = g.createRadialGradient(x + r * 0.5, y - r * 0.2, r * 0.6, x + r * 0.5, y - r * 0.2, r * 1.05)
+  shade.addColorStop(0, '#000000'); shade.addColorStop(1, 'rgba(0,0,0,0)')
+  g.fillStyle = shade; g.beginPath(); g.arc(x + r * 0.5, y - r * 0.2, r * 1.05, 0, Math.PI * 2); g.fill()
 }
 function noSign(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
   g.strokeStyle = INK; g.lineWidth = 9
