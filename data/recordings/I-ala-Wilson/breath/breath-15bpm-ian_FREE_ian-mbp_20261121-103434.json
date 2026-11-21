@@ -1,0 +1,150 @@
+{
+  "person": "ian",
+  "gesture": "FREE",
+  "laptop": "ian-mbp",
+  "note": "breath 15bpm, paced 15 bpm, laptop 30-40 cm from chest, screen angled at torso",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 5120,
+      "end": 16384,
+      "label": "FREE"
+    },
+    {
+      "start": 32768,
+      "end": 68608,
+      "label": "FREE"
+    },
+    {
+      "start": 96256,
+      "end": 164864,
+      "label": "FREE"
+    },
+    {
+      "start": 235520,
+      "end": 259072,
+      "label": "FREE"
+    },
+    {
+      "start": 325632,
+      "end": 327680,
+      "label": "FREE"
+    },
+    {
+      "start": 344064,
+      "end": 353280,
+      "label": "FREE"
+    },
+    {
+      "start": 979968,
+      "end": 984064,
+      "label": "FREE"
+    },
+    {
+      "start": 1055744,
+      "end": 1076224,
+      "label": "FREE"
+    },
+    {
+      "start": 1091584,
+      "end": 1133568,
+      "label": "FREE"
+    },
+    {
+      "start": 1163264,
+      "end": 1182720,
+      "label": "FREE"
+    },
+    {
+      "start": 1202176,
+      "end": 1241088,
+      "label": "FREE"
+    },
+    {
+      "start": 1333248,
+      "end": 1356800,
+      "label": "FREE"
+    },
+    {
+      "start": 1393664,
+      "end": 1399808,
+      "label": "FREE"
+    },
+    {
+      "start": 1510400,
+      "end": 1516544,
+      "label": "FREE"
+    },
+    {
+      "start": 1863680,
+      "end": 1879040,
+      "label": "FREE"
+    },
+    {
+      "start": 1896448,
+      "end": 1925120,
+      "label": "FREE"
+    },
+    {
+      "start": 1963008,
+      "end": 1973248,
+      "label": "FREE"
+    },
+    {
+      "start": 2277376,
+      "end": 2280448,
+      "label": "FREE"
+    },
+    {
+      "start": 2360320,
+      "end": 2367488,
+      "label": "FREE"
+    },
+    {
+      "start": 2525184,
+      "end": 2528256,
+      "label": "FREE"
+    },
+    {
+      "start": 2644992,
+      "end": 2651136,
+      "label": "FREE"
+    },
+    {
+      "start": 2761728,
+      "end": 2764800,
+      "label": "FREE"
+    },
+    {
+      "start": 2842624,
+      "end": 2874368,
+      "label": "FREE"
+    }
+  ],
+  "createdAt": "2026-11-21T10:34:34-05:00",
+  "breath": {
+    "take": "15bpm",
+    "paced_bpm": 15,
+    "hold": null,
+    "inhale_starts_s": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      20,
+      24,
+      28,
+      32,
+      36,
+      40,
+      44,
+      48,
+      52,
+      56,
+      60
+    ]
+  }
+}
