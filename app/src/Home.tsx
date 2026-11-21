@@ -30,7 +30,6 @@ export default function Home({ go }: { go: (page: string) => void }) {
         <button className="dot-btn" onClick={() => go('habit-app')}>Habit</button>
         {error && <span className="mono-label">{error}</span>}
       </div>
-      <div className="home__more">scroll · how it works</div>
       </section>
       <section className="home__how">
         <Explainer embedded>
