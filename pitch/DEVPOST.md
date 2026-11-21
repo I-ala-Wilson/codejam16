@@ -1,11 +1,11 @@
-# ECHO Ø (Echo Null): Devpost draft
+# ECHØ: Devpost draft
 **Your laptop can hear your hands.**
 
 ## Inspiration
 Gesture control usually means a camera watching you or special hardware. Cameras feel invasive, they fail in the dark, and they don't belong in a bedroom or a hospital room. People who can't easily touch a device or speak, and anyone who wants privacy, get left out. Every laptop already has a speaker and a microphone, so we asked whether that's enough to hear a hand move.
 
 ## What it does
-ECHO Ø turns any laptop into sonar. The speaker plays a 20 kHz tone that's too high to hear. A hand moving toward the screen bounces the tone back slightly higher, and a hand moving away bounces it back lower (the Doppler effect). The mic picks up that shift, and a small model turns it into gestures: push, pull, wave, hold, open/close and undo. There's no camera, it works in the dark, and it's free on any laptop, running in the browser.
+ECHØ turns any laptop into sonar. The speaker plays a 20 kHz tone that's too high to hear. A hand moving toward the screen bounces the tone back slightly higher, and a hand moving away bounces it back lower (the Doppler effect). The mic picks up that shift, and a small model turns it into gestures: push, pull, wave, hold, open/close and undo. There's no camera, it works in the dark, and it's free on any laptop, running in the browser.
 
 One engine powers three apps:
 - **Lock:** a secret hand-sign password for the sites you choose. A blocked site looks like an ordinary "This site can't be reached" page. Do your 4 hand signs and it opens. Only tiny dots show your progress, so nobody watching learns the code.
@@ -26,5 +26,5 @@ Hand sensing with no camera on an ordinary laptop, shared by three different app
 ## What we learned
 A speaker and a mic make a surprisingly capable sensor. Being honest about our numbers makes the project more convincing, not less: today a brand-new person gets about 1 in 2 gestures right, and that improves after 5 minutes of calibration.
 
-## What's next for ECHO Ø
+## What's next for ECHØ
 Fix the PUSH/PULL confusion by retraining on more data, raise accuracy for new users, and grow Care's hand-sign vocabulary.

@@ -1,11 +1,11 @@
-# ECHO Ø (Echo Null): 6-slide outline
+# ECHØ: 6-slide outline
 
 Look: charcoal #1e1f21, VT323, off-white ink, dotted rules, the dithered flower on slide 1 only.
 
 ---
 
 ## 1. Your laptop can hear your hands.
-- ECHO Ø turns any laptop into sonar.
+- ECHØ turns any laptop into sonar.
 - Visual: the dithered sound flower (Home page), title in VT323.
 - Say: "No camera, no extra hardware. Just the speaker and mic you already have."
 
