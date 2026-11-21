@@ -9,8 +9,10 @@ import { engine } from '../engine.ts'
 const REF_W = 1920, REF_H = 1080
 const STEM_X = 952, STEM_Y = 1080
 const HEAD_X = 955, HEAD_Y = 520 // centre of the bloom in the reference
-const ARC_LIFE = 1.4 // s a petal sound wave lives
-const ARC_REACH = 74 // reference px it travels before it fades
+const BINS = 72 // directions around the bloom with their own wave level
+const WAVE_REACH = 70 // reference px the waves travel out from the petals
+const WAVE_LAMBDA = 16 // reference px between wavefronts at rest
+const WAVE_SPEED = 34 // reference px per second the fronts travel outward
 const SHIFT_X = 0.16 // flower sits right of centre, clear of the headline
 const BLUR = 2 // px radius of each of the two box-blur passes, just enough to dissolve the digit shapes
 const GAIN = 1.25 // dither density tracks the reference's own ink coverage, so the tone matches it
@@ -69,6 +71,21 @@ function buildField(img: HTMLImageElement, W: number, H: number) {
     if (x < left) left = x
     if (x > right) right = x
   }
+  // distance (px) from every outside pixel to the petals' silhouette, so sound waves can follow each petal's outline
+  const INF = 1e9, dist = new Float32Array(W * H)
+  for (let p = 0; p < W * H; p++) dist[p] = a[p] > 0.16 ? 0 : INF
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const p = y * W + x; let d = dist[p]
+    if (x > 0) d = Math.min(d, dist[p - 1] + 1)
+    if (y > 0) { d = Math.min(d, dist[p - W] + 1); if (x > 0) d = Math.min(d, dist[p - W - 1] + 1.414); if (x < W - 1) d = Math.min(d, dist[p - W + 1] + 1.414) }
+    dist[p] = d
+  }
+  for (let y = H - 1; y >= 0; y--) for (let x = W - 1; x >= 0; x--) {
+    const p = y * W + x; let d = dist[p]
+    if (x < W - 1) d = Math.min(d, dist[p + 1] + 1)
+    if (y < H - 1) { d = Math.min(d, dist[p + W] + 1); if (x < W - 1) d = Math.min(d, dist[p + W + 1] + 1.414); if (x > 0) d = Math.min(d, dist[p + W - 1] + 1.414) }
+    dist[p] = d
+  }
   // points on the outer edge of the petals, found by marching out from the bloom centre at 72 angles
   const cx = ox + HEAD_X * s, cy = oy + HEAD_Y * s
   const edges: { x: number; y: number; nx: number; ny: number }[] = []
@@ -83,7 +100,7 @@ function buildField(img: HTMLImageElement, W: number, H: number) {
     }
     if (last > 40 * s) edges.push({ x: cx + nx * last, y: cy + ny * last, nx, ny })
   }
-  return { W, H, v: a, s, ox, oy, top, bottom, left, right, edges }
+  return { W, H, v: a, s, ox, oy, top, bottom, left, right, edges, dist, cx, cy }
 }
 
 export default function DitherFlower() {
@@ -104,8 +121,7 @@ export default function DitherFlower() {
     let frame: ImageData | null = null
     let raf = 0, last = 0
     let lastT = 0, lastA = 0
-    const phase: number[] = []
-    const arcs: { x: number; y: number; nx: number; ny: number; t0: number; v: number }[] = []
+    const level = new Float32Array(BINS), phaseB = new Float32Array(BINS), lamB = new Float32Array(BINS).fill(WAVE_LAMBDA)
     const img = new Image()
     img.src = '/art/flower-ref.png'
 
@@ -132,53 +148,48 @@ export default function DitherFlower() {
       const stemX = f.ox + STEM_X * f.s, stemY = f.oy + STEM_Y * f.s, height = 840 * f.s
       const A = (14 * Math.sin(t * 2 * Math.PI / 6) + 3.5 * Math.sin(t * 2 * Math.PI / 2.3 + 1.1)) * f.s
       const pad = Math.ceil(18 * f.s) + 2
-      // Little sound waves peel off the outer petal edges as the flower moves: each edge emits short arcs along its
-      // outward normal, more often (and packed tighter, like Doppler) the faster that edge moves outward. Hand
-      // motion seen by the sonar makes every edge sing a little.
+      // Sound waves hug the petals: each wavefront is a contour line at a growing distance from the flower's outline,
+      // so it follows every petal's shape. Waves are bright where the petals are moving outward (and packed tighter
+      // the faster, like Doppler), faint where they are still; hand motion seen by the sonar lifts them everywhere.
       const dt = Math.min(0.1, Math.max(0.001, t - lastT)); lastT = t
       const vA = (A - lastA) / dt; lastA = A
       const hand = Math.min(1, toward + away)
-      for (let i = 0; i < f.edges.length; i++) {
-        const ep = f.edges[i]
-        const lift = Math.max(0, (stemY - ep.y) / height) ** 1.6
-        const vn = vA * lift * ep.nx // outward speed of this edge, px/s
-        phase[i] = (phase[i] ?? Math.random()) + dt * (Math.max(0, vn) * 0.16 + hand * 1.6 + 0.12)
-        if (phase[i] >= 1) { phase[i] -= 1; arcs.push({ x: ep.x + Math.round(A * lift), y: ep.y, nx: ep.nx, ny: ep.ny, t0: t, v: Math.max(0, vn) }) }
+      for (let k = 0; k < BINS; k++) {
+        const th = (k / BINS) * Math.PI * 2, nx = Math.cos(th), ny = Math.sin(th)
+        const lift = Math.max(0, Math.min(1, (stemY - (f.cy + ny * 160 * f.s)) / height)) ** 1.6
+        const vn = Math.max(0, vA * lift * nx) // outward speed of the petals on this side, px/s
+        const goal = ny > 0.6 ? 0 : Math.min(1, 0.14 + vn * 0.06 + hand * 0.8)
+        level[k] += (goal - level[k]) * Math.min(1, dt * 3)
+        const lam = WAVE_LAMBDA * f.s / (1 + vn * 0.025) // tighter spacing when the edge moves out faster
+        lamB[k] = lam
+        phaseB[k] = (phaseB[k] + dt * WAVE_SPEED * f.s / lam) % 1
       }
-      while (arcs.length && t - arcs[0].t0 > ARC_LIFE) arcs.shift()
-      if (arcs.length > 220) arcs.splice(0, arcs.length - 220)
-      // repaint a margin wide enough to wipe last frame's arcs too
-      const m = Math.ceil(ARC_REACH * f.s + 14)
+      // repaint a margin wide enough to hold the waves
+      const m = Math.ceil(WAVE_REACH * f.s + 6)
       const x0 = Math.max(0, f.left - pad - m), x1 = Math.min(W - 1, f.right + pad + m)
       const y0 = Math.max(0, f.top - m), y1 = Math.min(H - 1, f.bottom)
+      const reach = WAVE_REACH * f.s
       for (let y = y0; y <= y1; y++) {
         const shift = Math.round(A * Math.max(0, (stemY - y) / height) ** 1.6)
         const row = y * W, b = (y & 7) * 8
         for (let x = x0; x <= x1; x++) {
           const sx = x - shift
-          let g = y >= f.top && sx >= 0 && sx < W ? f.v[row + sx] : 0
+          const inside = y >= f.top && sx >= 0 && sx < W
+          let g = inside ? f.v[row + sx] : 0
           if (g > 0) g += 0.25 * (sx < stemX ? toward : away) * g
-          px[row + x] = g > BAYER[b + (x & 7)] ? INK : BG
-        }
-      }
-      const reach = ARC_REACH * f.s + 8
-      for (const a of arcs) {
-        const age = (t - a.t0) / ARC_LIFE, r = 5 + age * reach
-        const bright = 1.1 * (1 - age) ** 1.1
-        const half = 0.5, w = 1.6
-        const bx0 = Math.max(0, Math.floor(a.x - r - 2)), bx1 = Math.min(W - 1, Math.ceil(a.x + r + 2))
-        const by0 = Math.max(0, Math.floor(a.y - r - 2)), by1 = Math.min(H - 1, Math.ceil(a.y + r + 2))
-        for (let y = by0; y <= by1; y++) {
-          const dy = y - a.y, row = y * W, b = (y & 7) * 8
-          for (let x = bx0; x <= bx1; x++) {
-            const dx = x - a.x, d = Math.sqrt(dx * dx + dy * dy)
-            const q = (d - r) / w
-            if (q < -2 || q > 2 || d < 1) continue
-            const cos = (dx * a.nx + dy * a.ny) / d
-            if (cos < Math.cos(half)) continue
-            const g = bright * Math.exp(-q * q)
-            if (g > BAYER[b + (x & 7)]) px[row + x] = INK
+          if (g < 0.16 && sx >= 0 && sx < W) {
+            const d = f.dist[row + sx]
+            if (d > 1.5 && d < reach) {
+              let ang = Math.atan2(y - f.cy, sx - f.cx); if (ang < 0) ang += Math.PI * 2
+              const k = Math.floor((ang / (Math.PI * 2)) * BINS) % BINS
+              const lam = lamB[k], ph = d / lam - phaseB[k]
+              const q = (ph - Math.floor(ph)) * lam // distance behind the nearest front, px
+              const band = Math.exp(-((Math.min(q, lam - q)) ** 2) / 1.3)
+              const wave = level[k] * band * (1 - d / reach) ** 1.3
+              if (wave > g) g = wave
+            }
           }
+          px[row + x] = g > BAYER[b + (x & 7)] ? INK : BG
         }
       }
       ctx.putImageData(frame!, 0, 0)
