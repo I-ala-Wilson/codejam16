@@ -18,9 +18,10 @@ function drawSpectrum(cv: HTMLCanvasElement, df: number) {
   g.setLineDash([2, 3])
   g.beginPath(); g.moveTo(0, base + 0.5); g.lineTo(w, base + 0.5); g.moveTo(x(0) + 0.5, 0); g.lineTo(x(0) + 0.5, base); g.stroke()
   g.setLineDash([])
-  const peak = (hz: number, amp: number, color: string) => {
-    g.strokeStyle = color
+  const peak = (hz: number, amp: number, dashed = false) => {
+    g.strokeStyle = '#f2f2f0'
     g.lineWidth = 2
+    g.setLineDash(dashed ? [4, 3] : [])
     g.beginPath()
     for (let i = 0; i <= w; i++) {
       const f = (i / w) * 2 * SPAN - SPAN
@@ -29,8 +30,9 @@ function drawSpectrum(cv: HTMLCanvasElement, df: number) {
     }
     g.stroke()
   }
-  peak(0, 1, '#f2f2f0')
-  peak(Math.max(-SPAN, Math.min(SPAN, df)), 0.6, '#a8e2ff')
+  peak(0, 1)
+  peak(Math.max(-SPAN, Math.min(SPAN, df)), 0.6, true) // the echo, dashed like its wavefronts
+  g.setLineDash([])
 }
 
 const fmt = (n: number, d: number) => (n >= 0 ? '+' : '-') + Math.abs(n).toFixed(d)

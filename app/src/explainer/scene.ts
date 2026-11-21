@@ -41,7 +41,7 @@ const srgb = (hex: number) => new V(((hex >> 16) & 255) / 255, ((hex >> 8) & 255
 
 const BG = 0x1e1f21
 const INK = 0xf2f2f0
-const ACCENT = 0xa8e2ff
+const ACCENT = INK // no colour accent: echoes are told apart by their dashes
 
 // Each wavefront is an arc band of fixed world thickness, drawn on a quad in the vertical plane of travel.
 const arcVert = /* glsl */ `
@@ -52,12 +52,13 @@ void main() {
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`
 const arcFrag = /* glsl */ `
-uniform vec3 uColor; uniform float uAlpha; uniform float uR; uniform float uHalf;
+uniform vec3 uColor; uniform float uAlpha; uniform float uR; uniform float uHalf; uniform float uDash;
 varying vec2 vP;
 void main() {
   float d = length(vP);
   float ang = abs(atan(vP.x, vP.y));
   float mask = 1.0 - smoothstep(uHalf * 0.55, uHalf, ang);
+  if (uDash > 0.0) mask *= step(0.42, fract(atan(vP.x, vP.y) * uDash));
   float x = (d - uR) / 0.0035;
   float band = exp(-x * x) + 0.22 * exp(-x * x / 16.0);
   float a = uAlpha * band * mask;
@@ -114,10 +115,15 @@ type Wave = { mesh: THREE.Mesh; mat: THREE.ShaderMaterial; on: boolean; t0: numb
 
 const X = new V(1, 0, 0)
 const bx = new V(), bz = new V(), basis = new THREE.Matrix4()
-// Orient a wave quad: local +y along the travel direction, plane as close to facing +x (the side view) as possible.
-function orientArc(m: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3) {
+// Orient a wave quad: local +y along the travel direction, plane turned to face the camera as much as it can, so a
+// wavefront reads as an arc from the side and from the front alike.
+const toEye = new V()
+function orientArc(m: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3, eye: THREE.Vector3) {
   const d = new V().subVectors(to, from).normalize()
-  bz.copy(X).addScaledVector(d, -X.dot(d)).normalize()
+  toEye.subVectors(eye, from).normalize()
+  bz.copy(toEye).addScaledVector(d, -toEye.dot(d))
+  if (bz.lengthSq() < 1e-6) bz.copy(X).addScaledVector(d, -X.dot(d))
+  bz.normalize()
   bx.crossVectors(d, bz)
   m.quaternion.setFromRotationMatrix(basis.makeBasis(bx, d, bz))
 }
@@ -272,9 +278,9 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
 
   // Wavefront pool
   const quad = new THREE.PlaneGeometry(2, 2)
-  const makeWave = (half: number) => {
+  const makeWave = (half: number, dash = 0) => {
     const mat = new THREE.ShaderMaterial({
-      uniforms: { uColor: { value: new V() }, uAlpha: { value: 0 }, uR: { value: 0 }, uHalf: { value: half }, uScale: { value: 1 } },
+      uniforms: { uColor: { value: new V() }, uAlpha: { value: 0 }, uR: { value: 0 }, uHalf: { value: half }, uScale: { value: 1 }, uDash: { value: dash } },
       vertexShader: arcVert, fragmentShader: arcFrag,
       transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
     })
@@ -285,10 +291,10 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     return { mesh, mat, on: false, t0: 0, c: new V(), hit: false, hitR: 0, k: 0 }
   }
   const outs: Wave[] = Array.from({ length: 24 }, () => makeWave(OUT_HALF))
-  const refs: Wave[] = Array.from({ length: 64 }, () => makeWave(REF_HALF))
+  const refs: Wave[] = Array.from({ length: 64 }, () => makeWave(REF_HALF, 9)) // echoes are dashed
   const take = (pool: Wave[]) => pool.find((w) => !w.on) ?? null
   const inkV = srgb(INK)
-  const dimRef = srgb(0x6f8fa6), brightRef = srgb(ACCENT)
+  const dimRef = srgb(0x9a9a98), brightRef = srgb(0xffffff)
 
   // Dither pass
   const rt = new THREE.WebGLRenderTarget(2, 2, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: true })
@@ -333,6 +339,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   }
 
   let gi = 0, gu = 0, simT = 0, camT = 0
+  let camAz = 1.62, camEl = 0.22, camRad = 1.78
   let paused = false, orbit = true, dither = true
   let blendT = 1
   const blendFrom = new V()
@@ -401,7 +408,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       if (a <= 0 || r > 1.5) { w.on = false; w.mesh.visible = false; continue }
       w.mesh.visible = true
       w.mesh.position.copy(S)
-      orientArc(w.mesh, S, Hn)
+      orientArc(w.mesh, S, Hn, camera.position)
       w.mesh.scale.setScalar(r + 0.02)
       w.mat.uniforms.uScale.value = r + 0.02
       w.mat.uniforms.uR.value = r
@@ -415,7 +422,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       if (r >= dist) { w.on = false; w.mesh.visible = false; continue }
       w.mesh.visible = true
       w.mesh.position.copy(w.c)
-      orientArc(w.mesh, w.c, M)
+      orientArc(w.mesh, w.c, M, camera.position)
       w.mesh.scale.setScalar(r + 0.02)
       w.mat.uniforms.uScale.value = r + 0.02
       w.mat.uniforms.uR.value = r
@@ -426,6 +433,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   }
 
   const target = new V(0.03, 0.88, 0.1)
+  const sideTarget = target.clone(), frontTarget = new V(0.03, 0.82, 0.32)
   const label = (el: HTMLElement, p: THREE.Vector3) => {
     const q = p.clone().project(camera)
     el.style.transform = `translate(${((q.x + 1) / 2) * W}px, ${((1 - q.y) / 2) * H}px)`
@@ -438,8 +446,15 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     last = now
     if (!paused && dt > 0) step(dt)
     if (orbit) camT += dt
-    const az = 1.62 + 0.38 * Math.sin((camT * 2 * Math.PI) / 40)
-    const el = 0.22, rad = 1.78
+    // WAVE: swing round to face the person from slightly above, then pan left and right with the hand so the
+    // wavefronts can be followed; every other gesture keeps the slow side orbit.
+    const waving = gi === 3
+    const azGoal = waving ? Math.PI + 0.32 * Math.sin((gu * 2 * Math.PI) / 4) : 1.62 + 0.38 * Math.sin((camT * 2 * Math.PI) / 40)
+    const elGoal = waving ? 0.78 : 0.22, radGoal = waving ? 2.05 : 1.78
+    const kCam = Math.min(1, dt * 2.2)
+    camAz += (azGoal - camAz) * kCam; camEl += (elGoal - camEl) * kCam; camRad += (radGoal - camRad) * kCam
+    const az = camAz, el = camEl, rad = camRad
+    target.lerp(waving ? frontTarget : sideTarget, kCam)
     camera.position.set(target.x + rad * Math.sin(az) * Math.cos(el), target.y + rad * Math.sin(el), target.z + rad * Math.cos(az) * Math.cos(el))
     camera.lookAt(target)
     drawWaves()
