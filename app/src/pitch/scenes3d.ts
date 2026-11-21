@@ -62,7 +62,7 @@ function stage(light = 1): Build['scene'] {
   return s
 }
 
-const cam = () => { const c = new THREE.PerspectiveCamera(30, DW / DH, 0.1, 100); c.position.set(0, 1.1, 6.6); c.lookAt(0, 0, 0); return c }
+const cam = () => { const c = new THREE.PerspectiveCamera(30, DW / DH, 0.1, 100); c.position.set(0, 1.1, 7.6); c.lookAt(0, -0.1, 0); return c }
 
 function videoCamera(): THREE.Group {
   const g = new THREE.Group()
@@ -125,7 +125,7 @@ export const privacyTile3D = make3D(() => {
     update(t) { vc.rotation.y = -0.5 + Math.sin(t * 0.35) * 0.45 },
   }
 }, () => {}, (g) => {
-  noSign(g, DW / 2, 160, 128)
+  noSign(g, DW / 2, 160, 118)
 })
 
 export const darkTile3D = make3D(() => {
