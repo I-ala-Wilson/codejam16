@@ -23,6 +23,7 @@ function shared(): THREE.WebGLRenderer {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true })
     renderer.setSize(640, 320, false)
     renderer.setClearColor(0x000000, 1)
+    renderer.localClippingEnabled = true
   }
   return renderer
 }
@@ -159,96 +160,100 @@ export const darkTile3D = make3D(() => {
 function price(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
   g.font = '40px VT323, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = INK; g.fillText(s, x, y)
 }
+// Habit: the explainer's mannequin at a desk, framed tight on the forearms. The left forearm rests on the desk;
+// the right hand's curled fingertips scratch it, then lift during the pause while the nudge shows.
 const scratchingHand = make3D(() => {
   const scene = stage(), camera = cam()
-  camera.position.set(0, 3.9, 5.9)
-  camera.lookAt(0, 0, 0)
-  const lap = laptop()
-  lap.scale.setScalar(0.85)
-  lap.position.set(-2.45, -0.55, -0.95)
-  lap.rotation.y = 0.6
-  scene.add(lap)
+  const desk = new THREE.Mesh(new THREE.BoxGeometry(3, 0.04, 1.4), SOFT(0x1c1c1c)); scene.add(desk)
+  const lap = laptop(); lap.scale.setScalar(0.13); scene.add(lap)
+  const lapScreen = new THREE.Object3D(); lapScreen.position.set(0, 0.75, -0.6); lap.add(lapScreen)
+  const scratch = new THREE.Object3D(); scene.add(scratch)
+  type Arm = { up: THREE.Vector3; fore: THREE.Vector3; hand: THREE.Vector3; palm: THREE.Vector3; l1: number; l2: number; curl: { b: THREE.Bone; q: THREE.Quaternion; axis: THREE.Vector3; k: number }[] }
+  let g: { bone: (n: string) => THREE.Bone; q0: (n: string) => THREE.Quaternion; L: Arm; R: Arm; wl: THREE.Vector3; el: THREE.Vector3 } | null = null
+  const pE = new V3(), pB = new V3()
+  function pose(side: 'Left' | 'Right', arm: Arm, w: THREE.Vector3, pole: THREE.Vector3, fingers: THREE.Vector3, palmN: THREE.Vector3, curl: number) {
+    const { bone, q0 } = g!
+    const sh = bone(side + 'Arm').getWorldPosition(new V3())
+    ikElbow(sh, w, arm.l1, arm.l2, pole, pE)
+    const dU = new V3().subVectors(pE, sh).normalize(), dF = new V3().subVectors(w, pE).normalize()
+    const bend = new V3().crossVectors(dU, dF); if (bend.lengthSq() < 1e-6) bend.copy(pole)
+    aim(bone(side + 'Arm'), q0(side + 'Arm'), arm.up, perpTo(new V3().crossVectors(arm.up, arm.palm), arm.up), dU, bend)
+    bone(side + 'ForeArm').getWorldPosition(pB)
+    aim(bone(side + 'ForeArm'), q0(side + 'ForeArm'), arm.fore, perpTo(arm.palm, arm.fore), dF.clone().subVectors(w, pB), palmN)
+    aim(bone(side + 'Hand'), q0(side + 'Hand'), arm.hand, perpTo(arm.palm, arm.hand), fingers, palmN)
+    for (const c of arm.curl) c.b.quaternion.copy(c.q).multiply(new THREE.Quaternion().setFromAxisAngle(c.axis, c.k * curl))
+  }
+  new GLTFLoader().load('/models/person/guy.glb', (gltf) => {
+    const root = gltf.scene, bones = new Map<string, THREE.Bone>()
+    const body = new THREE.MeshLambertMaterial({ color: 0xd2d2d0 })
+    root.traverse((o) => {
+      if ((o as THREE.Bone).isBone) bones.set(o.name.replace(/^mixamorig:?/, ''), o as THREE.Bone)
+      const m = o as THREE.Mesh
+      if (!m.isMesh) return
+      if (/^(EyeLeft|EyeRight|Wolf3D_Teeth|Wolf3D_Beard|Wolf3D_Headwear)$/.test(m.name)) m.visible = false
+      ;(m.material as THREE.Material).dispose(); m.material = body; m.frustumCulled = false
+    })
+    const bone = (n: string) => { const b = bones.get(n); if (!b) throw new Error('guy.glb: missing bone ' + n); return b }
+    const at = (n: string) => bone(n).getWorldPosition(new V3())
+    scene.add(root); root.updateMatrixWorld(true)
+    const rest = new Map<string, THREE.Quaternion>()
+    for (const [n, b] of bones) rest.set(n, b.getWorldQuaternion(new THREE.Quaternion()))
+    const q0 = (n: string) => rest.get(n)!
+    const dir = (a: string, b: string) => at(b).sub(at(a)).normalize()
+    const arm = (s: 'Left' | 'Right'): Arm => {
+      const hand = dir(s + 'Hand', s + 'HandMiddle1'), across = at(s + 'HandIndex1').sub(at(s + 'HandPinky1'))
+      const palm = new V3().crossVectors(hand, across).multiplyScalar(s === 'Right' ? -1 : 1).normalize()
+      const a: Arm = { up: dir(s + 'Arm', s + 'ForeArm'), fore: dir(s + 'ForeArm', s + 'Hand'), hand, palm, l1: at(s + 'Arm').distanceTo(at(s + 'ForeArm')), l2: at(s + 'ForeArm').distanceTo(at(s + 'Hand')), curl: [] }
+      for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) for (let i = 0; i < 3; i++) {
+        const n = s + 'Hand' + f + (i + 1)
+        const axis = new V3().crossVectors(dir(n, s + 'Hand' + f + (i + 2)), palm).normalize().applyQuaternion(q0(n).clone().invert())
+        a.curl.push({ b: bone(n), q: bone(n).quaternion.clone(), axis, k: [1.3, 1.5, 1.0][i] })
+      }
+      return a
+    }
+    // the desk sits at elbow height; the left forearm lies across it in front of the body
+    const lSh = at('LeftArm'), rSh = at('RightArm'), mid = lSh.clone().add(rSh).multiplyScalar(0.5)
+    const deskY = mid.y - 0.36
+    // only the arms: cut away everything behind a plane just in front of the chest, so the torso and head vanish
+    body.clippingPlanes = [new THREE.Plane(new V3(0, 0, 1), -(mid.z + 0.2))]
+    desk.position.set(mid.x, deskY - 0.03, mid.z + 0.45)
+    const wl = new V3(mid.x + (rSh.x - lSh.x) * 0.1, deskY + 0.03, mid.z + 0.52)
+    g = { bone, q0, L: arm('Left'), R: arm('Right'), wl, el: new V3() }
+    pose('Left', g.L, wl, new V3(Math.sign(lSh.x - mid.x), -1, -0.3), new V3(Math.sign(rSh.x - lSh.x), 0, 0.15).normalize(), new V3(0, -1, 0), 0.25)
+    root.updateMatrixWorld(true)
+    g.el.copy(at('LeftForeArm'))
+    lap.position.set(mid.x + (lSh.x - mid.x) * 2.4, deskY, mid.z + 0.3); lap.rotation.y = Math.sign(lSh.x - mid.x) * 0.5
+    // camera: tight on the forearms, from the front and a little to the right and above
+    const f = wl.clone().lerp(g.el, 0.5)
+    const sideL = Math.sign(lSh.x - mid.x)
+    camera.position.copy(f).add(new V3(-sideL * 0.15, 0.62, 0.78)); camera.lookAt(f.x, f.y, f.z + 0.03)
+  }, undefined, (e) => console.warn('guy.glb failed to load for the Habit scene', e))
 
-  // Partial rings leave the hand visible as each pulse crosses the gap.
-  const waveShape = new THREE.TorusGeometry(1, 0.045, 8, 40, Math.PI * 1.2)
-  const waves = Array.from({ length: 3 }, () => {
-    const wave = new THREE.Mesh(waveShape, new THREE.MeshBasicMaterial({
-      color: 0xffffff, transparent: true, depthWrite: false,
-    }))
-    wave.rotation.set(0, 1.02, -Math.PI * 0.6)
-    scene.add(wave)
-    return wave
-  })
-
-  const sphere = new THREE.SphereGeometry(1, 32, 20)
-  function oval(parent: THREE.Object3D, material: THREE.Material, position: number[], scale: number[]) {
-    const part = new THREE.Mesh(sphere, material)
-    part.position.fromArray(position); part.scale.fromArray(scale)
-    parent.add(part)
-    return part
+  return {
+    scene, camera, anchors: { scratch, lapScreen },
+    update(t) {
+      if (!g) return
+      const pause = Math.min(1, Math.max(0, (t % 5 - 2.2) * 4), Math.max(0, (4.7 - t % 5) * 3))
+      const along = new V3().subVectors(g.el, g.wl), target = g.wl.clone().lerp(g.el, 0.45)
+      target.addScaledVector(along.clone().normalize(), Math.sin(t * 25) * 0.025 * (1 - pause)).add(new V3(0, 0.045 + 0.08 * pause, 0))
+      scratch.position.copy(target)
+      const rSide = Math.sign(g.bone('RightArm').getWorldPosition(new V3()).x - g.wl.x) || -1
+      pose('Right', g.R, target.clone().add(new V3(0, 0.07, 0.02)), new V3(rSide, -1, 0), new V3(0, -1, 0.25).normalize(), new V3(-rSide, 0, 0.2).normalize(), 0.75 - 0.4 * pause)
+    },
   }
-  const arm = new THREE.Group()
-  arm.position.set(1, -0.5, 0)
-  arm.rotation.y = 0.34
-  scene.add(arm)
-  oval(arm, GREY, [0.28, 0, 0], [1.26, 0.35, 0.43])
-  oval(arm, DARK, [1.3, 0, 0], [0.8, 0.39, 0.47])
-  const restingHand = new THREE.Group()
-  restingHand.position.set(-0.85, 0.01, 0)
-  restingHand.rotation.x = 0.48
-  arm.add(restingHand)
-  oval(restingHand, new THREE.MeshBasicMaterial({ color: 0xffffff }), [0, 0, 0], [0.4, 0.17, 0.24])
-  // Cross sections widen from the heel to the knuckles, with a shallow crown on the back.
-  function palm(parent: THREE.Group) {
-    const shape = new THREE.Shape()
-    shape.moveTo(0.16, -0.16)
-    shape.bezierCurveTo(-0.06, -0.19, -0.30, -0.40, -0.69, -0.35)
-    shape.quadraticCurveTo(-0.96, -0.05, -0.82, 0.33)
-    shape.bezierCurveTo(-0.55, 0.40, -0.25, 0.29, 0.16, 0.15)
-    shape.closePath()
-    const mesh = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, {
-      depth: 0.09, bevelEnabled: true, bevelSize: 0.055, bevelThickness: 0.055, bevelSegments: 3,
-    }), WHITE)
-    mesh.rotation.x = Math.PI / 2
-    mesh.position.y = 0.05
-    parent.add(mesh)
+}, () => {}, (g2, at, t) => {
+  // thin flower-style arcs from the scratch to the laptop while scratching
+  const s = t % 5
+  if (s > 2.2) return
+  const [hx, hy] = at('scratch'), [lx, ly] = at('lapScreen')
+  const dirA = Math.atan2(ly - hy, lx - hx), d = Math.hypot(lx - hx, ly - hy)
+  g2.lineCap = 'round'
+  for (let i = 0; i < 3; i++) {
+    const p = (t * 0.9 + i / 3) % 1
+    g2.strokeStyle = `rgba(255,255,255,${(0.2 + (1 - p) * 0.55).toFixed(3)})`; g2.lineWidth = 1.8
+    g2.beginPath(); g2.arc(hx, hy, 12 + p * (d - 12), dirA - 0.4, dirA + 0.4); g2.stroke()
   }
-  palm(restingHand)
-  for (const [i, length] of [0.58, 0.76, 0.82, 0.72].entries()) {
-    const z = (i - 1.5) * 0.195
-    const spread = z * 0.53
-    const root = -0.83 + Math.abs(z - 0.08) * 0.35
-    finger(restingHand, [[root, 0, z], [root - length * 0.50, 0.015, z + spread * 0.55],
-      [root - length, -0.065, z + spread]], i === 0 ? 0.066 : 0.075)
-  }
-  finger(restingHand, [[-0.17, 0, 0.18], [-0.35, -0.01, 0.37], [-0.55, -0.03, 0.55], [-0.74, -0.055, 0.60]], 0.09)
-
-  const hand = new THREE.Group()
-  scene.add(hand)
-  oval(hand, WHITE, [0.18, 0.37, 0], [0.52, 0.18, 0.39])
-  oval(hand, GREY, [0.85, 0.59, -0.04], [0.65, 0.19, 0.22]).rotation.z = 0.32
-  function finger(parent: THREE.Group, points: number[][], radius: number) {
-    const path = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3().fromArray(p)))
-    parent.add(new THREE.Mesh(new THREE.TubeGeometry(path, 18, radius, 10, false), WHITE))
-    oval(parent, WHITE, points[points.length - 1], [radius, radius, radius])
-  }
-  for (const [i, length] of [0.86, 0.92, 0.82, 0.66].entries()) {
-    const z = 0.22 - i * 0.15
-    finger(hand, [[-0.08, 0.39, z], [-length * 0.65, 0.41, z], [-length, 0.23, z], [-length + 0.09, 0.02, z]], 0.069)
-  }
-  finger(hand, [[0.32, 0.36, 0.18], [0.12, 0.30, 0.32], [-0.12, 0.22, 0.39], [-0.25, 0.20, 0.36]], 0.085)
-  return { scene, camera, update(t) {
-    const pause = Math.min(1, Math.max(0, (t % 5 - 2.2) * 4), Math.max(0, (4.7 - t % 5) * 3))
-    hand.position.set(1.18 + 0.23 * Math.sin(t * 15) * (1 - pause), -0.13 + 0.57 * pause, 0.02)
-    hand.rotation.y = -0.4
-      waves.forEach((wave, i) => {
-        const progress = (t * 0.55 + i / waves.length) % 1
-        wave.position.set(-1.88 + progress * 1.65, -0.26 + progress * 0.16, -0.66 + progress * 0.53)
-        wave.scale.setScalar(0.22 + progress * 0.53)
-        wave.material.opacity = Math.min(1, progress * 12, (1 - progress) * 5)
-      })
-  } }
-}, () => {})
+})
 
 let habitWebGL = true
 export const habitScene3D: Scene = {
