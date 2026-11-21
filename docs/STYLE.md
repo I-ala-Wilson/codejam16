@@ -16,10 +16,9 @@
 No grey text. Hierarchy comes from **size, density and inversion**, never from dimming text.
 
 ## Type
-- Display and digit art: **a serif** (Georgia / "Times New Roman" stack, italic for the art). The bloom is set in serif digits, as in the reference.
-- UI labels and numbers: **monospace** (`"JetBrains Mono", "SF Mono", Menlo, monospace`), small, letter-spaced 0.04em, often uppercase.
+- **VT323** (the 8-bit font from ianwilson.dev), bundled at `app/public/fonts/vt323.woff2`, for the headline, labels, buttons, the nav and window titles. Headline 76px, labels about 20px, sentence case on Home.
 - Body: system sans, 15px, light.
-- Lots of empty charcoal space. Content sits centred in a narrow column (max 760px) or around the art.
+- Lots of empty charcoal space; text sits top-left and buttons bottom-left so the flower stays clean.
 
 ## The procedural dither bloom (secondary art, app/src/art/DitherBloom.tsx)
 - Grayscale field per frame on a 1/3-resolution canvas, then Bayer threshold to 1-bit, upscaled with smoothing off.
