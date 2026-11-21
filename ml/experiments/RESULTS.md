@@ -288,6 +288,25 @@ new files. `gesture.json` differs only in the window count (73208 to 79550); cla
 Honest reading: the held-out numbers are the same as before within noise (0.412 vs 0.421), so this is not an accuracy gain
 on the people we already had. What it adds is a second laptop model (Dell Inspiron 15 3520) in the training set.
 
+## Bad data result: removing the six suspect takes does NOT help; nothing removed (13:10)
+Leave-one-person-out, baseline recipe, seeds 0 and 1, current data, GPU (`ml/experiments/baddata/`). A trains on every take;
+B leaves the six suspect PULL takes out of TRAINING only; both are scored on the identical held-out set without those six takes.
+| | A (all takes) | B (without the six) |
+|---|---|---|
+| macro recall (six classes, rule metric) | 0.400 | 0.399 |
+| false alarms per minute | 2.06 | 2.45 |
+| train-to-held-out F1 gap | 0.350 | 0.352 |
+| PUSH / PULL | 0.483 / 0.442 | 0.494 / 0.361 |
+| WAVE / UNDO / OPEN_CLOSE / Habit | 0.402 / 0.463 / 0.375 / 0.235 | 0.447 / 0.506 / 0.378 / 0.210 |
+`tune.decide` verdict: REFUSED: gain -0.001 does not clear the margin 0.013, neither seed is above the baseline (0.394 vs
+0.396, 0.404 vs 0.405), better for only 3 of 5 people (needs 4), more false alarms (2.45 vs 2.06). The opposite of the
+hypothesis showed up in the one class it was about: PULL recall FELL by 0.08 without the suspects (both seeds), while WAVE
+and UNDO rose by 0.04 each, so the overall mean stayed flat. Reading: those takes, where the pull starts with a reach
+toward the screen, are how some people really pull, and the model needs them to recognise PULL; they are not label noise.
+Not claimed: that other takes are clean (only the physics-sign scan was run), or that the PULL drop is large (2 seeds, same
+direction on both). Tooling kept: `ml/tune.py --drop-test FILE` and the recipe key `drop_train` (tests in
+`ml/tests/test_tune_drops.py`), so a future suspect list can be tested the same way.
+
 ## Reporting convention: five gestures, and Habit separately (Yahya's decision, confirmed by Ian, EJ and Michael, 13:06)
 REPETITIVE is the Habit feature's signal, not a gesture. The model keeps its 7th output (it needs it so scratching is not
 misread as a gesture) and the engine type is unchanged. From now on every public number is split:

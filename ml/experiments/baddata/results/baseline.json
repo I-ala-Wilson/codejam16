@@ -1,0 +1,58 @@
+{
+  "name": "baseline",
+  "recipe": {},
+  "epochs": 30,
+  "drop_test": [
+    "i-ala-wilson_PULL_20cm_macbook-pro_t3_20261120-224647",
+    "i-ala-wilson_PULL_20cm_macbook-pro_t3_20261121-002030",
+    "i-ala-wilson_PULL_50cm_macbook-pro_t4_20261120-224849",
+    "i-ala-wilson_PULL_50cm_macbook-pro_t4_20261121-002140",
+    "naomi_PULL_20cm_macbook-pro_t3_20261120-234321",
+    "naomi_PULL_50cm_macbook-pro_t4_20261120-234430"
+  ],
+  "drop_train_takes": [],
+  "runs": [
+    {
+      "seed": 0,
+      "fold_recall": {
+        "ej2007": 0.32708333333333334,
+        "i-ala-wilson": 0.6025,
+        "miguel982": 0.24166666666666667,
+        "naomi": 0.775,
+        "yahya-github": 0.4406776094276094
+      },
+      "class_recall": {
+        "OPEN_CLOSE": 0.3775,
+        "PULL": 0.4375,
+        "PUSH": 0.4851063829787234,
+        "REPETITIVE": 0.23333333333333334,
+        "UNDO": 0.44222222222222224,
+        "WAVE": 0.3977777777777778
+      },
+      "false_alarms_per_minute": 2.0465372333874283,
+      "train_f1": 0.9242209382656938,
+      "heldout_f1": 0.5705740383350559
+    },
+    {
+      "seed": 1,
+      "fold_recall": {
+        "ej2007": 0.3770833333333334,
+        "i-ala-wilson": 0.625,
+        "miguel982": 0.22916666666666666,
+        "naomi": 0.78125,
+        "yahya-github": 0.44625420875420874
+      },
+      "class_recall": {
+        "OPEN_CLOSE": 0.3725,
+        "PULL": 0.446875,
+        "PUSH": 0.4808510638297872,
+        "REPETITIVE": 0.2375,
+        "UNDO": 0.48444444444444446,
+        "WAVE": 0.4066666666666667
+      },
+      "false_alarms_per_minute": 2.078071661688522,
+      "train_f1": 0.9236601196461922,
+      "heldout_f1": 0.5775394882750181
+    }
+  ]
+}

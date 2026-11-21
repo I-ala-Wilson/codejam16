@@ -1,0 +1,67 @@
+{
+  "name": "no_suspects",
+  "recipe": {
+    "drop_train": "ml/experiments/baddata/suspects.txt"
+  },
+  "epochs": 30,
+  "drop_test": [
+    "i-ala-wilson_PULL_20cm_macbook-pro_t3_20261120-224647",
+    "i-ala-wilson_PULL_20cm_macbook-pro_t3_20261121-002030",
+    "i-ala-wilson_PULL_50cm_macbook-pro_t4_20261120-224849",
+    "i-ala-wilson_PULL_50cm_macbook-pro_t4_20261121-002140",
+    "naomi_PULL_20cm_macbook-pro_t3_20261120-234321",
+    "naomi_PULL_50cm_macbook-pro_t4_20261120-234430"
+  ],
+  "drop_train_takes": [
+    "i-ala-wilson_PULL_20cm_macbook-pro_t3_20261120-224647",
+    "i-ala-wilson_PULL_20cm_macbook-pro_t3_20261121-002030",
+    "i-ala-wilson_PULL_50cm_macbook-pro_t4_20261120-224849",
+    "i-ala-wilson_PULL_50cm_macbook-pro_t4_20261121-002140",
+    "naomi_PULL_20cm_macbook-pro_t3_20261120-234321",
+    "naomi_PULL_50cm_macbook-pro_t4_20261120-234430"
+  ],
+  "runs": [
+    {
+      "seed": 0,
+      "fold_recall": {
+        "ej2007": 0.3875,
+        "i-ala-wilson": 0.63,
+        "miguel982": 0.18333333333333335,
+        "naomi": 0.7875,
+        "yahya-github": 0.4871843434343434
+      },
+      "class_recall": {
+        "OPEN_CLOSE": 0.37,
+        "PULL": 0.3625,
+        "PUSH": 0.4808510638297872,
+        "REPETITIVE": 0.2125,
+        "UNDO": 0.5133333333333333,
+        "WAVE": 0.4266666666666667
+      },
+      "false_alarms_per_minute": 2.582355608641625,
+      "train_f1": 0.9242493062108631,
+      "heldout_f1": 0.5692231974312081
+    },
+    {
+      "seed": 1,
+      "fold_recall": {
+        "ej2007": 0.42291666666666666,
+        "i-ala-wilson": 0.6075,
+        "miguel982": 0.196875,
+        "naomi": 0.71875,
+        "yahya-github": 0.5155513468013467
+      },
+      "class_recall": {
+        "OPEN_CLOSE": 0.385,
+        "PULL": 0.359375,
+        "PUSH": 0.5063829787234042,
+        "REPETITIVE": 0.20833333333333334,
+        "UNDO": 0.49777777777777776,
+        "WAVE": 0.4666666666666667
+      },
+      "false_alarms_per_minute": 2.310227078535664,
+      "train_f1": 0.9217901028954077,
+      "heldout_f1": 0.5721673807688722
+    }
+  ]
+}
