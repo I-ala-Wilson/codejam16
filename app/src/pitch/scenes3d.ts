@@ -489,8 +489,6 @@ export const careScene3D = make3D(() => {
   // the event leaves ECHØ as a radio signal: arcs ripple out of the laptop, then a sine-wave packet travels in a
   // straight line to the phone; the phone lights only when it arrives
   const dx = px - lx, dy = py - ly, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len, nx = -uy, ny = ux
-  g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = 1.2
-  g.setLineDash([3, 6]); g.beginPath(); g.moveTo(lx, ly); g.lineTo(px, py); g.stroke(); g.setLineDash([])
   const p = carePulse(u)
   if (p !== null) {
     const toward = Math.atan2(dy, dx)
