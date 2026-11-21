@@ -8,5 +8,5 @@ chrome.storage.local.get({ appUrl: null }).then(({ appUrl }) => {
   if (returnUrl) u.searchParams.set('return', returnUrl)
   a.href = u.toString()
   const site = document.getElementById('site')
-  if (site && returnUrl) site.textContent = new URL(returnUrl).hostname
+  if (site && returnUrl) site.textContent = new URL(returnUrl).hostname.replace(/^www\./, '')
 })

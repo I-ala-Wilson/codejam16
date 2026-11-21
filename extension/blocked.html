@@ -1,6 +1,15 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Locked</title>
-<style>body{font-family:Helvetica,Arial,sans-serif;display:flex;height:100vh;align-items:center;justify-content:center;margin:0}
-a{display:inline-block;margin-top:8px;padding:10px 16px;border:2px solid #000;border-radius:8px;color:#000;text-decoration:none;font-weight:700;box-shadow:3px 3px 0 #000}</style></head>
-<body><div><h1>Locked by Echo.</h1><p><b id="site">This site</b> needs the hand-sign password.</p><p>Ask a parent.</p>
-<p><a id="open" href="#">Unlock with hand signs</a></p></div>
+<!doctype html><html><head><meta charset="utf-8"><title>Locked by ECHO\0</title>
+<style>
+@font-face { font-family: VT323; src: url(vt323.woff2) format("woff2"); }
+html, body { margin: 0; height: 100%; background: #1e1f21; color: #f2f2f0; font-family: VT323, "Courier New", monospace; }
+body { display: flex; align-items: center; justify-content: center; text-align: center; }
+.eyebrow { font-size: 22px; letter-spacing: .08em; }
+h1 { font-weight: 400; font-size: 84px; line-height: 1; margin: 16px 0 10px; color: #fff; }
+p { font-size: 26px; margin: 0 0 40px; }
+a { display: inline-block; font-size: 30px; padding: 14px 26px 15px; background: #f2f2f0; color: #1e1f21; text-decoration: none; border: 1px solid #f2f2f0; }
+a:hover { background: transparent; color: #f2f2f0; }
+a:not([href]) { background: transparent; color: #f2f2f0; border-style: dotted; }
+</style></head>
+<body><div><div class="eyebrow">ECHO\0 LOCK</div><h1><span id="site">This site</span> is locked.</h1><p>It opens with the hand-sign password.</p>
+<a id="open" href="#">Unlock with hand signs</a></div>
 <script src="blocked.js"></script></body></html>
