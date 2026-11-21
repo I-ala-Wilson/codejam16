@@ -15,6 +15,16 @@ export default function Home({ go }: { go: (page: string) => void }) {
     const id = setInterval(() => setRunning(engine.health().running), 500)
     return () => clearInterval(id)
   }, [])
+  // Coming back from a live demo tab lands on the same chapter of the pitch, not the top.
+  useEffect(() => {
+    const y = Number(sessionStorage.getItem('echo.homeScroll') ?? 0)
+    let tries = 0
+    const restore = () => { window.scrollTo(0, y); if (Math.abs(window.scrollY - y) > 2 && ++tries < 30) setTimeout(restore, 50) }
+    if (y) restore()
+    const save = () => sessionStorage.setItem('echo.homeScroll', String(window.scrollY))
+    window.addEventListener('scroll', save, { passive: true })
+    return () => window.removeEventListener('scroll', save)
+  }, [])
   return (
     <div className="home">
       <section className="home__hero">
@@ -35,10 +45,10 @@ export default function Home({ go }: { go: (page: string) => void }) {
         <Explainer embedded />
       </section>
       <section><Apps /></section>
-      <section><Results /></section>
       <section>
         <HowWeBuilt />
       </section>
+      <section><Results /></section>
       <section><Close /></section>
     </div>
   )
