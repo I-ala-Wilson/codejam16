@@ -37,6 +37,7 @@ relpath() {
 # Prints the login that owns a repo-relative path ("" if unassigned).
 owner_of() {
   local path="$1" login glob
+  if [[ "$path" =~ ^data/recordings/([^/]+)/ ]]; then echo "${BASH_REMATCH[1]}"; return; fi
   if [[ "$path" =~ ^docs/notes/([^/]+)-qa\.md$ ]]; then echo "${BASH_REMATCH[1]}/qa"; return; fi
   if [[ "$path" =~ ^docs/notes/([^/]+)\.md$ ]]; then echo "${BASH_REMATCH[1]}"; return; fi
   while read -r glob; do

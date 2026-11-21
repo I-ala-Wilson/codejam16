@@ -1,4 +1,4 @@
-SPEC_VERSION: 1
+SPEC_VERSION: 2
 
 # SPEC: Echo (sonar gesture engine, three apps)
 
@@ -116,6 +116,9 @@ See `contracts/`:
 | Final QA | 1 h before submit | 3 clean demo runs |
 | Judging | Sun 13:00–15:30 | |
 | Closing | Sun 16:30 | one of us present for the prize cheque |
+
+## Changes
+- v2 (Fri 22:10): recordings are 16-bit WAV committed to `data/recordings/<login>/` (contracts/recording.md); Record page added to app.
 
 ## 10. Open questions
 - The submission deadline and Devpost requirements (video length?): confirm on the Discord.

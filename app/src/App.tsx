@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import RoomTest from './RoomTest.tsx'
 import Record from './Record.tsx'
+import Lock from './Lock.tsx'
 
-const PAGES = { room: 'Room test', record: 'Record gestures' } as const
+const PAGES = { room: 'Room test', record: 'Record gestures', lock: 'Lock' } as const
 type Page = keyof typeof PAGES
 
 export default function App() {
-  const [page, setPage] = useState<Page>(location.hash === '#record' ? 'record' : 'room')
+  const [page, setPage] = useState<Page>(location.pathname === '/lock' ? 'lock' : ((location.hash.slice(1) as Page) in PAGES ? (location.hash.slice(1) as Page) : 'room'))
   const go = (p: Page) => { setPage(p); location.hash = p }
   return (
     <div>
@@ -15,7 +16,7 @@ export default function App() {
           <button key={p} onClick={() => go(p)} style={{ fontWeight: page === p ? 800 : 400 }}>{PAGES[p]}</button>
         ))}
       </nav>
-      {page === 'room' ? <RoomTest /> : <Record />}
+      {page === 'room' ? <RoomTest /> : page === 'record' ? <Record /> : <Lock />}
     </div>
   )
 }

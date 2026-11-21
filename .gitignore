@@ -31,7 +31,6 @@ coverage/
 .vscode/
 .idea/
 
-# Recorded sessions and models
+# ML scratch (recordings live in data/recordings/<login>/, committed)
 ml/data/
 ml/.venv/
-*.wav
