@@ -493,3 +493,44 @@ existed then (EJ's retakes: v2 gate passes all three, v2 reads the 15 bpm take a
 one paced take, so INSUFFICIENT DATA): the test set is every take with createdAt at or after 2026-11-21T11:05 -05:00
 that is pushed by 12:45 today. EVERY one of them that passes the v2 gate counts, whatever its estimate; nobody chooses
 which takes count, and a take is only recorded again when the gate rejects it. The verdict is computed once, after 12:45.
+
+## Interference between laptops (offline simulation), pre-registered Sat 21 Nov about 16:00
+
+Question (Yahya): does a second laptop running sonar in the same room (same 20000 Hz tone, `DEFAULT_TONE_HZ`) change what ours detects?
+Method: 10 of Yahya's own takes (PUSH x2, PULL x2, UNDO, WAVE x2, OPEN_CLOSE, NONE x2) plus a second source mixed in at the sample
+level: (X) a quiet take of the same laptop, carrier shifted by 0.5, 3 or 40 Hz (analytic-signal shift), scaled to -40, -30, -20 or -10 dB
+of our own carrier; (Y) a take WITH gestures (PUSH, WAVE) mixed into NONE takes at the same levels, to see whether the other
+person's moves fire events on our side. Scored with `engine/tools/score.ts` (real DSP and rule detectors, no model). A real second
+laptop was NOT tested (Ian: no human time, every other laptop closes the app during the pitch).
+Decision rule: interference matters if, at -30 dB or quieter (a laptop 1-2 m away), hits per label drop by more than 10 points or false
+alarms rise by more than 50% over the unmixed baseline (baseline: PUSH 39/40, PULL 40/40, false alarms 43). Otherwise it is not a
+problem at that level. Result: below, once run.
+
+## Katana-only candidate `calib-yahya`, pre-registered Sat 21 Nov about 16:05
+
+Why: the shipped model on Yahya's 11 held-out MSI Katana takes (his calib-1 x6, livecheck-1 x4, and the 15:25 live UNDO take, never trained
+on) recalls PUSH 50%, PULL 7%, WAVE 20%, OPEN_CLOSE 0%, UNDO 5% at ANY UNDO threshold from 0.6 to 0.95. In-sample on his other 36 takes it
+recalls 88-99%, so this is session-to-session drift on this laptop, not a threshold problem. Ian's MacBook Pro is unaffected and nothing that
+his laptop loads changes: this is a candidate under `ml/models/candidates/` for the Katana only.
+Method: `ml/run.py calib data/recordings --person yahya-github --skip-failed --repeat 5`: all takes except livecheck folders, Yahya's calib-1
+takes counted 5x. Test = Yahya's livecheck-1 (4 takes, 40 cues) with `ml/compare_models.py <shipped> <candidate> --person yahya-github`.
+Success rule: on those held-out takes the candidate recalls PUSH, PULL, WAVE, OPEN_CLOSE and UNDO at 70% or more each, with idle false alarms
+at most 2.6/min; the 15:25 live UNDO take (outside the repo) is read as a second check. Fail: any class below 70% (then the Katana needs
+a second calibration round, calib-2). Ships to nobody by this experiment alone. Result: below, once run.
+
+## OPEN_CLOSE 0.45 and PUSH logitBias +1.0 on Ian's unseen takes (Sat 21 Nov about 16:25, Ian's request)
+
+Shipped calib-three (a96404e) replayed offline with `logitBias {PUSH: 1.0}` added to the logits, UNDO 0.95, OPEN_CLOSE swept. Unseen = data/pilot
+plus livecheck-1 for Ian (11 takes, 5.5 min; 4 of them are livecheck-1 on the MacBook Pro, 2.4 min, 40 cues). Offline replay uses the offline
+calibration floor, so it is a lower-confidence proxy for the live check, which is the shipping judge.
+- livecheck-1 only (MacBook Pro, 40 cues): no bias PULL 80, PUSH 50, UNDO 80, WAVE 100; with PUSH +1.0: PULL 80, PUSH 60, UNDO 80, WAVE 100.
+  Events outside cues: 12 without bias, 9 with it (3.8 per minute of take; no idle-only take of Ian exists that the model has not trained on,
+  so a true idle false-alarm rate could not be measured).
+- All 11 unseen takes, OPEN_CLOSE (13 cues, pilot only): 0.85 -> 62%, 0.60 -> 92%, 0.45 -> 92%. Stray events 14 (0.60) vs 16 (0.45), i.e.
+  0.45 gains no recall offline and adds 2 stray events per 5.5 min (+0.4 per minute). PUSH over all 38 cues: 34% -> 39% with the bias.
+Verdict: the bias helps PUSH (+10 points on livecheck-1) and costs about 4 points of UNDO over all takes; 0.45 is not supported by the offline
+replay (same recall as 0.60) but it is Ian's live finding that the model's OPEN_CLOSE peaks 0.42-0.45 live, which this replay cannot see.
+
+## Katana (Yahya's laptop) held-out takes, shipped calib-three (Sat 21 Nov 15:35)
+11 takes never trained on (calib-1 x6, livecheck-1 x4, the 15:25 live UNDO). Recall: WAVE 97%, PUSH 80%, PULL 43%, UNDO 30%, OPEN_CLOSE 10%;
+false alarms 3.9/min. Misses go to WAVE (PULL 5, UNDO 6) and OPEN_CLOSE goes to UNDO (7). Calibration takes of the Katana were not in calib-three.

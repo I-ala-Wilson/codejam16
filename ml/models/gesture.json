@@ -20,8 +20,8 @@
     "PUSH": 0.85,
     "PULL": 0.85,
     "WAVE": 0.85,
-    "OPEN_CLOSE": 0.85,
-    "UNDO": 0.85,
+    "OPEN_CLOSE": 0.45,
+    "UNDO": 0.95,
     "REPETITIVE": 0.9
   },
   "decoder": {
@@ -39,5 +39,8 @@
     "yahya-github"
   ],
   "epochs": 30,
-  "windows": 73208
+  "windows": 134060,
+  "logitBias": {
+    "PUSH": 1.0
+  }
 }
