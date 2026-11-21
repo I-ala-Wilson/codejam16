@@ -354,7 +354,7 @@ export const careScene3D = make3D(() => {
   const table = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.55, 0.45), bedMat); table.position.set(-0.85, 0.28, -0.55); scene.add(table)
   const lap = laptop(); lap.scale.setScalar(0.17); lap.position.set(-0.85, 0.565, -0.55); lap.rotation.y = Math.PI * 0.62; scene.add(lap)
   const lapScreen = new THREE.Object3D(); lapScreen.position.set(0, 0.75, -0.6); lap.add(lapScreen)
-  const phone = new THREE.Group(); phone.position.set(1.0, -0.2, 0.9); scene.add(phone); phone.lookAt(camera.position)
+  const phone = new THREE.Group(); phone.position.set(1.25, 0.05, 0.75); scene.add(phone); phone.lookAt(camera.position)
   phone.add(new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.5, 0.03), new THREE.MeshBasicMaterial({ color: 0xf2f2f0 })))
   const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.23, 0.42), PHONE_GLOW); glass.position.z = 0.017; phone.add(glass)
   const handAnchor = new THREE.Object3D(); handAnchor.position.set(-0.3, MT + 0.5, -0.2); scene.add(handAnchor)
@@ -419,27 +419,27 @@ export const careScene3D = make3D(() => {
       const r = rig
       if (!r) return
       const sh = r.bone('RightArm').getWorldPosition(pA)
-      // rest: hand on the blanket by the hip; wave: forearm raised, gentle side to side; pain: hand toward the laptop
+      // The patient has a weak arm (the stat beside this scene), so the arm never lifts: the forearm rests on the
+      // blanket and only the hand moves. HELP is a small wave from the wrist, PAIN is the fingers opening and closing.
       const restW = tmp.set(sh.x - 0.12, MT + 0.14, sh.z + 0.42)
-      let fingers: THREE.Vector3, palmN: THREE.Vector3, curl = 0.15, pole: THREE.Vector3
-      if (careWave(u)) {
-        const k = ease(u / 0.6) * (1 - ease((u - 3.6) / 0.6))
-        w.set(sh.x - 0.22 + Math.sin(u * 4.4) * 0.08 * k, sh.y + 0.4, sh.z + 0.32).lerp(restW, 1 - k)
-        fingers = new V3(Math.sin(u * 4.4) * 0.25 * k, 1, 0.1).normalize(); palmN = new V3(-0.9, 0, 0.3).normalize(); curl = 0.12 * (1 - k) + 0.02
-        pole = new V3(-0.4, -1, 0.3)
-      } else {
-        const v = u - 5.6, k = ease(v / 0.6) * (1 - ease((v - 3.6) / 0.6))
-        w.set(sh.x - 0.45, sh.y + 0.08, sh.z + 0.2).lerp(restW, 1 - k)
-        fingers = new V3(-1, 0.15, -0.25).normalize(); palmN = new V3(0.1, -0.2, 1).normalize()
-        curl = v > 0 && v < 4 ? 0.1 + 0.85 * k * (0.5 - 0.5 * Math.cos(Math.max(0, v - 0.6) * Math.PI * 2 / 1.0)) : 0.15
-        pole = new V3(0, -1, 0.4)
+      let k = 0, curl = 0.15
+      const pole = new V3(-0.4, -1, 0.3)
+      if (careWave(u)) k = ease(u / 0.6) * (1 - ease((u - 3.6) / 0.6))
+      else {
+        const v = u - 5.6; k = ease(v / 0.6) * (1 - ease((v - 3.6) / 0.6))
+        curl = v > 0 && v < 4 ? 0.12 + 0.85 * k * (0.5 - 0.5 * Math.cos(Math.max(0, v - 0.6) * Math.PI * 2 / 1.0)) : 0.15
       }
+      w.copy(restW)
       ikElbow(sh, w, r.l1, r.l2, pole, pE)
       const dU = new V3().subVectors(pE, sh).normalize(), dF = new V3().subVectors(w, pE).normalize()
+      const lift = careWave(u) ? k : 0
+      // wave: the hand tips up at the wrist and sways side to side; otherwise it lies flat along the forearm
+      const fingers = dF.clone().lerp(new V3(0, 1, 0), 0.75 * lift).addScaledVector(new V3(0, 0, 1), Math.sin(u * 5.5) * 0.55 * lift).normalize()
+      const palmN = new V3(0, 1, 0).lerp(new V3(-0.9, 0, 0.3), lift).normalize()
       const bend = new V3().crossVectors(dU, dF); if (bend.lengthSq() < 1e-6) bend.copy(pole)
       aim(r.bone('RightArm'), r.q0('RightArm'), r.up, perpTo(new V3().crossVectors(r.up, r.palm), r.up), dU, bend)
       r.bone('RightForeArm').getWorldPosition(pB)
-      aim(r.bone('RightForeArm'), r.q0('RightForeArm'), r.fore, perpTo(r.palm, r.fore), dF.subVectors(w, pB), palmN)
+      aim(r.bone('RightForeArm'), r.q0('RightForeArm'), r.fore, perpTo(r.palm, r.fore), dF.clone().subVectors(w, pB), palmN)
       aim(r.bone('RightHand'), r.q0('RightHand'), r.hand, perpTo(r.palm, r.hand), fingers, palmN)
       for (const c of r.curl) c.b.quaternion.copy(c.q).multiply(new THREE.Quaternion().setFromAxisAngle(c.axis, c.k * curl))
       r.bone('RightHand').getWorldPosition(handAnchor.position)
@@ -463,27 +463,31 @@ export const careScene3D = make3D(() => {
       g.beginPath(); g.arc(hx, hy, 10 + p * (d - 10), dir - 0.35, dir + 0.35); g.stroke()
     }
   }
-  // the event leaves ECHØ as a wireless broadcast: arcs ripple out of the laptop toward the phone, and a wave packet
-  // travels along a path that drops below the bed and comes up at the phone, so it never crosses the patient
-  const mx = (lx + px) / 2, my = Math.max(ly, py) + 70
-  const bez = (q: number): [number, number] => [(1 - q) * (1 - q) * lx + 2 * (1 - q) * q * mx + q * q * px, (1 - q) * (1 - q) * ly + 2 * (1 - q) * q * my + q * q * py]
-  g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = 1.2
-  g.beginPath(); g.moveTo(lx, ly); g.quadraticCurveTo(mx, my, px, py); g.stroke()
+  // the event leaves ECHØ as a radio signal: arcs ripple out of the laptop, then a sine-wave packet travels in a
+  // straight line to the phone; the phone lights only when it arrives
+  const dx = px - lx, dy = py - ly, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len, nx = -uy, ny = ux
+  g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = 1.2
+  g.setLineDash([3, 6]); g.beginPath(); g.moveTo(lx, ly); g.lineTo(px, py); g.stroke(); g.setLineDash([])
   const p = carePulse(u)
   if (p !== null) {
-    const toward = Math.atan2(my - ly, mx - lx)
-    for (let k = 0; k < 4; k++) {
-      const q = p * 1.6 - k * 0.16
+    const toward = Math.atan2(dy, dx)
+    for (let k = 0; k < 3; k++) {
+      const q = p * 1.8 - k * 0.2
       if (q <= 0 || q >= 1) continue
-      g.strokeStyle = `rgba(255,255,255,${(0.9 * (1 - q)).toFixed(3)})`; g.lineWidth = 2.4
-      g.beginPath(); g.arc(lx, ly, 10 + q * 70, toward - 0.55, toward + 0.55); g.stroke()
+      g.strokeStyle = `rgba(255,255,255,${(0.8 * (1 - q)).toFixed(3)})`; g.lineWidth = 2
+      g.beginPath(); g.arc(lx, ly, 8 + q * 46, toward - 0.6, toward + 0.6); g.stroke()
     }
-    const [x, y] = bez(p), [x2, y2] = bez(Math.min(1, p + 0.02)), a = Math.atan2(y2 - y, x2 - x)
-    const glow = g.createRadialGradient(x, y, 0, x, y, 16); glow.addColorStop(0, 'rgba(255,255,255,1)'); glow.addColorStop(1, 'rgba(255,255,255,0)')
-    g.fillStyle = glow; g.beginPath(); g.arc(x, y, 16, 0, Math.PI * 2); g.fill()
-    for (let k = 1; k <= 3; k++) {
-      g.strokeStyle = `rgba(255,255,255,${(1 - k * 0.25).toFixed(2)})`; g.lineWidth = 2
-      g.beginPath(); g.arc(x - Math.cos(a) * 6, y - Math.sin(a) * 6, 6 + k * 7, a - 0.7, a + 0.7); g.stroke()
+    // the packet: a short sine wave whose envelope rises and falls, moving along the line
+    const head = p * len, span = 70
+    g.strokeStyle = 'rgba(255,255,255,0.95)'; g.lineWidth = 2.2
+    g.beginPath()
+    for (let sx = Math.max(0, head - span); sx <= Math.min(len, head); sx += 1.5) {
+      const e = Math.sin(((sx - (head - span)) / span) * Math.PI)
+      const amp = 7 * e * e
+      const off = Math.sin((sx - t * 260) * 0.32) * amp
+      const x = lx + ux * sx + nx * off, y = ly + uy * sx + ny * off
+      if (sx === Math.max(0, head - span)) g.moveTo(x, y); else g.lineTo(x, y)
     }
+    g.stroke()
   }
 })
