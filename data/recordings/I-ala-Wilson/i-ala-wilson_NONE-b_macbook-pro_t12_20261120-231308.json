@@ -1,0 +1,22 @@
+{
+  "person": "I-ala-Wilson",
+  "gesture": "NONE",
+  "laptop": "macbook-pro",
+  "note": "NONE (b)",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [],
+  "createdAt": "2026-11-20T23:13:08-05:00",
+  "takeKind": "none",
+  "distanceCm": null,
+  "noneKind": "b",
+  "cueWindowMs": null,
+  "periodMs": null,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "R",
+  "volumePct": 70,
+  "laptopModel": "Macbook Pro",
+  "protocol": "ml/PROTOCOL.md"
+}

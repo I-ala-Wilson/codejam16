@@ -1,0 +1,142 @@
+{
+  "person": "I-ala-Wilson",
+  "gesture": "PULL",
+  "laptop": "macbook-pro",
+  "note": "PULL at 50 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 143360,
+      "end": 215360,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 287744,
+      "end": 359744,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 432128,
+      "end": 504128,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 576512,
+      "end": 648512,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 719872,
+      "end": 791872,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 864256,
+      "end": 936256,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 1008640,
+      "end": 1080640,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 1153024,
+      "end": 1225024,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 1296384,
+      "end": 1368384,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 1440768,
+      "end": 1512768,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 1585152,
+      "end": 1657152,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 1729536,
+      "end": 1801536,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 1872896,
+      "end": 1944896,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 2017280,
+      "end": 2089280,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 2161664,
+      "end": 2233664,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 2306048,
+      "end": 2378048,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 2449408,
+      "end": 2521408,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 2593792,
+      "end": 2665792,
+      "label": "PULL",
+      "speed": "brisk"
+    },
+    {
+      "start": 2738176,
+      "end": 2810176,
+      "label": "PULL",
+      "speed": "natural"
+    },
+    {
+      "start": 2882560,
+      "end": 2954560,
+      "label": "PULL",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-20T22:48:49-05:00",
+  "takeKind": "gesture",
+  "distanceCm": 50,
+  "cueWindowMs": 1500,
+  "periodMs": 3000,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "R",
+  "volumePct": 70,
+  "laptopModel": "Macbook Pro",
+  "protocol": "ml/PROTOCOL.md"
+}
