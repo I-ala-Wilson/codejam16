@@ -268,6 +268,18 @@ its per-gesture recall on Ian's MacBook Pro takes that it was NOT trained on is 
 PULL 5x each) and keeps the previous model file so he can roll back in seconds. The "retrain rule" below was met by the
 numbers and is kept for the record.
 
+Operational form of (a) and (b), fixed at 13:00 before the first candidate under it is evaluated (the retrain with EJ's two
+extra UNDO takes, 40 cues): (a) is the retrain rule below (mean macro recall of 2 LOPO seeds >= 0.39, false alarms <= 2.6 per
+minute, tests pass). (b) is measured with `ml/compare_models.py` on Ian's takes the model never trained on: `data/pilot`
+(person `ian`, 7 takes) plus every take in `livecheck-*` folders once they exist; for each gesture the candidate's hits must be
+at least the shipped model's hits minus ONE cue (the pilot set has only 12-28 cues per gesture, so one cue is noise), and its
+WAVE reps must not produce more UNDO events than the shipped model's plus one. (c) stays Ian's live check. All three must
+hold; if the candidate fails any, the shipped model stays.
+Calibration of rule (b) itself (`ml/compare_models.py`, 13:05): run on the two models of the live regression, the Dell model
+that Ian saw misread WAVE as UNDO PASSES (PUSH 7 vs 6 of 28, WAVE 4 vs 4 of 12, OPEN_CLOSE 0 vs 2 of 13, UNDO 6 vs 12 of 13,
+REPETITIVE 2 vs 1 of 14, 0 vs 0 stray UNDO in WAVE takes). So (b) cannot catch that failure: it only guards against a visible
+recall loss. Only (c), Ian's live check, and the `livecheck-*` takes he records are decisive; do not ship on numbers alone.
+
 ### Retrain result: rule met (superseded by the correction above)
 Leave-one-person-out, baseline recipe, seeds 0 and 1, 5 people, now including the Dell takes (`retrain_dell/SUMMARY.md`):
 macro recall 0.413 and 0.412 (mean 0.412, needs 0.39), false alarms 2.08 and 2.13 per minute (mean 2.10, needs 2.6),
