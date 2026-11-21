@@ -240,11 +240,11 @@ export const model: Scene = {
 // board (a GitHub issue). Labelled messages travel sender -> board -> recipient, and the board keeps a running log.
 type AgentNode = { key: string; agent: string; role: string; who: string; x: number; y: number }
 const NODES: AgentNode[] = [
-  { key: 'lead', agent: 'CLAUDE', role: 'lead: app + lock', who: 'IAN', x: 96, y: 62 },
-  { key: 'ml', agent: 'CLAUDE', role: 'model + engine', who: 'YAHYA', x: 544, y: 62 },
-  { key: 'qa', agent: 'CLAUDE', role: 'tester', who: 'YAHYA', x: 96, y: 236 },
-  { key: 'ui', agent: 'CLAUDE', role: 'design + pitch', who: 'EJ', x: 544, y: 236 },
-  { key: 'dash', agent: 'CODEX', role: 'dashboard', who: 'MICHAEL', x: 320, y: 270 },
+  { key: 'lead', agent: 'CLAUDE', role: 'lead: app + lock', who: 'IAN', x: 96, y: 50 },
+  { key: 'ml', agent: 'CLAUDE', role: 'model + engine', who: 'YAHYA', x: 544, y: 50 },
+  { key: 'qa', agent: 'CLAUDE', role: 'tester', who: 'YAHYA', x: 96, y: 214 },
+  { key: 'ui', agent: 'CLAUDE', role: 'design + pitch', who: 'EJ', x: 544, y: 214 },
+  { key: 'dash', agent: 'CODEX', role: 'dashboard', who: 'MICHAEL', x: 320, y: 236 },
 ]
 const HUB = { x: 320, y: 128, w: 150, h: 92 }
 const humanAt = (n: AgentNode) => (Math.abs(n.x - HUB.x) < 40 ? { x: n.x - 64, y: n.y } : { x: n.x + (n.x < HUB.x ? -58 : 58), y: n.y })
@@ -301,14 +301,11 @@ export const agents: Scene = {
   },
   overlay(g, t) {
     const { m, u, k } = msgAt(t)
+    // labels sit under each chip and each person, clear of the spokes that leave the chips toward the board
     for (const n of NODES) {
-      const right = n.x > HUB.x + 40, center = Math.abs(n.x - HUB.x) < 40
-      const x = center ? n.x + 26 : right ? n.x - 26 : n.x + 26
-      const al: CanvasTextAlign = center ? 'left' : right ? 'right' : 'left'
-      const yy = center ? n.y : n.y
-      label(g, n.agent, x, yy - 9, 16, al)
-      label(g, n.role, x, yy + 8, 13, al)
-      const h = humanAt(n); label(g, n.who, h.x, h.y + 24, 13, 'center')
+      label(g, n.agent, n.x, n.y + 31, 15, 'center')
+      label(g, n.role, n.x, n.y + 45, 12, 'center')
+      const h = humanAt(n); label(g, n.who, h.x, h.y + 31, 13, 'center')
     }
     // the board is drawn crisp on top (no dither) so its log stays readable
     { const land = u > 0.4 && u < 0.6 ? 1 - Math.abs(u - 0.5) * 10 : 0
@@ -330,7 +327,7 @@ export const agents: Scene = {
     const tagAt = (a: { x: number; y: number }, b: { x: number; y: number }, p: number) => tag(g, m.text, a.x + (b.x - a.x) * p, a.y + (b.y - a.y) * p, 13)
     if (u < 0.42) tagAt(nodeEdge(from), hubEdge(from), 0.22 + 0.78 * smooth(u / 0.42)) // starts clear of the sender's label
     else if (u > 0.58) for (const key of m.to) { const n = node(key); tagAt(hubEdge(n), nodeEdge(n), 0.78 * smooth((u - 0.58) / 0.42)) }
-    label(g, 'Each of us drives an agent. Agents never talk directly: every task, bug and update goes through the board.', 320, 310, 12, 'center')
+    label(g, 'Each of us drives an agent. Agents never talk directly: every task, bug and update goes through the board.', 320, 312, 12, 'center')
   },
 }
 
