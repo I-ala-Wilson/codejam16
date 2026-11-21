@@ -216,3 +216,36 @@ largest-magnitude shift in the last second, and that is often the recoil, so it 
 evaluation finished; it is now OFF by default and can be switched on in gesture.json. Not tried and not claimed: using the rule
 detector's own stroke logic (the primary stroke after wind-up and recoil are dropped) as the tie-break. That would be a new
 candidate under a new pre-registered rule.
+
+## Breathing v2: time-boxed second shot (Ian's DIRECT 7065406175). PRE-REGISTERED before any new take is analysed
+v1 stays as written above and keeps its verdict (NO-GO on the 15 takes it was run on). v2 is an alternative method next to it,
+judged only on takes that were not used to design it, with a hard stop at 13:30 today: if v2 is not a GO by then, breathing
+rate is dropped and only the breath-hold / apnea flag is considered.
+
+Why v2, from the v1 results and from EJ's observation (the design set is the 15 takes analysed so far; their spectra may be
+looked at to check the idea is sane, but no number below is tuned on them):
+- v1 estimates are pulled toward about 10 bpm whatever the paced rate (20 bpm reads as 10.6 and 8.3, natural breathing as 9.2).
+  The unwrapped phase has slow drift whose power rises toward low frequency (about 1/f) and can outweigh a 0.3 Hz breath
+  peak in the FFT.
+- EJ's 15 bpm and natural takes show the 20 kHz level itself wobbling with a period of about 4.6 s, the breathing rate: with a
+  strong chest echo the breathing modulates the tone level. v1's tone gate (5 s windows) cannot tell that from a bad tone.
+
+v2 method, all numbers fixed now:
+1. Same front end as v1: demodulate at the tone frequency, remove the static path, unwrap the phase, same bin choice.
+2. Detrend with a high-pass at 0.05 Hz, then for each 30 s window (stepped by 5 s, as in v1) compute the Hann-windowed
+   periodogram zero-padded to 4096 points at 50 Hz.
+3. Whiten: fit a straight line to log(power) against log(frequency) over 0.05-1.5 Hz with a median-based (Theil-Sen) fit,
+   divide the periodogram by the fitted power law, and take the highest whitened bin inside 0.12-0.5 Hz (7.2-30 bpm) as the
+   rate. Bands, window, step and per-take median are otherwise the same as v1.
+4. Breathing-aware tone gate: the tone level is measured in 20 s windows stepped by 5 s (long enough to average over several
+   breaths); a window is stable when within 3 dB of the take's median level; the take is cropped to its longest run of stable
+   windows and rejected when that run covers less than 30 s. A sustained collapse such as Ian's 10x drop is still rejected.
+5. Apnea flag unchanged from v1.
+
+Which takes count (the test set): the takes that arrive after this rule is pushed, plus the takes that were recorded
+before it but whose rates nobody has looked at: EJ's three retakes (15 bpm, hold, natural, 11:05-11:07, 21 Nov) and any
+redo by Ian. None of the 15 takes already analysed (all the takes dated before 11:05) counts for v2.
+
+Success rule, unchanged from v1: at least 4 usable paced takes from at least 2 people after the v2 gate; GO when at least
+75% of them are within 2 bpm of the paced rate; PARTIAL GO when the apnea check of v1 passes on the hold takes (75%, 2
+people); otherwise NO-GO. v1 and v2 are reported side by side on the test takes.
