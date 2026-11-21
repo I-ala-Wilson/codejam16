@@ -236,71 +236,62 @@ export const model: Scene = {
 }
 
 // ---------- 3. The agents ----------
-type Node = { name: string; x: number; y: number; human: boolean }
-const BOARD = { x: 320, y: 146, w: 128, h: 58 }
-const ring = (deg: number) => ({ x: 320 + 214 * Math.cos((deg * Math.PI) / 180), y: 146 - 108 * Math.sin((deg * Math.PI) / 180) })
-const NODES: Node[] = [
-  ...[['IAN', 140], ['YAHYA', 167], ['EJ', 193], ['MICHAEL', 220]].map(([n, d]) => ({ name: n as string, ...ring(d as number), human: true })),
-  ...[['CLAUDE', 62], ['CLAUDE', 31], ['CLAUDE', 0], ['QA AGENT', -31], ['CODEX', -62]].map(([n, d]) => ({ name: n as string, ...ring(d as number), human: false })),
+// Each person drives their own AI agent; every agent reads the same spec and posts to one shared board.
+const TEAM = [
+  { human: 'IAN', agent: 'CLAUDE', role: 'lead: app, lock, extension', y: 52 },
+  { human: 'YAHYA', agent: 'CLAUDE', role: 'model training + sonar engine', y: 104 },
+  { human: 'YAHYA', agent: 'CLAUDE', role: 'tester: finds and reports bugs', y: 156 },
+  { human: 'EJ', agent: 'CLAUDE', role: 'design + pitch', y: 208 },
+  { human: 'MICHAEL', agent: 'CODEX', role: 'caregiver dashboard + backend', y: 260 },
 ]
-// where an edge meets the board's rectangle
-function boardEdge(n: Node) {
-  const dx = n.x - BOARD.x, dy = n.y - BOARD.y
-  const s = Math.min((BOARD.w / 2 + 6) / Math.abs(dx || 1e-6), (BOARD.h / 2 + 6) / Math.abs(dy || 1e-6))
-  return { x: BOARD.x + dx * s, y: BOARD.y + dy * s }
-}
-const R_NODE = 15
+const COL = { human: 92, agent: 232, board: 560 }
+const BRD = { x: 520, y0: 34, y1: 278, w: 92 }
 
 export const agents: Scene = {
   draw(g, t) {
-    for (let i = 0; i < NODES.length; i++) {
-      const n = NODES[i], e = boardEdge(n)
-      const len = Math.hypot(n.x - e.x, n.y - e.y), ux = (e.x - n.x) / len, uy = (e.y - n.y) / len
-      const sx = n.x + ux * (R_NODE + 4), sy = n.y + uy * (R_NODE + 4)
-      g.strokeStyle = gray(1); g.lineWidth = 1.2; g.setLineDash([2, 4])
-      g.beginPath(); g.moveTo(sx, sy); g.lineTo(e.x, e.y); g.stroke(); g.setLineDash([])
-      // a message posts to the board, later a reply travels back out
-      const P = 4.2 + (i % 3) * 0.9, u = ((t + i * 1.37) / P) % 1
-      const dot = (p: number) => {
-        const x = sx + (e.x - sx) * p, y = sy + (e.y - sy) * p
-        g.fillStyle = gray(1); g.fillRect(x - 3, y - 3, 6, 6)
-      }
-      if (u < 0.42) dot(smooth(u / 0.42))
-      else if (u > 0.6 && u < 0.95) dot(1 - smooth((u - 0.6) / 0.35))
+    g.lineWidth = 1.4
+    for (let i = 0; i < TEAM.length; i++) {
+      const r = TEAM[i]
+      // human -> their agent: a short solid line
+      const hy = r.human === 'YAHYA' ? 130 : r.y
+      g.strokeStyle = gray(0.9); g.setLineDash([])
+      g.beginPath(); g.moveTo(COL.human + 18, hy); g.lineTo(COL.agent - 16, r.y); g.stroke()
+      // agent -> shared board: dotted, with a message travelling in and a reply travelling back
+      const x0 = COL.agent + 206, x1 = BRD.x - BRD.w / 2 // starts after the agent's label
+      g.strokeStyle = gray(0.7); g.setLineDash([2, 5])
+      g.beginPath(); g.moveTo(x0, r.y); g.lineTo(x1, r.y); g.stroke(); g.setLineDash([])
+      const P = 3.6 + (i % 3) * 0.7, u = ((t + i * 1.13) / P) % 1
+      const at = (p: number) => { g.fillStyle = gray(1); g.fillRect(x0 + (x1 - x0) * p - 3, r.y - 3, 6, 6) }
+      if (u < 0.45) at(smooth(u / 0.45))
+      else if (u > 0.55 && u < 0.95) at(1 - smooth((u - 0.55) / 0.4))
+      // agent chip: a small rounded square with a soft fill
+      g.fillStyle = gray(0.5); g.strokeStyle = gray(1); g.lineWidth = 1.6
+      g.beginPath(); g.roundRect(COL.agent - 14, r.y - 14, 28, 28, 5); g.fill(); g.stroke()
     }
-    for (const n of NODES) {
-      g.strokeStyle = gray(1); g.lineWidth = 2
-      if (n.human) {
-        g.fillStyle = gray(0.28)
-        g.beginPath(); g.arc(n.x, n.y, R_NODE, 0, TAU); g.fill(); g.stroke()
-        // head and shoulders
-        g.fillStyle = gray(1)
-        g.beginPath(); g.arc(n.x, n.y - 4, 4.2, 0, TAU); g.fill()
-        g.beginPath(); g.arc(n.x, n.y + 10, 8, Math.PI, TAU); g.fill()
-      } else {
-        g.setLineDash([2, 4]); g.lineWidth = 1.2; g.strokeStyle = gray(1)
-        g.strokeRect(n.x - R_NODE - 6, n.y - R_NODE - 6, (R_NODE + 6) * 2, (R_NODE + 6) * 2)
-        g.setLineDash([]); g.lineWidth = 2; g.strokeStyle = gray(1)
-        g.fillStyle = gray(0.55)
-        g.beginPath(); g.rect(n.x - R_NODE + 2, n.y - R_NODE + 2, (R_NODE - 2) * 2, (R_NODE - 2) * 2); g.fill(); g.stroke()
-        g.fillStyle = gray(0)
-        g.fillRect(n.x - 7, n.y - 4, 4, 4); g.fillRect(n.x + 3, n.y - 4, 4, 4); g.fillRect(n.x - 6, n.y + 5, 12, 2)
-      }
+    // people: one round avatar each (Yahya's spans his two agents)
+    for (const [y] of [[52], [130], [208], [260]]) {
+      g.fillStyle = gray(0.3); g.strokeStyle = gray(1); g.lineWidth = 1.6
+      g.beginPath(); g.arc(COL.human, y, 16, 0, TAU); g.fill(); g.stroke()
+      g.fillStyle = gray(1)
+      g.beginPath(); g.arc(COL.human, y - 4, 4.5, 0, TAU); g.fill()
+      g.beginPath(); g.arc(COL.human, y + 11, 8.5, Math.PI, TAU); g.fill()
     }
+    // the shared board: a tall panel the dots post into
+    g.fillStyle = gray(1); g.fillRect(BRD.x - BRD.w / 2, BRD.y0, BRD.w, BRD.y1 - BRD.y0)
   },
   overlay(g) {
-    const { x, y, w, h } = BOARD
-    g.fillStyle = INK; g.fillRect(x - w / 2, y - h / 2, w, h)
-    g.fillStyle = BG; g.textAlign = 'center'; g.textBaseline = 'middle'
-    g.font = '32px VT323, monospace'; g.fillText('BOARD', x, y - 7)
-    g.font = '15px VT323, monospace'; g.fillText('GITHUB ISSUE #1', x, y + 16)
-    for (const n of NODES) {
-      const left = n.x < 320
-      const pad = n.human ? R_NODE + 8 : R_NODE + 12
-      label(g, n.name, n.x + (left ? -pad : pad), n.y, 19, left ? 'right' : 'left')
+    for (const [name, y] of [['IAN', 52], ['YAHYA', 130], ['EJ', 208], ['MICHAEL', 260]] as const) label(g, name, COL.human - 24, y, 17, 'right')
+    for (const r of TEAM) {
+      label(g, r.agent, COL.agent + 22, r.y - 7, 16)
+      label(g, r.role, COL.agent + 22, r.y + 9, 13)
     }
-    label(g, '4 HUMANS', 16, 300, 17)
-    label(g, '5 AGENTS, EACH IN ITS OWN FOLDERS', 624, 300, 17, 'right')
+    g.fillStyle = BG; g.textAlign = 'center'; g.textBaseline = 'middle'
+    g.font = '22px VT323, monospace'; g.fillText('SHARED', BRD.x, 130); g.fillText('BOARD', BRD.x, 150)
+    g.font = '13px VT323, monospace'
+    for (const [k, txt] of ['spec', 'tasks', 'status', 'bugs'].entries()) g.fillText(txt, BRD.x, 186 + k * 16)
+    label(g, 'PEOPLE', COL.human, 304, 15, 'center')
+    label(g, 'THEIR AI AGENTS', COL.agent + 50, 304, 15, 'center')
+    label(g, 'ONE GITHUB ISSUE', BRD.x, 304, 15, 'center')
   },
 }
 
