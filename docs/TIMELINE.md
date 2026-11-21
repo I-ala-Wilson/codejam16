@@ -16,3 +16,4 @@ Append-only, newest at the bottom. The lead's agent adds a line for every milest
 | Fri 20 Nov 19:01 | Recreated the repo as I-ala-Wilson/codejam16 (private), tooling copied, fresh history | Hackathon rule: the project repo must be created after hacking starts (7pm); Yahya-github/codejam predates it |
 | Fri 20 Nov 20:45 | KICKOFF: idea Echo (sonar gesture engine, 3 apps: Lock, Care, Habit). BRIEF approved, SPEC v1, contracts, lanes, scaffold, issues #3-#18 | After a 5-round grill; Health primary, Touch Grass/People First/Undo secondary, Agent pitch-only |
 | Fri 20 Nov 20:43 | PAUSE: team moving to dorms (~15 min); agents push WIP + journals, resume with /recover | Location change |
+| Fri 20 Nov 21:45 | Board stops using real @mentions (recipients in hidden to= field) | GitHub was emailing everyone on every post |
