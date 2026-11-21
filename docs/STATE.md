@@ -3,16 +3,16 @@
 Last updated: (not yet)
 
 ## Now
-- Spec: v0, idea not chosen.
-- Phase: new repo (created 19:00 Fri, hackathon rule). Everyone clones I-ala-Wilson/codejam16, runs `scripts/setup`, then `/sync` (Codex: `sync`).
+- Spec: v1 (Fri 20:45). Idea: Echo, sonar gestures, apps Lock / Care / Habit. See docs/BRIEF.md.
+- Phase: M1 skeleton, due Fri 23:30. Room test 21:30, recording session before midnight, everyone sleeps 00:00-08:00.
 
 ## People
 | Login | Lane | Status | Next |
 |---|---|---|---|
-| I-ala-Wilson | lead | set up | run /kickoff after the ceremony |
-| Yahya-github | TBD | not set up | pull + scripts/setup + /sync |
-| EJ2007 | TBD | not set up | pull + scripts/setup + /model sonnet + /sync |
-| Miguel982 | TBD | not set up | pull + scripts/setup + codex + sync + board watch |
+| I-ala-Wilson | app + extension + integration (lead) | kickoff done | #6 waterfall/Record, #7 extension |
+| Yahya-github | engine + ml (GPU) + QA clone | waiting ACK | #3 engine audio I/O (blocks the room test) |
+| EJ2007 | ui + pitch | waiting ACK | #5 Devpost draft |
+| Miguel982 | backend + dashboard | waiting ACK | #4 Supabase (HUMAN: create project), #8 dashboard |
 
 ## Decisions log
 - (time) decision, reason

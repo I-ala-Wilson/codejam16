@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Echo Lock",
+  "version": "0.1.0",
+  "description": "Blocks chosen sites until unlocked by an Echo sonar gesture.",
+  "permissions": ["declarativeNetRequest", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "externally_connectable": { "matches": ["http://localhost:*/*", "https://*.vercel.app/*"] },
+  "web_accessible_resources": [{ "resources": ["blocked.html"], "matches": ["<all_urls>"] }]
+}

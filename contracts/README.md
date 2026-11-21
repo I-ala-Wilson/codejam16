@@ -1,8 +1,8 @@
 # Contracts
 
-The exact interfaces between lanes: API routes with request/response JSON examples, shared types, event names, file formats, ports, env var names.
+The exact interfaces between lanes. Owned by the lead; changes need a NEED to I-ala-Wilson and a SPEC bump.
 
-Owned by the lead. Code against these, never against another lane's internals. Need a change? Post on the board:
-`scripts/board post --type NEED --to I-ala-Wilson "contract change: <what and why>"`
-
-Empty until kickoff (SPEC v1).
+- `engine.ts`: sonar engine API and gesture events (engine/ implements, app/ uses)
+- `events.md`: Supabase `events` table + realtime (backend/ + dashboard/ implement, app/ inserts)
+- `extension.md`: app <-> Chrome extension messages (extension/ + app/)
+- `recording.md`: recorded session files (engine/ writes, ml/ + qa/ read)

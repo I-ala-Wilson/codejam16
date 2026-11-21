@@ -17,8 +17,11 @@
       "agent": "claude",
       "plan": "Claude Max",
       "budget": "high",
-      "role": "lead: spec, contracts, scaffold, integration, demo",
-      "owns": [],
+      "role": "lead: spec, contracts, app shell, Chrome extension, integration, deploy, demo",
+      "owns": [
+        "app/*",
+        "extension/*"
+      ],
       "machine": "MacBook Pro"
     },
     {
@@ -27,8 +30,11 @@
       "agent": "claude",
       "plan": "Claude Max 20x",
       "budget": "high",
-      "role": "TBD at kickoff (biggest lane + rescue)",
-      "owns": [],
+      "role": "sonar engine (DSP + rules), ML on GPU, ASL experiments; rescue lane",
+      "owns": [
+        "engine/*",
+        "ml/*"
+      ],
       "machine": "Linux"
     },
     {
@@ -37,8 +43,11 @@
       "agent": "claude",
       "plan": "Claude Pro",
       "budget": "low",
-      "role": "TBD at kickoff (small, tightly specced lane)",
-      "owns": [],
+      "role": "shared UI components + styles, Devpost/slides/video, recording sessions",
+      "owns": [
+        "ui/*",
+        "pitch/*"
+      ],
       "machine": "MacBook Air"
     },
     {
@@ -47,8 +56,11 @@
       "agent": "codex",
       "plan": "Codex basic",
       "budget": "low",
-      "role": "TBD at kickoff (small, tightly specced lane)",
-      "owns": [],
+      "role": "Supabase backend + caregiver/parent dashboard",
+      "owns": [
+        "backend/*",
+        "dashboard/*"
+      ],
       "machine": "Dell Windows (WSL), Intel i5"
     }
   ],
