@@ -187,7 +187,7 @@ const scratchingHand = make3D(() => {
   const scene = stage(), camera = cam()
   const desk = new THREE.Mesh(new THREE.BoxGeometry(3, 0.04, 1.4), SOFT(0x0e0e0e)); scene.add(desk)
   // extra key and rim light so the grey mannequin keeps its shape against the desk
-  { const k = new THREE.DirectionalLight(0xffffff, 1.6); k.position.set(2, 3, 2.5); scene.add(k); const rim = new THREE.DirectionalLight(0xffffff, 1.2); rim.position.set(-2, 1.5, -2); scene.add(rim) }
+  { scene.children.filter((o) => (o as THREE.Light).isLight).forEach((o) => scene.remove(o)); scene.add(new THREE.HemisphereLight(0xffffff, 0x000000, 0.25)); const k = new THREE.DirectionalLight(0xffffff, 2.6); k.position.set(3.5, 2.2, 0.8); scene.add(k); const rim = new THREE.DirectionalLight(0xffffff, 1.4); rim.position.set(-2.5, 1.5, -2.5); scene.add(rim) } // raking side light: shading separates arm, hand and chest
   const lap = laptop(); lap.scale.setScalar(0.13); scene.add(lap)
   const lapScreen = new THREE.Object3D(); lapScreen.position.set(0, 0.75, -0.6); lap.add(lapScreen)
   const scratch = new THREE.Object3D(); scene.add(scratch)
