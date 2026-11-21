@@ -361,11 +361,13 @@ const ROOMS = [
   { name: 'NOISY ROOM', word: 'UNSURE', conf: 0.5, noise: 0.12, speck: 0.7, bursts: 0.55, carrier: 0.92, strength: 0.8 },
   { name: 'WEAKER LAPTOP', word: 'MISSED', conf: 0.15, noise: 0.08, speck: 0, bursts: 0, carrier: 0.4, strength: 0.32 },
 ]
-const RB = { xs: [16, 228, 440], w: 184, y0: 44, y1: 160 }
-const GAINS = ['$0 HARDWARE', 'WORKS IN THE DARK', 'NO IMAGE, EVER']
-const GX = [112, 320, 528], GSTEP = 2.4
-// how strongly a gesture is passing the right edge of the boxes right now
-const nowOn = (t: number) => streak(t - 0.3).on
+const RB = { xs: [16, 228, 440], w: 184, y0: 40, y1: 140 }
+const GAINS = [
+  { name: '$0 HARDWARE', sub: 'speaker and mic built in' },
+  { name: 'WORKS IN THE DARK', sub: 'no light needed' },
+  { name: 'NO IMAGE, EVER', sub: 'only echoes, no pictures' },
+]
+const GY = 276, GSTEP = 2.4
 
 export const tradeoffs: Scene = {
   draw(g, t) {
@@ -395,23 +397,50 @@ export const tradeoffs: Scene = {
       g.strokeRect(x0, y0, w, y1 - y0)
     })
     g.strokeStyle = gray(1); g.lineWidth = 1.2; g.setLineDash([2, 6])
-    g.beginPath(); g.moveTo(16, 240); g.lineTo(624, 240); g.stroke(); g.setLineDash([])
+    g.beginPath(); g.moveTo(16, 208); g.lineTo(624, 208); g.stroke(); g.setLineDash([])
+
+    // gains: three small line pictograms in solid ink, each with a slow animation
+    g.fillStyle = gray(1); g.strokeStyle = gray(1); g.lineWidth = 2.4
+    { // a laptop sending sound from its own speaker
+      const x = RB.xs[0] + 26, y = GY
+      g.strokeRect(x - 20, y - 18, 40, 26)
+      g.beginPath(); g.moveTo(x - 26, y + 14); g.lineTo(x + 26, y + 14); g.lineTo(x + 20, y + 8); g.lineTo(x - 20, y + 8); g.closePath(); g.stroke()
+      g.save(); g.beginPath(); g.rect(x - 18, y - 16, 36, 22); g.clip()
+      arcs(g, x, y + 4, -Math.PI / 2, 3, 22, t, { n: 2, speed: 9, spread: 0.9, width: 2 })
+      g.restore()
+    }
+    { // a crescent moon with two blinking stars
+      const x = RB.xs[1] + 26, y = GY
+      g.beginPath(); g.arc(x - 2, y, 16, 0, TAU); g.fill()
+      g.fillStyle = gray(0); g.beginPath(); g.arc(x + 6, y - 6, 14, 0, TAU); g.fill()
+      g.fillStyle = gray(1)
+      for (const [sx, sy, ph] of [[x + 18, y + 10, 0], [x + 12, y - 18, 1.7]]) if (Math.sin(t * 2 + ph) > -0.3) g.fillRect(sx - 1.5, sy - 1.5, 3, 3)
+    }
+    { // a camera, crossed out
+      const x = RB.xs[2] + 26, y = GY
+      g.strokeRect(x - 20, y - 12, 40, 26); g.strokeRect(x - 7, y - 17, 14, 5)
+      g.beginPath(); g.arc(x, y + 1, 7, 0, TAU); g.stroke()
+      g.lineWidth = 3; g.beginPath(); g.moveTo(x - 24, y - 20); g.lineTo(x + 24, y + 20); g.stroke()
+    }
   },
   overlay(g, t) {
-    label(g, 'WHAT SOUND GIVES UP', 16, 24, 17)
-    const on = nowOn(t)
+    label(g, 'WHAT SOUND GIVES UP', 16, 22, 17)
     ROOMS.forEach((r, i) => {
       const x = RB.xs[i]
-      label(g, r.name, x, 176, 16)
-      // what the model makes of it: a confidence bar that fills as each gesture passes, and the verdict
-      const bw = 110, f = r.conf * Math.max(0.06, on)
-      g.strokeStyle = INK; g.lineWidth = 1.2; g.strokeRect(x, 196, bw, 12)
-      g.fillStyle = INK; g.fillRect(x + 2, 198, (bw - 4) * f, 8)
-      if (on > 0.4) tag(g, r.word, x + RB.w, 202, 16, 'right'); else label(g, r.word, x + RB.w, 202, 16, 'right')
+      label(g, r.name, x, 156, 16)
+      // how sure the model is in each condition, and the verdict
+      const bw = 112
+      g.strokeStyle = INK; g.lineWidth = 1.2; g.strokeRect(x, 172, bw, 12)
+      g.fillStyle = INK; g.fillRect(x + 2, 174, (bw - 4) * r.conf, 8)
+      tag(g, r.word, x + RB.w, 178, 16, 'right')
     })
-    label(g, 'WHAT IT GAINS', 16, 264, 17)
+    label(g, 'WHAT IT GAINS', 16, 230, 17)
     const a = Math.floor(t / GSTEP) % GAINS.length
-    GAINS.forEach((s, i) => { if (i === a) tag(g, s, GX[i], 296, 18); else label(g, s, GX[i], 296, 18, 'center') })
+    GAINS.forEach((s, i) => {
+      const x = RB.xs[i] + 62
+      if (i === a) tag(g, s.name, x - 5, GY - 7, 17, 'left'); else label(g, s.name, x, GY - 7, 17)
+      label(g, s.sub, x, GY + 13, 13)
+    })
   },
 }
 
