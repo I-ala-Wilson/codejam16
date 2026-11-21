@@ -4,7 +4,7 @@ import type { Scene } from './DitherCanvas.tsx'
 // DitherCanvas. Outgoing sound is solid arcs, the returning echo is dashed arcs, as in the How it works explainer.
 
 const TAU = Math.PI * 2
-const INK = '#f2f2f0', BG = '#1e1f21'
+const INK = '#f2f2f0', BG = '#000000'
 const gray = (v: number) => { const c = Math.round(Math.max(0, Math.min(1, v)) * 255); return `rgb(${c},${c},${c})` }
 const smooth = (x: number) => { const u = Math.max(0, Math.min(1, x)); return u * u * (3 - 2 * u) }
 const hash = (a: number, b: number) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s) }

@@ -204,8 +204,8 @@ function SonarMeter() {
         const amp = hist[x], d = Math.abs(y - (H - 1) / 2) / (H / 2)
         const g = d < amp + 0.08 ? 0.25 + 0.75 * amp : 0
         const lit = g > BAYER4[(y & 3) * 4 + (x & 3)]
-        const i = (y * W + x) * 4, v = lit ? 242 : 30
-        img.data[i] = v; img.data[i + 1] = v; img.data[i + 2] = lit ? 240 : 33; img.data[i + 3] = 255
+        const i = (y * W + x) * 4, v = lit ? 242 : 0
+        img.data[i] = v; img.data[i + 1] = v; img.data[i + 2] = lit ? 240 : 0; img.data[i + 3] = 255
       }
       ctx.putImageData(img, 0, 0)
     }, 40)

@@ -41,7 +41,7 @@ const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
 const ss = (x: number) => { const t = clamp01(x); return t * t * (3 - 2 * t) }
 const srgb = (hex: number) => new V(((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255)
 
-const BG = 0x1e1f21
+const BG = 0x000000
 const INK = 0xf2f2f0
 const ACCENT = INK // no colour accent: echoes are told apart by their dashes
 

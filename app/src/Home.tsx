@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DitherFlower from './art/DitherFlower.tsx'
 import Explainer from './explainer/Explainer.tsx'
 import HowWeBuilt from './HowWeBuilt.tsx'
 import { engine } from './engine.ts'
+import { ensureSonar } from './sonar.ts'
 
 // Landing screen: Ian's flower as a full-screen ordered dither, the headline top-left, the apps bottom-left. Style per docs/STYLE.md.
 export default function Home({ go }: { go: (page: string) => void }) {
   const [running, setRunning] = useState(engine.health().running)
   const [error, setError] = useState('')
+  // the sonar starts by itself so the flower is listening the moment the page opens (mic permission is remembered)
+  useEffect(() => { ensureSonar().then(() => setRunning(engine.health().running)) }, [])
   const start = async () => {
     setError('')
     try { await engine.start(); await engine.calibrate(3000); setRunning(true) } catch (e) { setError(String(e)) }

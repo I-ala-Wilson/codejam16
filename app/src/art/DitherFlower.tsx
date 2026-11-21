@@ -12,7 +12,8 @@ const HEAD_X = 955, HEAD_Y = 520 // centre of the bloom in the reference
 const BINS = 72 // directions around the bloom with their own wave level
 const WAVE_REACH = 46 // reference px the waves travel out from the petals
 const WAVE_LAMBDA = 20 // reference px between wavefronts at rest
-const WAVE_SPEED = 34 // reference px per second the fronts travel outward
+const WAVE_SPEED = 34
+const LEAN = 25 // reference px the head leans when a hand pushes or pulls // reference px per second the fronts travel outward
 const SHIFT_X = 0.23 // flower sits right of centre, clear of the headline
 const BLUR = 2 // px radius of each of the two box-blur passes, just enough to dissolve the digit shapes
 const GAIN = 1.25 // dither density tracks the reference's own ink coverage, so the tone matches it
@@ -20,7 +21,7 @@ const BAYER = [
   0, 48, 12, 60, 3, 51, 15, 63, 32, 16, 44, 28, 35, 19, 47, 31, 8, 56, 4, 52, 11, 59, 7, 55, 40, 24, 36, 20, 43, 27, 39, 23,
   2, 50, 14, 62, 1, 49, 13, 61, 34, 18, 46, 30, 33, 17, 45, 29, 10, 58, 6, 54, 9, 57, 5, 53, 42, 26, 38, 22, 41, 25, 37, 21,
 ].map((v) => (v + 0.5) / 64)
-const BG = 0xff211f1e, INK = 0xfff0f2f2 // ABGR for a Uint32 view of the image data
+const BG = 0xff000000, INK = 0xfff0f2f2 // ABGR for a Uint32 view of the image data
 
 function blur(a: Float32Array, w: number, h: number, R: number) {
   const b = new Float32Array(w * h)
@@ -54,7 +55,7 @@ function buildField(img: HTMLImageElement, W: number, H: number) {
   const c = document.createElement('canvas')
   c.width = W; c.height = H
   const ctx = c.getContext('2d', { willReadFrequently: true })!
-  ctx.fillStyle = '#1e1f21'
+  ctx.fillStyle = '#000000'
   ctx.fillRect(0, 0, W, H)
   const ox = (W - REF_W * s) / 2 + W * SHIFT_X, oy = (H - REF_H * s) / 2
   ctx.drawImage(img, ox, oy, REF_W * s, REF_H * s)
@@ -118,12 +119,15 @@ function buildField(img: HTMLImageElement, W: number, H: number) {
 
 export default function DitherFlower() {
   const canvas = useRef<HTMLCanvasElement>(null)
-  const energy = useRef({ toward: 0, away: 0 })
+  const energy = useRef({ toward: 0, away: 0, floorT: 1e9, floorA: 1e9 })
 
   useEffect(() => engine.onFrame((f) => {
     const e = energy.current
-    e.toward = e.toward * 0.85 + Math.max(0, f.energyToward) * 0.15
-    e.away = e.away * 0.85 + Math.max(0, f.energyAway) * 0.15
+    // subtract a slowly rising floor so a still room reads as zero and only a moving hand counts
+    const rt = Math.max(0, f.energyToward), ra = Math.max(0, f.energyAway)
+    e.floorT = Math.min(rt, e.floorT * 0.997 + rt * 0.003); e.floorA = Math.min(ra, e.floorA * 0.997 + ra * 0.003)
+    e.toward = e.toward * 0.8 + Math.max(0, rt - e.floorT * 1.3) * 0.2
+    e.away = e.away * 0.8 + Math.max(0, ra - e.floorA * 1.3) * 0.2
   }), [])
 
   useEffect(() => {
@@ -133,7 +137,7 @@ export default function DitherFlower() {
     let field: ReturnType<typeof buildField> | null = null
     let frame: ImageData | null = null
     let raf = 0, last = 0
-    let lastT = 0, lastA = 0
+    let lastT = 0, lastA = 0, lean = 0, leanV = 0
     const level = new Float32Array(BINS), phaseB = new Float32Array(BINS), lamB = new Float32Array(BINS).fill(WAVE_LAMBDA)
     const img = new Image()
     img.src = '/art/flower-ref.png'
@@ -157,9 +161,12 @@ export default function DitherFlower() {
       const f = field, px = new Uint32Array(frame!.data.buffer)
       const e = energy.current
       const t = now / 1000
-      const toward = Math.min(1, e.toward / 20), away = Math.min(1, e.away / 20)
+      const toward = Math.min(1, e.toward / 12), away = Math.min(1, e.away / 12)
+      // lean with the hand: a push bends the head one way, a pull the other, on a damped spring
+      const leanGoal = (toward - away) * LEAN * f.s
+      leanV += ((leanGoal - lean) * 18 - leanV * 8.5) * Math.min(0.05, Math.max(0.001, t - lastT)); lean += leanV * Math.min(0.05, Math.max(0.001, t - lastT))
       const stemX = f.ox + STEM_X * f.s, stemY = f.oy + STEM_Y * f.s, height = 840 * f.s
-      const A = (14 * Math.sin(t * 2 * Math.PI / 6) + 3.5 * Math.sin(t * 2 * Math.PI / 2.3 + 1.1)) * f.s
+      const A = (14 * Math.sin(t * 2 * Math.PI / 6) + 3.5 * Math.sin(t * 2 * Math.PI / 2.3 + 1.1)) * f.s + lean
       const pad = Math.ceil(18 * f.s) + 2
       // Sound waves hug the petals: each wavefront is a contour line at a growing distance from the flower's outline,
       // so it follows every petal's shape. Waves are bright where the petals are moving outward (and packed tighter
@@ -171,9 +178,9 @@ export default function DitherFlower() {
         const th = (k / BINS) * Math.PI * 2, nx = Math.cos(th), ny = Math.sin(th)
         const lift = Math.max(0, Math.min(1, (stemY - (f.cy + ny * 160 * f.s)) / height)) ** 1.6
         const vn = Math.max(0, vA * lift * nx) // outward speed of the petals on this side, px/s
-        const goal = ny > 0.6 ? 0 : Math.min(0.42, vn * 0.035 * (1 + 0.6 * hand)) // only the side moving outward makes sound
+        const goal = ny > 0.6 ? 0 : Math.max(Math.min(0.42, vn * 0.035), Math.min(0.8, hand * 1.2)) // the side moving outward sings; a moving hand makes every outer petal sing
         level[k] += (goal - level[k]) * Math.min(1, dt * 3)
-        const lam = WAVE_LAMBDA * f.s / (1 + vn * 0.025) // tighter spacing when the edge moves out faster
+        const lam = WAVE_LAMBDA * f.s / (1 + vn * 0.025 + hand * 0.6) // tighter spacing when the edge moves out faster
         lamB[k] = lam
         phaseB[k] = (phaseB[k] + dt * WAVE_SPEED * f.s / lam) % 1
       }
@@ -189,7 +196,7 @@ export default function DitherFlower() {
           const sx = x - shift
           const inside = y >= f.top && sx >= 0 && sx < W
           let g = inside ? f.v[row + sx] : 0
-          if (g > 0) g += 0.1 * (sx < stemX ? toward : away) * g
+          if (g > 0) g += 0.15 * (sx < stemX ? toward : away) * g
           if (g < 0.16 && sx >= 0 && sx < W && f.outside[row + sx]) {
             const d = f.dist[row + sx]
             if (d > 1.5 && d < reach) {
@@ -211,5 +218,5 @@ export default function DitherFlower() {
     return () => { cancelAnimationFrame(raf); io.disconnect() }
   }, [])
 
-  return <canvas ref={canvas} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', background: '#1e1f21', imageRendering: 'pixelated' }} />
+  return <canvas ref={canvas} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', background: '#000000', imageRendering: 'pixelated' }} />
 }
