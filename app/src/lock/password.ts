@@ -24,7 +24,11 @@ export function addEvent(s: InputState, e: { type: GestureType; confidence: numb
   if (e.type === 'HOLD' || e.confidence < MIN_CONFIDENCE) return s
   if (e.type === s.lastType && e.t - s.lastAt < DEBOUNCE_MS) return s
   const base = s.signs.length && e.t - s.lastAt > RESET_AFTER_MS ? [] : s.signs
-  if (e.type === 'UNDO') return { signs: base.slice(0, -1), lastAt: e.t, lastType: e.type }
+  if (e.type === 'UNDO') {
+    // a wave is often misread as UNDO at its tail: ignore weak UNDOs and any UNDO right after a WAVE
+    if (e.confidence < 0.9 || (s.lastType === 'WAVE' && e.t - s.lastAt < 1500)) return s
+    return { signs: base.slice(0, -1), lastAt: e.t, lastType: e.type }
+  }
   if (!(SIGNS as readonly string[]).includes(e.type) || base.length >= LENGTH) return { ...s, signs: base }
   return { signs: [...base, e.type as Sign], lastAt: e.t, lastType: e.type }
 }

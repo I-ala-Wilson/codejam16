@@ -21,7 +21,7 @@
     "PULL": 0.85,
     "WAVE": 0.85,
     "OPEN_CLOSE": 0.85,
-    "UNDO": 0.85,
+    "UNDO": 0.95,
     "REPETITIVE": 0.9
   },
   "decoder": {
