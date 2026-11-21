@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import DitherFlower from './art/DitherFlower.tsx'
 import Explainer from './explainer/Explainer.tsx'
 import HowWeBuilt from './HowWeBuilt.tsx'
+import Apps from './pitch/Apps.tsx'
+import Results from './pitch/Results.tsx'
+import Close from './pitch/Close.tsx'
 import { engine } from './engine.ts'
 
 // Landing screen: Ian's flower as a full-screen ordered dither, the headline top-left, the apps bottom-left. Style per docs/STYLE.md.
@@ -31,9 +34,12 @@ export default function Home({ go }: { go: (page: string) => void }) {
       <section className="home__how">
         <Explainer embedded />
       </section>
+      <section><Apps /></section>
+      <section><Results /></section>
       <section>
         <HowWeBuilt />
       </section>
+      <section><Close /></section>
     </div>
   )
 }
