@@ -48,26 +48,11 @@ body {
   font-weight: 400;
 }
 
-.activity-strip {
-  height: 112px;
-  display: flex;
-  align-items: end;
-  gap: 2px;
-  padding: 8px;
+.activity-empty {
   border: var(--rule);
-  overflow: hidden;
-}
-
-.activity-strip__bar {
-  flex: 1 1 4px;
-  min-width: 2px;
-  max-width: 12px;
-  background: var(--ink);
-}
-
-.activity-strip__empty {
-  align-self: center;
-  margin: auto;
+  padding: 38px 16px;
+  margin: 0;
+  text-align: center;
   font: 20px/1 var(--pixel);
   text-transform: uppercase;
 }
@@ -107,39 +92,6 @@ body {
   padding-inline: 10px;
 }
 
-.help-takeover {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  padding: clamp(24px, 8vw, 96px);
-  box-sizing: border-box;
-  background: var(--ink);
-  color: var(--bg);
-  cursor: pointer;
-}
-
-.help-takeover h1 {
-  margin: 10px 0 20px;
-  color: var(--bg);
-  font: 76px/.9 var(--pixel);
-  overflow-wrap: anywhere;
-}
-
-.help-takeover p {
-  font: 24px/1.1 var(--pixel);
-}
-
-.help-takeover .echo-button {
-  margin-top: 24px;
-  border-color: var(--bg);
-  background: var(--bg);
-  color: var(--ink);
-}
-
 @media (max-width: 600px) {
   .echo-window {
     padding: 28px 20px 48px;
@@ -159,7 +111,7 @@ body {
     grid-column: 2;
   }
 
-  .help-takeover h1 {
+  .echo-alert__title {
     font-size: clamp(48px, 18vw, 72px);
   }
 }

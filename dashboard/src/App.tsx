@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Rule, Window } from '@ui/index.ts'
+import { AlertScreen, Rule, Timeline, Window } from '@ui/index.ts'
 import { supabase } from './supabase.ts'
 
 interface EventRow {
@@ -153,13 +153,11 @@ export default function App() {
 
         <section aria-labelledby="activity-heading">
           <h2 id="activity-heading">Restlessness · last 60 samples</h2>
-          <div className="activity-strip" role="img" aria-label={`${activityEvents.length} recent care activity samples`}>
-            {activityEvents.length === 0 && <span className="activity-strip__empty">Awaiting activity</span>}
-            {activityEvents.map((event) => {
-              const level = Math.max(0, Math.min(1, numericPayload(event, 'level') ?? 0))
-              return <span key={event.id} className="activity-strip__bar" style={{ height: `${10 + level * 90}%` }} />
-            })}
-          </div>
+          {activityEvents.length === 0 ? (
+            <p className="activity-empty">Awaiting activity</p>
+          ) : (
+            <Timeline values={activityEvents.map((event) => numericPayload(event, 'level') ?? 0)} />
+          )}
         </section>
 
         <Rule />
@@ -183,18 +181,11 @@ export default function App() {
       </Window>
 
       {activeHelp && (
-        <div
-          className="help-takeover"
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="help-title"
-          onClick={() => setActiveHelp(null)}
-        >
-          <p>Care alert · {new Date(activeHelp.created_at).toLocaleTimeString()}</p>
-          <h1 id="help-title">HELP · {activeHelp.device_id}</h1>
-          <p>Tap to acknowledge and silence this alert.</p>
-          <Button onClick={() => setActiveHelp(null)}>Acknowledge</Button>
-        </div>
+        <AlertScreen
+          title={`HELP · ${activeHelp.device_id}`}
+          sub={`Care alert · ${new Date(activeHelp.created_at).toLocaleTimeString()} · tap to silence`}
+          onDismiss={() => setActiveHelp(null)}
+        />
       )}
     </>
   )
