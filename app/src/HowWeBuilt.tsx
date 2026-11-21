@@ -1,16 +1,11 @@
 import { useState } from 'react'
 import DitherCanvas from './hwb/DitherCanvas.tsx'
-import { agents, model, signal, tradeoffs } from './hwb/scenes.ts'
+import { agents, model, tradeoffs } from './hwb/scenes.ts'
 
-// "How we built it": the section under How it works on Home. Four dithered visuals, one number and one line each,
+// "How we built it": the section under How it works on Home. Three dithered visuals, one number and one line each,
 // then a small FAQ. Numbers come from ml/REPORT.md and ml/experiments/RESULTS.md.
 
 const PANELS = [
-  {
-    title: 'The signal', big: '20 kHz', scene: signal,
-    alt: 'A laptop speaker sends solid sound arcs to a hand; dashed echo arcs return to the mic, and the echo peak slides beside the 20 kHz tone.',
-    caption: 'The laptop speaker plays a steady 20 kHz tone that is too high for people to hear, and the microphone listens for its echo off your hand. When your hand moves toward the screen the echo returns at a slightly higher pitch, and when it moves away the pitch drops, which is the Doppler effect. We chose sound because every laptop already has a speaker and a microphone, it works in complete darkness, and it never captures an image of anyone.',
-  },
   {
     title: 'The model', big: '147 recordings', scene: model,
     alt: 'A scrolling spectrogram with gesture streaks feeds a small convolutional network that picks one of seven gestures.',
@@ -24,7 +19,7 @@ const PANELS = [
   {
     title: 'The trade-offs', big: '$0', scene: tradeoffs,
     alt: 'Icons: no camera, any laptop, stays on device, built for patients.',
-    caption: 'We built ECHØ to cost nothing, to run on hardware people already own, and to protect privacy by design. Sound gives up some precision compared with a camera, since weaker laptops produce fainter echoes and a noisy room makes gestures harder to read. It is a proof of concept and not a medical device, and we have been open about where it falls short.',
+    caption: 'We chose sound because every laptop already has a speaker and a microphone, it works in complete darkness, and it never captures an image of anyone. Sound gives up some precision compared with a camera, since weaker laptops produce fainter echoes and a noisy room makes gestures harder to read. It is a proof of concept and not a medical device, and we have been open about where it falls short.',
   },
 ]
 
