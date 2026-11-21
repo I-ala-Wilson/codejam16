@@ -10,8 +10,8 @@ const REF_W = 1920, REF_H = 1080
 const STEM_X = 952, STEM_Y = 1080
 const HEAD_X = 955, HEAD_Y = 520 // centre of the bloom in the reference
 const BINS = 72 // directions around the bloom with their own wave level
-const WAVE_REACH = 70 // reference px the waves travel out from the petals
-const WAVE_LAMBDA = 16 // reference px between wavefronts at rest
+const WAVE_REACH = 46 // reference px the waves travel out from the petals
+const WAVE_LAMBDA = 20 // reference px between wavefronts at rest
 const WAVE_SPEED = 34 // reference px per second the fronts travel outward
 const SHIFT_X = 0.16 // flower sits right of centre, clear of the headline
 const BLUR = 2 // px radius of each of the two box-blur passes, just enough to dissolve the digit shapes
@@ -171,7 +171,7 @@ export default function DitherFlower() {
         const th = (k / BINS) * Math.PI * 2, nx = Math.cos(th), ny = Math.sin(th)
         const lift = Math.max(0, Math.min(1, (stemY - (f.cy + ny * 160 * f.s)) / height)) ** 1.6
         const vn = Math.max(0, vA * lift * nx) // outward speed of the petals on this side, px/s
-        const goal = ny > 0.6 ? 0 : Math.min(1, vn * 0.06 * (1 + 1.5 * hand)) // only the side moving outward makes sound
+        const goal = ny > 0.6 ? 0 : Math.min(0.42, vn * 0.035 * (1 + 0.6 * hand)) // only the side moving outward makes sound
         level[k] += (goal - level[k]) * Math.min(1, dt * 3)
         const lam = WAVE_LAMBDA * f.s / (1 + vn * 0.025) // tighter spacing when the edge moves out faster
         lamB[k] = lam
@@ -189,7 +189,7 @@ export default function DitherFlower() {
           const sx = x - shift
           const inside = y >= f.top && sx >= 0 && sx < W
           let g = inside ? f.v[row + sx] : 0
-          if (g > 0) g += 0.25 * (sx < stemX ? toward : away) * g
+          if (g > 0) g += 0.1 * (sx < stemX ? toward : away) * g
           if (g < 0.16 && sx >= 0 && sx < W && f.outside[row + sx]) {
             const d = f.dist[row + sx]
             if (d > 1.5 && d < reach) {
@@ -197,7 +197,7 @@ export default function DitherFlower() {
               const k = Math.floor((ang / (Math.PI * 2)) * BINS) % BINS
               const lam = lamB[k], ph = d / lam - phaseB[k]
               const q = (ph - Math.floor(ph)) * lam // distance behind the nearest front, px
-              const band = Math.exp(-((Math.min(q, lam - q)) ** 2) / 1.3)
+              const band = Math.exp(-((Math.min(q, lam - q)) ** 2) / 0.7)
               const wave = level[k] * band * (1 - d / reach) ** 1.3
               if (wave > g) g = wave
             }
