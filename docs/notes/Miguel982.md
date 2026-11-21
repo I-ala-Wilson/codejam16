@@ -8,7 +8,7 @@
 - WSL setup, GitHub authentication, sync, and recovery completed.
 - SPEC v1 ACKed; ownership is `backend/*` and `dashboard/*`.
 - Issue #4: events schema, realtime publication, RLS, anon SELECT/INSERT grants, and HTTP 201 live acceptance.
-- Issue #8: dashboard loads the latest 50 events and receives realtime inserts; live smoke test delivered in 790 ms.
+- Issue #8: dashboard loads the latest 50 events, receives realtime inserts, and implements the expanded caregiver display (HELP takeover/beep/cancel, inactivity, 60-sample activity strip, filtered feed, phone styling); live HELP delivered in 421 ms.
 
 ## How to run my lane
 - Backend: execute `backend/schema.sql` in the Supabase SQL editor.
