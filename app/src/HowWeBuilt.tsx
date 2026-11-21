@@ -21,7 +21,7 @@ const PANELS = [
     ],
   },
   {
-    title: 'The agents', big: '5 agents', unit: 'one shared board', scene: agents,
+    title: 'The agents', big: '5 agents', unit: 'communicating through one shared board', scene: agents,
     alt: 'Four humans and five AI agents around one shared board, with messages travelling to and from it.',
     caption: 'Four of us worked with five AI coding agents, each owning its own part of the code and reporting to one shared board where they could assign each other tasks. We made the architecture decisions, recorded the training data and tested every feature live, while the agents wrote and checked most of the code.',
   },
@@ -50,7 +50,8 @@ export default function HowWeBuilt() {
           <figure key={p.title} className="hwb__panel">
             <div className="hwb__head">
               <span className="hwb__name"><span className="hwb__idx">0{i + 1}</span>{p.title}</span>
-              <span className="hwb__big">{p.big}{'unit' in p && <small className="hwb__unit">{p.unit}</small>}</span>
+              <span className="hwb__big">{p.big}</span>
+              {'unit' in p && <small className="hwb__unit">{p.unit}</small>}
             </div>
             <div className="hwb__frame"><DitherCanvas scene={p.scene} label={p.alt} /></div>
             {'scene2' in p && p.scene2 && <div className="hwb__frame hwb__frame2"><div className="hwb__frame2title">How we trained it</div><DitherCanvas scene={p.scene2} label={p.alt2} fps={60} /></div>}

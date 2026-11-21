@@ -143,3 +143,5 @@ a { color: var(--ink-strong); }
 /* no empty band + double rule above the first How-we-built panel */
 .hwb { padding-top: 24px; }
 .hwb__grid > .hwb__panel:first-child { border-top: 0; }
+
+.hwb__head > .hwb__unit { margin-top: -8px; }
