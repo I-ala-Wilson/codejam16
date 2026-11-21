@@ -4,7 +4,11 @@
 - #3 pushed (fa572a3) and DONE posted. Left OPEN on purpose until Ian (or I) confirms on a real mic: snrDb >= 30 and a push gives positive shiftHz. Then `gh issue close 3 -c "..."`.
 - #9 part 1 (recording) pushed: `engine/src/recorder.ts` + `startRecording/stopRecording` in index.ts. Reps are auto-marked from motion energy (>10 dB for 3 frames, ends after 8 quiet frames); thresholds untuned on real data.
 - #9 part 2 (first version): `engine/src/gestures.ts` rule detectors wired into `onGesture`; shift fix `c3d0f76` is already on main. All thresholds are first guesses.
-- Next: tune thresholds on real recordings (Ian's room test numbers, then the 23:45 session in data/recordings/*/), report per-gesture scores in ml/REPORT.md (needs a loader in ml/). Then #15 (REPETITIVE), #14 (classifier).
+- PLAN CHANGE (Ian, spec v4 + DIRECT): the trained classifier (RTX 5070) is the main gesture detector; rules are only the fallback. Pilot data lives in data/pilot/ (never trained on); training reads data/recordings/ only. Protocol is ml/PROTOCOL.md (pushed): 6 classes NONE/PUSH/PULL/WAVE/OPEN_CLOSE/UNDO, cue-window labels, 48x87 window, small CNN to ONNX, leave-one-person-out eval.
+- UNDO (spec v4) = double small tap toward (two small pushes < 90 Hz within 600 ms); the rule fallback was changed to match.
+- GPU OK: ml/.venv has torch 2.15.0+cu132, CUDA True on the RTX 5070 Laptop GPU (sm_120). Run with `ml/.venv/bin/python`; tests with `cd ml && .venv/bin/python -m pytest -q`.
+- Tools: `node --experimental-strip-types engine/tools/score.ts <folder> [--frames]` scores recordings with the real DSP and rules. Pilot findings: motion energy is large (median ~30 dB, max 47-57 dB over floor) for WAVE/OPEN_CLOSE, but scalar shift looks the same for every gesture (|shift| median 90-170 Hz, max ~332 Hz = band edge), so rules cannot separate them; the classifier can.
+- Next (in order): ml/audit.py (per-take QC: lead-in still, motion in >= 80% of cue windows, SNR) before 23:50; ml/train.py (loader exists: ml/data.py, ml/features.py) + ONNX export; engine onnxruntime-web runtime behind useClassifier/modelUrl; ml/REPORT.md with leave-one-person-out numbers by Sat 10:00. Then #15 (REPETITIVE).
 - QA agent runs in ~/codejam-qa (role qa, never work in it). If a [QA] post arrives it goes to Yahya-github/qa. #18 (ASL) is parked until M2 Floor is done (Ian agreed on the board).
 - Human tasks pending (Ian, #7055273193): GPU check in ml/.venv, start the QA clone (after #3 is in, which it now is).
 
