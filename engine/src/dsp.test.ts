@@ -118,6 +118,63 @@ describe('analyzeFrame', () => {
     expect(r.energyAway).toBeLessThan(6)
   })
 
+  describe('against the saturation seen on a real mic (+-508 Hz at any distance)', () => {
+    const centre = Math.round(500 / BIN_HZ)
+    const push = () => toneBins(sines([carrier, { hz: 20117, amp: dbToAmp(-56) }], noiseAmp, 99))
+    const withBin = (bins: Float32Array, offset: number, addDb: number): Float32Array => {
+      const out = bins.slice()
+      out[centre + offset] += addDb
+      return out
+    }
+
+    it('ignores one isolated loud bin at the window edge', () => {
+      const r = analyzeFrame(withBin(push(), 41, 60), BIN_HZ, floor)
+      expect(r.shiftHz).toBeGreaterThan(80)
+      expect(r.shiftHz).toBeLessThan(150)
+    })
+
+    it('ignores isolated loud bins on both edges', () => {
+      const bins = withBin(withBin(push(), 41, 60), -41, 60)
+      const r = analyzeFrame(bins, BIN_HZ, floor)
+      expect(r.shiftHz).toBeGreaterThan(80)
+      expect(r.shiftHz).toBeLessThan(150)
+    })
+
+    it('ignores an isolated loud bin inside the band while a real echo is present', () => {
+      const r = analyzeFrame(withBin(push(), -22, 60), BIN_HZ, floor)
+      expect(r.shiftHz).toBeGreaterThan(80)
+      expect(r.shiftHz).toBeLessThan(150)
+    })
+
+    it('reports nothing for a lone in-band spike with no real echo', () => {
+      const bins = withBin(toneBins(sines([carrier], noiseAmp, 99)), 20, 50)
+      const r = analyzeFrame(bins, BIN_HZ, floor)
+      expect(r.shiftHz).toBe(0)
+      expect(r.energyToward).toBe(0)
+      expect(r.energyAway).toBe(0)
+    })
+
+    it('reports shift 0 for a broadband burst that lifts both sides alike', () => {
+      const still = toneBins(sines([carrier], noiseAmp, 99))
+      const burst = still.map((b, k) => (Math.abs(k - centre) > 2 ? b + 25 : b))
+      expect(analyzeFrame(burst, BIN_HZ, floor).shiftHz).toBe(0)
+    })
+
+    it('does not look for Doppler beyond the physical band', () => {
+      const edge = toneBins(sines([carrier, { hz: 20450, amp: dbToAmp(-56) }], noiseAmp, 99))
+      const r = analyzeFrame(edge, BIN_HZ, floor)
+      expect(r.shiftHz).toBe(0)
+      expect(r.energyToward).toBe(0)
+    })
+
+    it('keeps the sign and a realistic magnitude for a brisk pull', () => {
+      const pull = toneBins(sines([carrier, { hz: 19900, amp: dbToAmp(-60) }], noiseAmp, 99))
+      const r = analyzeFrame(withBin(pull, 40, 60), BIN_HZ, floor)
+      expect(r.shiftHz).toBeLessThan(-60)
+      expect(r.shiftHz).toBeGreaterThan(-160)
+    })
+  })
+
   it('rejects a floor of a different length', () => {
     expect(() => analyzeFrame(new Float32Array(11), BIN_HZ, new Float32Array(9))).toThrow()
   })

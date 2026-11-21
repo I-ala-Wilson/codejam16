@@ -10,6 +10,14 @@ export const DEFAULT_SENSITIVITY_DB = 2.5
 export const FLOOR_SIGMAS = 2
 /** Scales a MAD to a standard deviation for normally distributed data. */
 const MAD_TO_SIGMA = 1.4826
+/** Doppler is searched only this far from the carrier: 350 Hz is about 3 m/s of hand speed at 20 kHz. */
+export const MAX_DOPPLER_HZ = 350
+/** A motion cluster needs this many contiguous bins above the floor; isolated bins are noise, not a hand. */
+export const MIN_CLUSTER_BINS = 3
+/** Only bins within this many dB of a cluster's peak count towards its centroid; window sidelobes sit far below. */
+const LOBE_DB = 12
+/** When both sides carry clusters this close in strength it is broadband interference, not a direction. */
+const BOTH_SIDES_RATIO = 0.6
 
 const MIN_MAGNITUDE = 1e-12
 
@@ -18,6 +26,8 @@ export interface AnalyzeOptions {
   readonly sensitivityDb?: number
   /** Frequency of the centre bin minus the true tone frequency, so shifts are measured from the tone. */
   readonly centerBiasHz?: number
+  /** Widest Doppler shift searched, in Hz either side of the tone. Defaults to MAX_DOPPLER_HZ. */
+  readonly maxDopplerHz?: number
 }
 
 export interface FrameAnalysis {
@@ -128,22 +138,80 @@ export function buildFloor(frames: ReadonlyArray<Float32Array>): Float32Array {
   return floor
 }
 
-/** 3-bin mean of the excess power ratio in dB. Carrier-guard bins are left out so the carrier cannot smear into motion bins. */
-function smoothedExcessDb(bins: Float32Array, floor: Float32Array): Float32Array {
-  const center = (bins.length - 1) / 2
-  const ratio = Float64Array.from(bins, (b, k) => 10 ** ((b - floor[k]) / 10))
-  const out = new Float32Array(bins.length)
-  for (let k = 0; k < bins.length; k++) {
-    let sum = 0
-    let count = 0
-    for (let j = Math.max(0, k - 1); j <= Math.min(bins.length - 1, k + 1); j++) {
-      if (Math.abs(j - center) <= GUARD_BINS) continue
-      sum += ratio[j]
-      count++
+interface Cluster {
+  /** Sum of the excess (dB over the floor) of every bin in the cluster. */
+  readonly strength: number
+  readonly peakDb: number
+  readonly centroidHz: number
+}
+
+interface ClusterSearch {
+  readonly excess: Float32Array
+  readonly center: number
+  readonly side: 1 | -1
+  readonly binHz: number
+  readonly bandBins: number
+  readonly sensitivityDb: number
+  readonly centerBiasHz: number
+}
+
+/**
+ * Strongest run of at least MIN_CLUSTER_BINS contiguous bins (one sub-threshold bin may bridge a run) above the
+ * floor on one side of the carrier, within the Doppler band. A hand echo is a lobe several bins wide; a single
+ * hot bin is noise or interference and never counts.
+ */
+function strongestCluster(s: ClusterSearch): Cluster | null {
+  let best: Cluster | null = null
+  let members: Array<{ hz: number; excessDb: number }> = []
+  let gap = 0
+
+  const close = (): void => {
+    if (members.length >= MIN_CLUSTER_BINS) {
+      const strength = members.reduce((sum, m) => sum + m.excessDb, 0)
+      if (best === null || strength > best.strength) {
+        const peakDb = Math.max(...members.map((m) => m.excessDb))
+        best = { strength, peakDb, centroidHz: lobeCentroidHz(members, peakDb) }
+      }
     }
-    out[k] = count > 0 ? 10 * Math.log10(sum / count) : 0
+    members = []
+    gap = 0
   }
-  return out
+
+  for (let offset = GUARD_BINS + 1; offset <= s.bandBins; offset++) {
+    const k = s.center + s.side * offset
+    if (k < 0 || k >= s.excess.length) break
+    const e = s.excess[k]
+    if (e > s.sensitivityDb) {
+      members.push({ hz: s.side * offset * s.binHz + s.centerBiasHz, excessDb: e })
+      gap = 0
+    } else if (members.length > 0 && ++gap > 1) {
+      close()
+    }
+  }
+  close()
+  return best
+}
+
+/** Centroid of the lobe itself: bins within LOBE_DB of the peak, weighted in dB (not power) above that cut. */
+function lobeCentroidHz(members: ReadonlyArray<{ hz: number; excessDb: number }>, peakDb: number): number {
+  const cut = peakDb - LOBE_DB
+  let weighted = 0
+  let total = 0
+  for (const m of members) {
+    if (m.excessDb < cut) continue
+    const weight = m.excessDb - cut + 1
+    weighted += m.hz * weight
+    total += weight
+  }
+  return weighted / total
+}
+
+/** The side with the stronger cluster wins; near-equal sides mean broadband interference, so no direction. */
+function dominantShiftHz(toward: Cluster | null, away: Cluster | null): number {
+  if (!toward || !away) return (toward ?? away)?.centroidHz ?? 0
+  const ratio = Math.min(toward.strength, away.strength) / Math.max(toward.strength, away.strength)
+  if (ratio >= BOTH_SIDES_RATIO) return 0
+  return (toward.strength > away.strength ? toward : away).centroidHz
 }
 
 /**
@@ -156,31 +224,22 @@ export function analyzeFrame(
   floor: Float32Array,
   opts: AnalyzeOptions = {},
 ): FrameAnalysis {
-  const sensitivityDb = opts.sensitivityDb ?? DEFAULT_SENSITIVITY_DB
-  const centerBiasHz = opts.centerBiasHz ?? 0
   if (floor.length !== bins.length) throw new Error('floor and frame must have the same length')
   const center = (bins.length - 1) / 2
-  const excess = smoothedExcessDb(bins, floor)
-  let weightSum = 0
-  let weightedOffset = 0
-  let toward = 0
-  let away = 0
-  for (let k = 0; k < bins.length; k++) {
-    const offset = k - center
-    if (Math.abs(offset) <= GUARD_BINS) continue
-    const e = excess[k]
-    if (offset > 0) toward = Math.max(toward, e)
-    else away = Math.max(away, e)
-    if (e > sensitivityDb) {
-      const w = 10 ** (e / 10)
-      weightSum += w
-      weightedOffset += (offset * binHz + centerBiasHz) * w
-    }
+  const base = {
+    excess: Float32Array.from(bins, (b, k) => b - floor[k]),
+    center,
+    binHz,
+    bandBins: Math.min(Math.floor((opts.maxDopplerHz ?? MAX_DOPPLER_HZ) / binHz), Math.floor(center)),
+    sensitivityDb: opts.sensitivityDb ?? DEFAULT_SENSITIVITY_DB,
+    centerBiasHz: opts.centerBiasHz ?? 0,
   }
+  const toward = strongestCluster({ ...base, side: 1 })
+  const away = strongestCluster({ ...base, side: -1 })
   return {
-    shiftHz: weightSum > 0 ? weightedOffset / weightSum : 0,
-    energyToward: toward,
-    energyAway: away,
+    shiftHz: dominantShiftHz(toward, away),
+    energyToward: toward?.peakDb ?? 0,
+    energyAway: away?.peakDb ?? 0,
   }
 }
 
