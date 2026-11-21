@@ -136,13 +136,22 @@ export class FramePipeline {
     if (finished.length === 0) return
     this.calibrations = this.calibrations.filter((c) => !finished.includes(c))
     const longest = finished.reduce((a, b) => (b.frames.length > a.frames.length ? b : a))
-    this.floor = buildFloor(quietest(longest.frames))
+    this.floor = calibrationFloor(longest.frames)
     finished.forEach((c) => c.resolve())
   }
 }
 
-/** A hand moving during calibration must not raise the floor (that silenced every later gesture), so the floor is
- *  learned from the quietest third of the frames only: about 1 s still out of a 3 s calibration is enough. */
+/** Still calibration: the floor from all frames (what the model was trained with). If more than 10 percent of the
+ *  frames show motion over that first floor (a hand moved, which silenced every later gesture), the floor is learned
+ *  from the quietest third only, the same rule the training floor (take_floor) uses. */
+export function calibrationFloor(frames: ReadonlyArray<Float32Array>): Float32Array {
+  const first = buildFloor(frames)
+  const moving = frames.filter((f) => f.some((v, k) => v - first[k] > MOVING_DB)).length
+  return moving > frames.length * 0.1 ? buildFloor(quietest(frames)) : first
+}
+const MOVING_DB = 10
+
+/** The quietest third of the frames by summed level (at least 8). */
 export function quietest(frames: ReadonlyArray<Float32Array>): Float32Array[] {
   const keep = Math.max(Math.min(frames.length, 8), Math.ceil(frames.length / 3))
   const level = (f: Float32Array) => { let sum = 0; for (const v of f) sum += v; return sum }
