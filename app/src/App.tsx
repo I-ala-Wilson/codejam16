@@ -1,156 +1,203 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createEngine } from '@engine/index.ts'
 import type { SpectrumFrame, EngineHealth } from '@contracts/engine.ts'
 import { Window } from '@ui/index.ts'
 
 const engine = createEngine()
-const MOVE_HZ = 40 // a real hand push/pull shifts the echo by roughly 50-130 Hz
+const MOVE_HZ = 40      // a real hand push/pull shifts the echo by roughly 50-130 Hz
+const REPS = 5
+const REP_WINDOW_MS = 3000
+const REST_MS = 1500
 
-type Phase = 'near' | 'far'
+type Dist = 'near' | 'far'
+type Move = 'push' | 'pull'
+type Step =
+  | 'setup' | 'start' | 'calibrate' | 'tone'
+  | { reps: Dist; move: Move; rep: number; resting: boolean }
+  | 'results'
+type RepResult = { move: Move; dist: Dist; peak: number; ok: boolean }
+
+const DIST_TEXT: Record<Dist, string> = {
+  near: 'about 20 cm (a hand-span) in front of the screen, above the keyboard',
+  far: 'about 50 cm (an arm\'s length) in front of the screen',
+}
 
 export default function App() {
-  const [status, setStatus] = useState<'idle' | 'starting' | 'running' | 'calibrating' | 'stopped' | 'error'>('idle')
+  const [step, setStep] = useState<Step>('setup')
   const [error, setError] = useState('')
-  const [calibrated, setCalibrated] = useState(false)
   const [health, setHealth] = useState<EngineHealth | null>(null)
   const [frame, setFrame] = useState<SpectrumFrame | null>(null)
-  const [phase, setPhase] = useState<Phase>('near')
-  const [peaks, setPeaks] = useState({ near: { push: 0, pull: 0 }, far: { push: 0, pull: 0 } })
+  const [countdown, setCountdown] = useState(0)
+  const [results, setResults] = useState<RepResult[]>([])
   const [audible, setAudible] = useState<'' | 'yes' | 'no'>('')
   const [laptop, setLaptop] = useState('')
   const [copied, setCopied] = useState(false)
   const canvas = useRef<HTMLCanvasElement>(null)
-  const phaseRef = useRef<Phase>('near')
-  const calibratedRef = useRef(false)
 
+  useEffect(() => engine.onFrame((f) => {
+    drawColumn(canvas.current, f)
+    trackPeak(f.shiftHz)
+    setFrame(f); setHealth(engine.health())
+  }), [])
+
+  // per-rep peak tracking (signed: push looks for max, pull for min)
+  const moveRef = useRef<Move>('push')
+  const peakRef = useRef(0)
+  function trackPeak(shift: number) {
+    peakRef.current = moveRef.current === 'push' ? Math.max(peakRef.current, shift) : Math.min(peakRef.current, shift)
+  }
+
+  // drive the guided reps
   useEffect(() => {
-    let last = 0
-    return engine.onFrame((f) => {
-      drawColumn(canvas.current, f)
-      if (calibratedRef.current) {
-        const ph = phaseRef.current
-        setPeaks((p) => ({
-          ...p,
-          [ph]: { push: Math.max(p[ph].push, f.shiftHz), pull: Math.min(p[ph].pull, f.shiftHz) },
-        }))
-      }
-      if (f.t - last > 100) { last = f.t; setFrame(f); setHealth(engine.health()) }
-    })
-  }, [])
+    if (typeof step !== 'object') return
+    const { reps, move, rep, resting } = step
+    if (resting) {
+      setCountdown(Math.ceil(REST_MS / 1000))
+      const t = setTimeout(() => {
+        moveRef.current = move; peakRef.current = 0
+        setStep({ reps, move, rep, resting: false })
+      }, REST_MS)
+      return () => clearTimeout(t)
+    }
+    const started = Date.now()
+    const tick = setInterval(() => setCountdown(Math.max(0, Math.ceil((REP_WINDOW_MS - (Date.now() - started)) / 1000))), 200)
+    const done = setTimeout(() => {
+      const peak = peakRef.current
+      const ok = move === 'push' ? peak >= MOVE_HZ : peak <= -MOVE_HZ
+      setResults((r) => [...r, { move, dist: reps, peak, ok }])
+      if (rep < REPS) setStep({ reps, move, rep: rep + 1, resting: true })
+      else if (move === 'push') setStep({ reps, move: 'pull', rep: 1, resting: true })
+      else if (reps === 'near') setStep({ reps: 'far', move: 'push', rep: 1, resting: true })
+      else setStep('results')
+    }, REP_WINDOW_MS)
+    return () => { clearInterval(tick); clearTimeout(done) }
+  }, [step])
 
   const start = async () => {
-    setError(''); setStatus('starting')
-    try { await engine.start(); setStatus('running'); setHealth(engine.health()) }
-    catch (e) { setStatus('error'); setError(String(e)) }
+    setError('')
+    try { await engine.start(); setStep('calibrate') }
+    catch (e) { setError(String(e)) }
   }
   const calibrate = async () => {
-    calibratedRef.current = false; setStatus('calibrating')
+    setCountdown(3)
+    const t = setInterval(() => setCountdown((c) => Math.max(0, c - 1)), 1000)
     await engine.calibrate(3000)
-    setStatus('running'); setCalibrated(true); calibratedRef.current = true
-    setPeaks((p) => ({ ...p, [phaseRef.current]: { push: 0, pull: 0 } }))
+    clearInterval(t); setStep('tone')
   }
-  const goFar = () => {
-    phaseRef.current = 'far'; setPhase('far')
-    setPeaks((p) => ({ ...p, far: { push: 0, pull: 0 } }))
-  }
+  const restart = () => { setResults([]); setCopied(false); setStep({ reps: 'near', move: 'push', rep: 1, resting: true }) }
 
   const snr = health?.snrDb ?? 0
-  const running = status === 'running' || status === 'calibrating'
-  const nearOk = peaks.near.push >= MOVE_HZ && peaks.near.pull <= -MOVE_HZ
-  const farOk = peaks.far.push >= MOVE_HZ && peaks.far.pull <= -MOVE_HZ
-  const results =
-    `ROOM TEST: laptop ${laptop || '?'} | tone health ${snr.toFixed(1)} dB (${snr >= 30 ? 'good' : 'weak'}) | ` +
-    `20 cm push +${peaks.near.push.toFixed(0)} Hz pull ${peaks.near.pull.toFixed(0)} Hz (${nearOk ? 'PASS' : 'FAIL'}) | ` +
-    `50 cm push +${peaks.far.push.toFixed(0)} Hz pull ${peaks.far.pull.toFixed(0)} Hz (${farOk ? 'PASS' : 'FAIL'}) | ` +
-    `tone audible: ${audible || '?'}`
+  const count = (d: Dist, m: Move) => results.filter((r) => r.dist === d && r.move === m && r.ok).length
+  const best = (d: Dist, m: Move) => {
+    const xs = results.filter((r) => r.dist === d && r.move === m).map((r) => r.peak)
+    return xs.length ? (m === 'push' ? Math.max(...xs) : Math.min(...xs)) : 0
+  }
+  const summary =
+    `ROOM TEST: laptop ${laptop || '?'} | tone health ${snr.toFixed(1)} dB (${snr >= 30 ? 'good' : 'weak'}) | tone audible: ${audible || '?'} | ` +
+    `20 cm: push ${count('near', 'push')}/${REPS} (peak +${best('near', 'push').toFixed(0)} Hz), pull ${count('near', 'pull')}/${REPS} (peak ${best('near', 'pull').toFixed(0)} Hz) | ` +
+    `50 cm: push ${count('far', 'push')}/${REPS} (peak +${best('far', 'push').toFixed(0)} Hz), pull ${count('far', 'pull')}/${REPS} (peak ${best('far', 'pull').toFixed(0)} Hz)`
+
+  const progress = ['setup', 'start', 'calibrate', 'tone', 'reps', 'results']
+  const idx = typeof step === 'object' ? 4 : progress.indexOf(step)
 
   return (
-    <Window title="Echo: room test (about 5 minutes)">
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(320px, 1.3fr)', gap: 24 }}>
-        <div>
-          <h2 style={{ marginTop: 0 }}>Before you start</h2>
-          <ul>
-            <li>Laptop on a table, <b>lid open at a normal typing angle (about 110°)</b>. Tilt barely matters, because the speakers and mic sit in the base, not the screen.</li>
-            <li>Nothing covering the keyboard area (that's where the speakers and mic are). No headphones or Bluetooth speaker.</li>
-            <li>Laptop <b>volume at about 70%</b>.</li>
-            <li>Use Chrome.</li>
-          </ul>
+    <Window title="Echo: room test">
+      <p style={{ marginTop: 0 }}>Step {idx + 1} of 6</p>
 
-          <Step n={1} done={running} title="Start the sonar">
-            <button onClick={start} disabled={running}>Start sonar</button>{' '}
-            Click Start, then click <b>Allow</b> when Chrome asks for the microphone.
-            {status === 'error' && <p><b>Didn't start:</b> {error}. Refresh the page and try again.</p>}
-          </Step>
+      {step === 'setup' && (
+        <Prompt title="Set up your laptop">
+          <ol>
+            <li>Laptop on a table, <b>lid open at a normal typing angle</b>.</li>
+            <li><b>Volume at about 70%</b>, no headphones or Bluetooth speaker.</li>
+            <li>Nothing covering the keyboard area (that's where the speakers and mic are).</li>
+            <li>You're in Chrome.</li>
+          </ol>
+          <button onClick={() => setStep('start')}>Done, next</button>
+        </Prompt>
+      )}
 
-          <Step n={2} done={calibrated} title="Calibrate (hands still)">
-            <button onClick={calibrate} disabled={!running || status === 'calibrating'}>
-              {status === 'calibrating' ? 'Calibrating... keep still' : 'Calibrate'}
-            </button>{' '}
-            Take your hands off the laptop and keep still for 3 seconds.
-          </Step>
+      {step === 'start' && (
+        <Prompt title="Turn on the sonar">
+          <p>Click the button, then click <b>Allow</b> when Chrome asks for the microphone.</p>
+          <button onClick={start}>Start sonar</button>
+          {error && <p><b>Didn't start:</b> {error}. Refresh the page and try again.</p>}
+        </Prompt>
+      )}
 
-          <Step n={3} done={running && snr >= 30} title="Check the tone health">
-            Tone health: <b>{snr.toFixed(1)} dB</b> {running && (snr >= 30 ? '✓ good' : '✗ weak: turn the volume up')}
-            <br />Can you hear a high-pitched whine?{' '}
+      {step === 'calibrate' && (
+        <Prompt title="Hands off, keep still">
+          <p>Take your hands away from the laptop and don't move. This measures the quiet room for 3 seconds.</p>
+          {countdown > 0 ? <Big>{countdown}</Big> : <button onClick={calibrate}>I'm still, calibrate</button>}
+        </Prompt>
+      )}
+
+      {step === 'tone' && (
+        <Prompt title="Check the tone">
+          <p>Tone health: <Big>{snr.toFixed(0)} dB</Big> {snr >= 30 ? '✓ good' : '✗ weak: turn the volume up, then this number should rise'}</p>
+          <p>Can you hear a high-pitched whine?{' '}
             <label><input type="radio" checked={audible === 'yes'} onChange={() => setAudible('yes')} /> yes</label>{' '}
             <label><input type="radio" checked={audible === 'no'} onChange={() => setAudible('no')} /> no</label>
-          </Step>
-
-          <Step n={4} done={nearOk} title="Push and pull at 20 cm">
-            Hold your hand flat, palm facing the screen, <b>about 20 cm (a hand-span) in front of the screen, above the keyboard</b>.
-            Push toward the screen and pull back, <b>5 times</b>, at normal speed. Move only your hand.
-            <br />Push peak <b>+{peaks.near.push.toFixed(0)} Hz</b> {peaks.near.push >= MOVE_HZ ? '✓' : ''} ·
-            pull peak <b>{peaks.near.pull.toFixed(0)} Hz</b> {peaks.near.pull <= -MOVE_HZ ? '✓' : ''}
-            {' '}(want +{MOVE_HZ} or more and −{MOVE_HZ} or less)
-          </Step>
-
-          <Step n={5} done={farOk} title="Push and pull at 50 cm">
-            <button onClick={goFar} disabled={!nearOk || phase === 'far'}>Start the 50 cm test</button>{' '}
-            Same thing, with your hand <b>about 50 cm away (an arm's length)</b>.
-            <br />Push peak <b>+{peaks.far.push.toFixed(0)} Hz</b> {peaks.far.push >= MOVE_HZ ? '✓' : ''} ·
-            pull peak <b>{peaks.far.pull.toFixed(0)} Hz</b> {peaks.far.pull <= -MOVE_HZ ? '✓' : ''}
-            {phase === 'far' && !farOk && ' (if nothing registers after 5 tries, that is a valid result: write FAIL)'}
-          </Step>
-
-          <Step n={6} done={copied} title="Send your results">
-            Laptop model: <input value={laptop} onChange={(e) => setLaptop(e.target.value)} placeholder="e.g. MacBook Air M2" />
-            <br /><button onClick={() => { navigator.clipboard.writeText(results); setCopied(true) }}>Copy results</button>{' '}
-            then paste them to your agent (it posts them to Ian), or text them to Ian.
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>{results}</pre>
-          </Step>
-        </div>
-
-        <div>
-          <h2 style={{ marginTop: 0 }}>Live sonar</h2>
-          <canvas ref={canvas} width={900} height={300} style={{ width: '100%', border: '2px solid #000', imageRendering: 'pixelated' }} />
-          <p>
-            <b>How to read it:</b> time scrolls left. The dark line in the middle is the inaudible 20 kHz tone.
-            A hand moving <b>toward</b> the laptop leaves marks <b>above</b> the line; <b>away</b> leaves marks <b>below</b>.
-            Faster moves land further from the line.
           </p>
+          <button onClick={restart} disabled={!audible}>Next: hand test</button>
+        </Prompt>
+      )}
+
+      {typeof step === 'object' && (
+        <Prompt title={step.reps === 'near' ? 'Hand test at 20 cm' : 'Hand test at 50 cm'}>
+          <p>Hold your hand flat, palm facing the screen, <b>{DIST_TEXT[step.reps]}</b>. Move only your hand.</p>
+          {step.resting ? (
+            <>
+              <Big>Get ready...</Big>
+              <p>Next: {step.move === 'push' ? 'PUSH' : 'PULL'} {step.rep} of {REPS}. Hold your hand still.</p>
+            </>
+          ) : (
+            <>
+              <Big>{step.move === 'push' ? 'PUSH toward the screen' : 'PULL away from the screen'}</Big>
+              <p>Rep {step.rep} of {REPS} · {countdown}s left</p>
+            </>
+          )}
           <p>
-            Shift now: <b>{(frame?.shiftHz ?? 0).toFixed(1)} Hz</b> · toward {(frame?.energyToward ?? 0).toFixed(1)} dB ·
-            away {(frame?.energyAway ?? 0).toFixed(1)} dB · tone {health?.toneHz ?? 0} Hz at {health?.toneDbfs ?? 0} dBFS ·
-            mic {health?.sampleRate ?? 0} Hz
+            {(['push', 'pull'] as Move[]).map((m) => (
+              <span key={m} style={{ marginRight: 16 }}>
+                {m.toUpperCase()}: {results.filter((r) => r.dist === step.reps && r.move === m).map((r, i) => <span key={i}>{r.ok ? '✓' : '✗'}</span>)}
+              </span>
+            ))}
           </p>
-          <p>
-            <b>Stuck?</b> Nothing moves: refresh, Start, Calibrate again. Tone health weak: volume up, close other tabs playing audio.
-            Peaks jump while you're still: someone nearby is moving, so Calibrate again.
-          </p>
-          <button onClick={() => { engine.stop(); setStatus('stopped'); setCalibrated(false); calibratedRef.current = false }}>Stop sonar</button>
-        </div>
-      </div>
+        </Prompt>
+      )}
+
+      {step === 'results' && (
+        <Prompt title="Done. Send your results">
+          <p>20 cm: push <b>{count('near', 'push')}/{REPS}</b>, pull <b>{count('near', 'pull')}/{REPS}</b> · 50 cm: push <b>{count('far', 'push')}/{REPS}</b>, pull <b>{count('far', 'pull')}/{REPS}</b></p>
+          <p>Laptop model: <input value={laptop} onChange={(e) => setLaptop(e.target.value)} placeholder="e.g. MacBook Air M2" /></p>
+          <button onClick={() => { navigator.clipboard.writeText(summary); setCopied(true) }}>{copied ? 'Copied ✓' : 'Copy results'}</button>{' '}
+          <button onClick={restart}>Redo hand test</button>
+          <p>Paste the copied line to your agent (it posts it to Ian), or text it to Ian.</p>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>{summary}</pre>
+        </Prompt>
+      )}
+
+      <h3>Live sonar</h3>
+      <canvas ref={canvas} width={900} height={220} style={{ width: '100%', border: '2px solid #000', imageRendering: 'pixelated' }} />
+      <p>
+        The dark middle line is the inaudible 20 kHz tone. A hand moving <b>toward</b> the laptop leaves marks <b>above</b> it,
+        <b> away</b> leaves marks <b>below</b>. Shift now: <b>{(frame?.shiftHz ?? 0).toFixed(0)} Hz</b>.
+      </p>
     </Window>
   )
 }
 
-function Step({ n, title, done, children }: { n: number; title: string; done: boolean; children: React.ReactNode }) {
+function Prompt({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div style={{ border: '2px solid #000', borderRadius: 8, padding: '10px 12px', marginBottom: 12, background: done ? '#eaffea' : '#fff' }}>
-      <div style={{ fontWeight: 700, marginBottom: 6 }}>{done ? '✓' : `${n}.`} {title}</div>
-      <div>{children}</div>
+    <div style={{ border: '2px solid #000', borderRadius: 8, padding: '16px 20px', boxShadow: '3px 3px 0 #000', maxWidth: 760 }}>
+      <h2 style={{ marginTop: 0 }}>{title}</h2>
+      {children}
     </div>
   )
+}
+
+function Big({ children }: { children: ReactNode }) {
+  return <div style={{ fontSize: 40, fontWeight: 800, margin: '12px 0' }}>{children}</div>
 }
 
 function drawColumn(c: HTMLCanvasElement | null, f: SpectrumFrame) {
