@@ -1,0 +1,77 @@
+{
+  "person": "ian",
+  "gesture": "UNDO",
+  "laptop": "macbook-pro",
+  "note": "",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 0,
+      "end": 18432,
+      "label": "UNDO"
+    },
+    {
+      "start": 62464,
+      "end": 96256,
+      "label": "UNDO"
+    },
+    {
+      "start": 147456,
+      "end": 179200,
+      "label": "UNDO"
+    },
+    {
+      "start": 232448,
+      "end": 264192,
+      "label": "UNDO"
+    },
+    {
+      "start": 322560,
+      "end": 359424,
+      "label": "UNDO"
+    },
+    {
+      "start": 412672,
+      "end": 450560,
+      "label": "UNDO"
+    },
+    {
+      "start": 506880,
+      "end": 543744,
+      "label": "UNDO"
+    },
+    {
+      "start": 601088,
+      "end": 634880,
+      "label": "UNDO"
+    },
+    {
+      "start": 693248,
+      "end": 730112,
+      "label": "UNDO"
+    },
+    {
+      "start": 779264,
+      "end": 819200,
+      "label": "UNDO"
+    },
+    {
+      "start": 863232,
+      "end": 906240,
+      "label": "UNDO"
+    },
+    {
+      "start": 951296,
+      "end": 998400,
+      "label": "UNDO"
+    },
+    {
+      "start": 1051648,
+      "end": 1090560,
+      "label": "UNDO"
+    }
+  ],
+  "createdAt": "2026-11-20T22:29:04-05:00"
+}

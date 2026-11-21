@@ -21,3 +21,4 @@ Append-only, newest at the bottom. The lead's agent adds a line for every milest
 | Fri 20 Nov 22:12 | SPEC v2: recordings committed to GitHub as 16-bit WAV in data/recordings/<login>/; Lock page (extension wiring, #7 part 1) | Ian: use GitHub for the recordings |
 | Fri 20 Nov 22:26 | SPEC v3: UNDO = flick away (fast, short) instead of two quick pulls | Ian: two pulls was awkward and confusable with PULL |
 | Fri 20 Nov 22:28 | SPEC v4: UNDO = double tap toward (replaces v3 flick) | Ian chose double tap |
+| Fri 20 Nov 22:33 | Pilot data quarantined in data/pilot/ (never trained on); a trained classifier becomes the main detector, dataset collected per ml/PROTOCOL.md | Ian: data so far is bad, needs proper training |

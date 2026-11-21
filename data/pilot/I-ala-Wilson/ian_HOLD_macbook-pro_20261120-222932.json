@@ -1,0 +1,72 @@
+{
+  "person": "ian",
+  "gesture": "HOLD",
+  "laptop": "macbook-pro",
+  "note": "",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 0,
+      "end": 21504,
+      "label": "HOLD"
+    },
+    {
+      "start": 73728,
+      "end": 93184,
+      "label": "HOLD"
+    },
+    {
+      "start": 111616,
+      "end": 138240,
+      "label": "HOLD"
+    },
+    {
+      "start": 150528,
+      "end": 158720,
+      "label": "HOLD"
+    },
+    {
+      "start": 210944,
+      "end": 222208,
+      "label": "HOLD"
+    },
+    {
+      "start": 288768,
+      "end": 300032,
+      "label": "HOLD"
+    },
+    {
+      "start": 380928,
+      "end": 389120,
+      "label": "HOLD"
+    },
+    {
+      "start": 564224,
+      "end": 576512,
+      "label": "HOLD"
+    },
+    {
+      "start": 658432,
+      "end": 670720,
+      "label": "HOLD"
+    },
+    {
+      "start": 772096,
+      "end": 781312,
+      "label": "HOLD"
+    },
+    {
+      "start": 882688,
+      "end": 896000,
+      "label": "HOLD"
+    },
+    {
+      "start": 973824,
+      "end": 975872,
+      "label": "HOLD"
+    }
+  ],
+  "createdAt": "2026-11-20T22:29:32-05:00"
+}

@@ -1,0 +1,82 @@
+{
+  "person": "ian",
+  "gesture": "REPETITIVE",
+  "laptop": "macbook-pro",
+  "note": "",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 3072,
+      "end": 11264,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 27648,
+      "end": 32768,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 60416,
+      "end": 105472,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 148480,
+      "end": 193536,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 237568,
+      "end": 278528,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 312320,
+      "end": 364544,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 402432,
+      "end": 451584,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 505856,
+      "end": 538624,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 592896,
+      "end": 638976,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 686080,
+      "end": 727040,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 784384,
+      "end": 824320,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 871424,
+      "end": 905216,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 959488,
+      "end": 1011712,
+      "label": "REPETITIVE"
+    },
+    {
+      "start": 1028096,
+      "end": 1102848,
+      "label": "REPETITIVE"
+    }
+  ],
+  "createdAt": "2026-11-20T22:30:05-05:00"
+}

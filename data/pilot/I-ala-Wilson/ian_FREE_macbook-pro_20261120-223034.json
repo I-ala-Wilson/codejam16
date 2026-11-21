@@ -1,0 +1,62 @@
+{
+  "person": "ian",
+  "gesture": "FREE",
+  "laptop": "macbook-pro",
+  "note": "",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 59392,
+      "end": 118784,
+      "label": "FREE"
+    },
+    {
+      "start": 155648,
+      "end": 205824,
+      "label": "FREE"
+    },
+    {
+      "start": 244736,
+      "end": 284672,
+      "label": "FREE"
+    },
+    {
+      "start": 297984,
+      "end": 318464,
+      "label": "FREE"
+    },
+    {
+      "start": 328704,
+      "end": 480256,
+      "label": "FREE"
+    },
+    {
+      "start": 500736,
+      "end": 662528,
+      "label": "FREE"
+    },
+    {
+      "start": 685056,
+      "end": 881664,
+      "label": "FREE"
+    },
+    {
+      "start": 1044480,
+      "end": 1057792,
+      "label": "FREE"
+    },
+    {
+      "start": 1074176,
+      "end": 1078272,
+      "label": "FREE"
+    },
+    {
+      "start": 1089536,
+      "end": 1102848,
+      "label": "FREE"
+    }
+  ],
+  "createdAt": "2026-11-20T22:30:34-05:00"
+}

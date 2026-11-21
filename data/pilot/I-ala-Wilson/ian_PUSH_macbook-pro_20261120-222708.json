@@ -1,0 +1,152 @@
+{
+  "person": "ian",
+  "gesture": "PUSH",
+  "laptop": "macbook-pro",
+  "note": "alternating PUSH,PULL per rep, starting with PUSH",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 1024,
+      "end": 17408,
+      "label": "PUSH"
+    },
+    {
+      "start": 32768,
+      "end": 34816,
+      "label": "PUSH"
+    },
+    {
+      "start": 46080,
+      "end": 48128,
+      "label": "PUSH"
+    },
+    {
+      "start": 67584,
+      "end": 93184,
+      "label": "PUSH"
+    },
+    {
+      "start": 163840,
+      "end": 185344,
+      "label": "PUSH"
+    },
+    {
+      "start": 246784,
+      "end": 279552,
+      "label": "PUSH"
+    },
+    {
+      "start": 332800,
+      "end": 351232,
+      "label": "PUSH"
+    },
+    {
+      "start": 427008,
+      "end": 437248,
+      "label": "PUSH"
+    },
+    {
+      "start": 518144,
+      "end": 531456,
+      "label": "PUSH"
+    },
+    {
+      "start": 610304,
+      "end": 621568,
+      "label": "PUSH"
+    },
+    {
+      "start": 697344,
+      "end": 711680,
+      "label": "PUSH"
+    },
+    {
+      "start": 790528,
+      "end": 811008,
+      "label": "PUSH"
+    },
+    {
+      "start": 881664,
+      "end": 897024,
+      "label": "PUSH"
+    },
+    {
+      "start": 964608,
+      "end": 991232,
+      "label": "PUSH"
+    },
+    {
+      "start": 1037312,
+      "end": 1039360,
+      "label": "PUSH"
+    },
+    {
+      "start": 1052672,
+      "end": 1081344,
+      "label": "PUSH"
+    },
+    {
+      "start": 1158144,
+      "end": 1173504,
+      "label": "PUSH"
+    },
+    {
+      "start": 1246208,
+      "end": 1261568,
+      "label": "PUSH"
+    },
+    {
+      "start": 1340416,
+      "end": 1353728,
+      "label": "PUSH"
+    },
+    {
+      "start": 1426432,
+      "end": 1441792,
+      "label": "PUSH"
+    },
+    {
+      "start": 1502208,
+      "end": 1518592,
+      "label": "PUSH"
+    },
+    {
+      "start": 1607680,
+      "end": 1622016,
+      "label": "PUSH"
+    },
+    {
+      "start": 1699840,
+      "end": 1714176,
+      "label": "PUSH"
+    },
+    {
+      "start": 1788928,
+      "end": 1802240,
+      "label": "PUSH"
+    },
+    {
+      "start": 1880064,
+      "end": 1894400,
+      "label": "PUSH"
+    },
+    {
+      "start": 1977344,
+      "end": 1990656,
+      "label": "PUSH"
+    },
+    {
+      "start": 2071552,
+      "end": 2084864,
+      "label": "PUSH"
+    },
+    {
+      "start": 2164736,
+      "end": 2187264,
+      "label": "PUSH"
+    }
+  ],
+  "createdAt": "2026-11-20T22:27:08-05:00"
+}

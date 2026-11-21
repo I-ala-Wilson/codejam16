@@ -15,3 +15,4 @@ Produced by `engine.startRecording/stopRecording` (app has a Record page). Consu
 ```
 - `reps` are sample indices; the Record page prompts "go" every 2 s and marks each rep.
 - Sessions are committed to GitHub under `data/recordings/<github-login>/` (each person owns their own folder). About 5 MB per 50 s take.
+- **Pilot data** (ad-hoc takes made before the dataset protocol) goes in `data/pilot/<github-login>/`. It is for debugging only and is **never used to train or evaluate the final model**. Training reads `data/recordings/` only, collected per `ml/PROTOCOL.md`.

@@ -1,0 +1,72 @@
+{
+  "person": "ian",
+  "gesture": "WAVE",
+  "laptop": "macbook-pro",
+  "note": "",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 21504,
+      "end": 38912,
+      "label": "WAVE"
+    },
+    {
+      "start": 80896,
+      "end": 119808,
+      "label": "WAVE"
+    },
+    {
+      "start": 153600,
+      "end": 197632,
+      "label": "WAVE"
+    },
+    {
+      "start": 237568,
+      "end": 286720,
+      "label": "WAVE"
+    },
+    {
+      "start": 330752,
+      "end": 368640,
+      "label": "WAVE"
+    },
+    {
+      "start": 421888,
+      "end": 475136,
+      "label": "WAVE"
+    },
+    {
+      "start": 515072,
+      "end": 645120,
+      "label": "WAVE"
+    },
+    {
+      "start": 696320,
+      "end": 734208,
+      "label": "WAVE"
+    },
+    {
+      "start": 788480,
+      "end": 827392,
+      "label": "WAVE"
+    },
+    {
+      "start": 852992,
+      "end": 920576,
+      "label": "WAVE"
+    },
+    {
+      "start": 967680,
+      "end": 1009664,
+      "label": "WAVE"
+    },
+    {
+      "start": 1063936,
+      "end": 1108992,
+      "label": "WAVE"
+    }
+  ],
+  "createdAt": "2026-11-20T22:28:07-05:00"
+}

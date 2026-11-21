@@ -1,0 +1,77 @@
+{
+  "person": "ian",
+  "gesture": "OPEN_CLOSE",
+  "laptop": "macbook-pro",
+  "note": "",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 1024,
+      "end": 25600,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 57344,
+      "end": 97280,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 145408,
+      "end": 191488,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 237568,
+      "end": 280576,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 328704,
+      "end": 370688,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 417792,
+      "end": 466944,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 510976,
+      "end": 560128,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 601088,
+      "end": 646144,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 690176,
+      "end": 740352,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 783360,
+      "end": 832512,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 872448,
+      "end": 917504,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 964608,
+      "end": 1012736,
+      "label": "OPEN_CLOSE"
+    },
+    {
+      "start": 1050624,
+      "end": 1098752,
+      "label": "OPEN_CLOSE"
+    }
+  ],
+  "createdAt": "2026-11-20T22:28:36-05:00"
+}
