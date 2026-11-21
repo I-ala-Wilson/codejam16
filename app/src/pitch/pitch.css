@@ -33,3 +33,6 @@
 .pz__computehead { font-size: 20px; letter-spacing: .08em; text-transform: uppercase; }
 @media (max-width: 1200px) { .pz__cards--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .pz__cards--4 { grid-template-columns: 1fr; } }
+
+.pz__team a { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; }
+.pz__team a:hover { border-bottom-style: solid; }
