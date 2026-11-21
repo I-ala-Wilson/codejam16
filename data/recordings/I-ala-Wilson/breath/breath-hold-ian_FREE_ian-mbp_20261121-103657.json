@@ -1,0 +1,133 @@
+{
+  "person": "ian",
+  "gesture": "FREE",
+  "laptop": "ian-mbp",
+  "note": "breath hold, paced 15 bpm, laptop 30-40 cm from chest, screen angled at torso",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 3072,
+      "end": 58368,
+      "label": "FREE"
+    },
+    {
+      "start": 124928,
+      "end": 167936,
+      "label": "FREE"
+    },
+    {
+      "start": 179200,
+      "end": 184320,
+      "label": "FREE"
+    },
+    {
+      "start": 278528,
+      "end": 287744,
+      "label": "FREE"
+    },
+    {
+      "start": 323584,
+      "end": 373760,
+      "label": "FREE"
+    },
+    {
+      "start": 501760,
+      "end": 512000,
+      "label": "FREE"
+    },
+    {
+      "start": 537600,
+      "end": 582656,
+      "label": "FREE"
+    },
+    {
+      "start": 693248,
+      "end": 711680,
+      "label": "FREE"
+    },
+    {
+      "start": 724992,
+      "end": 746496,
+      "label": "FREE"
+    },
+    {
+      "start": 818176,
+      "end": 822272,
+      "label": "FREE"
+    },
+    {
+      "start": 1583104,
+      "end": 1589248,
+      "label": "FREE"
+    },
+    {
+      "start": 1931264,
+      "end": 1933312,
+      "label": "FREE"
+    },
+    {
+      "start": 1947648,
+      "end": 1960960,
+      "label": "FREE"
+    },
+    {
+      "start": 2110464,
+      "end": 2118656,
+      "label": "FREE"
+    },
+    {
+      "start": 2192384,
+      "end": 2197504,
+      "label": "FREE"
+    },
+    {
+      "start": 2230272,
+      "end": 2232320,
+      "label": "FREE"
+    },
+    {
+      "start": 2265088,
+      "end": 2269184,
+      "label": "FREE"
+    },
+    {
+      "start": 2419712,
+      "end": 2429952,
+      "label": "FREE"
+    },
+    {
+      "start": 2448384,
+      "end": 2460672,
+      "label": "FREE"
+    },
+    {
+      "start": 2627584,
+      "end": 2647040,
+      "label": "FREE"
+    }
+  ],
+  "createdAt": "2026-11-21T10:36:57-05:00",
+  "breath": {
+    "take": "hold",
+    "paced_bpm": 15,
+    "hold": [
+      20,
+      40
+    ],
+    "inhale_starts_s": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      40,
+      44,
+      48,
+      52,
+      56,
+      60
+    ]
+  }
+}
