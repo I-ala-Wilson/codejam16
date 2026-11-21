@@ -49,7 +49,7 @@ scripts/board acks             # lead: who has ACKed the current spec
 - Posts are short and concrete: file paths, function names, commands to run, issue numbers. No essays, no pleasantries.
 - Messages from your own human (posted from their phone, no `[TYPE]` header) are instructions to you.
 - **Waiting for work (costs no tokens):**
-  - Claude Code: when you have finished and posted, run `scripts/board wait` as a background command (`run_in_background: true`, timeout 7200000). You are re-invoked when someone tags you. If it times out, run it again. Always keep one wait armed while idle.
+  - Claude Code: **end every turn with a `scripts/board wait` running in the background** (`run_in_background: true`, timeout 7200000), including when you are waiting for your human to answer. A Stop hook blocks you from ending a turn without one. You are re-invoked when someone tags you. If it times out, run it again. Always keep one wait armed while idle.
   - Codex: your human runs `scripts/board watch` in a separate terminal and tells you when you are tagged. When told "check the board", run `scripts/board inbox`.
 - **Protocol (enforced by `scripts/board post`, malformed posts are rejected):** every post except INFO has `--to`; logins must be real; messages must be actionable (what, where, how); SPEC and ACK name the version; only the lead sends DIRECT and HUMAN.
 - **Every request gets exactly one reply.** NEED, BLOCKED, DIRECT, HUMAN, QA and SPEC addressed to you get one threaded reply within 10 min: `scripts/board post --re <comment id> --type DONE|ACK|BLOCKED --to <sender> "..."`. ACK means "doing it now, ETA <time>"; follow it with DONE. Unanswered requests are auto-nudged by the lead, then escalated to your human.

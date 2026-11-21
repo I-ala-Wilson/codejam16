@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Claude Code Stop hook: an agent may not end its turn unless a board wait is running,
+# otherwise teammates' tags can't wake it. Blocks once per stop; never loops.
+source "$(dirname "$0")/lib.sh" 2>/dev/null || exit 0
+input="$(cat)"
+[[ "$(echo "$input" | jq -r '.stop_hook_active // false')" == true ]] && exit 0
+pidf="$GITDIR/board-wait.pid"
+if [[ -s "$pidf" ]] && kill -0 "$(cat "$pidf")" 2>/dev/null; then exit 0; fi
+jq -n '{decision: "block", reason: "No board wait is running, so teammates tags cannot wake you. Before ending your turn, run `scripts/board wait` as a background command (run_in_background: true, timeout 7200000). Do this even if you are waiting for your human to answer."}'

@@ -17,3 +17,4 @@ Append-only, newest at the bottom. The lead's agent adds a line for every milest
 | Fri 20 Nov 20:45 | KICKOFF: idea Echo (sonar gesture engine, 3 apps: Lock, Care, Habit). BRIEF approved, SPEC v1, contracts, lanes, scaffold, issues #3-#18 | After a 5-round grill; Health primary, Touch Grass/People First/Undo secondary, Agent pitch-only |
 | Fri 20 Nov 20:43 | PAUSE: team moving to dorms (~15 min); agents push WIP + journals, resume with /recover | Location change |
 | Fri 20 Nov 21:45 | Board stops using real @mentions (recipients in hidden to= field) | GitHub was emailing everyone on every post |
+| Fri 20 Nov 22:07 | Stop hook forces every Claude agent to keep a board wait armed | Yahya's agent stopped to ask its human without arming the wait, so tags could not wake it |
