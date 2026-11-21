@@ -19,18 +19,27 @@ from breathing import (
     TONE_MIN_SPAN_S,
     TONE_STEP_S,
     TONE_WINDOW_S,
+    V2_FIT_BAND_HZ,
+    V2_HIGHPASS_HZ,
+    V2_NFFT,
+    V2_RATE_BAND_HZ,
+    V2_TONE_STEP_S,
+    V2_TONE_WINDOW_S,
     amplitude_signal,
     analyze_take,
     apnea_flags,
     breathing_signal,
     demodulate,
     estimate_rate,
+    estimate_rate_v2,
     extract_signal,
     main,
     pick_best_bin,
     read_hold_window,
     remove_static,
+    side_by_side_table,
     stable_span,
+    takes_since,
     tone_level_db,
     verdict,
 )
@@ -489,6 +498,206 @@ class TestVerdict:
         failed = [paced_result("a", 5.0), paced_result("a", 6.0), paced_result("b", -4.0), paced_result("b", 3.0)]
         holds = [hold_result("a", 45.0), hold_result("b", 45.0), {**hold_result("a", None), "rejected": True}]
         assert verdict(failed + holds) == "PARTIAL GO"
+
+
+def drifting_phase(bpm: float, beta: float, drift_rms: float, seed: int, *, alpha: float = 2.0, seconds: float = 120.0) -> np.ndarray:
+    """An unwrapped phase at 50 Hz: a breath of amplitude beta plus drift whose power falls as 1/f^alpha, the way slow
+    thermal and posture drift piles up toward low frequency; drift_rms is its standard deviation in radians."""
+    n = int(seconds * OUT_RATE)
+    rng = np.random.default_rng(seed)
+    frequencies = np.fft.rfftfreq(n, 1.0 / OUT_RATE)
+    spectrum = rng.normal(size=frequencies.size) + 1j * rng.normal(size=frequencies.size)
+    spectrum[1:] *= frequencies[1:] ** (-alpha / 2)
+    spectrum[0] = 0.0
+    drift = np.fft.irfft(spectrum, n)
+    t = np.arange(n) / OUT_RATE
+    return beta * np.sin(2 * np.pi * (bpm / 60.0) * t) + drift_rms * drift / drift.std()
+
+
+def v1_rates(phase: np.ndarray) -> list[float]:
+    """What v1 does with a phase: unwrap, band-pass, FFT peak."""
+    return [b for _, b in estimate_rate(breathing_signal(np.exp(1j * phase), OUT_RATE), OUT_RATE)]
+
+
+def v2_rates(phase: np.ndarray) -> list[float]:
+    return [b for _, b in estimate_rate_v2(phase, OUT_RATE)]
+
+
+class TestV2Constants:
+    def test_the_numbers_fixed_in_results_md_are_what_the_code_uses(self):
+        assert V2_HIGHPASS_HZ == 0.05
+        assert V2_NFFT == 4096
+        assert V2_FIT_BAND_HZ == (0.05, 1.5)
+        assert V2_RATE_BAND_HZ == (0.12, 0.5)
+        assert (V2_TONE_WINDOW_S, V2_TONE_STEP_S) == (20.0, 5.0)
+
+
+class TestEstimateRateV2:
+    def test_strong_drift_fools_the_v1_peak_pick_but_not_the_whitened_v2_estimate(self):
+        """Drift power rising toward low frequency outweighs a 0.33 Hz breath in the plain FFT, so v1 reads a low rate;
+        dividing out the fitted power law leaves the breath as the highest bin."""
+        phases = [drifting_phase(20, 1.0, 6.0, seed) for seed in range(5)]
+        v1_medians = np.array([np.median(v1_rates(p)) for p in phases])
+        v2_medians = np.array([np.median(v2_rates(p)) for p in phases])
+        assert (np.abs(v1_medians - 20) > RATE_TOLERANCE_BPM).sum() >= 3
+        assert (v1_medians[np.abs(v1_medians - 20) > RATE_TOLERANCE_BPM] < 20).all()  # biased low
+        assert np.abs(v2_medians - 20).max() < RATE_TOLERANCE_BPM
+
+    @pytest.mark.parametrize("bpm", [10, 15, 20])
+    def test_the_rate_is_recovered_under_moderate_drift(self, bpm):
+        for seed in range(3):
+            medians = np.median(v2_rates(drifting_phase(bpm, 1.5, 2.0, seed, alpha=1.0)))
+            assert abs(float(medians) - bpm) < RATE_TOLERANCE_BPM
+
+    @pytest.mark.parametrize("bpm", [6, 36])
+    def test_a_rate_outside_0p12_to_0p5_hz_is_never_returned(self, bpm):
+        phase = np.sin(2 * np.pi * (bpm / 60.0) * np.arange(int(120 * OUT_RATE)) / OUT_RATE)
+        rates = np.array(v2_rates(phase) + v2_rates(drifting_phase(bpm, 1.5, 2.0, 0, alpha=1.0)))
+        assert rates.min() >= 60 * V2_RATE_BAND_HZ[0] - 0.01 and rates.max() <= 60 * V2_RATE_BAND_HZ[1] + 0.01
+        assert (np.abs(rates - bpm) > RATE_TOLERANCE_BPM).all()
+
+    def test_windows_start_every_five_seconds_like_v1(self):
+        starts = [s for s, _ in estimate_rate_v2(drifting_phase(15, 1.0, 1.0, 0, seconds=60.0), OUT_RATE)]
+        assert starts == [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0]
+
+    def test_a_take_shorter_than_one_window_gives_no_rate(self):
+        assert estimate_rate_v2(np.zeros(int(10 * OUT_RATE)), OUT_RATE) == []
+
+    def test_a_window_longer_than_the_fft_is_refused(self):
+        with pytest.raises(ValueError, match="4096"):
+            estimate_rate_v2(np.zeros(100000), 1000.0)
+
+
+def modulate_level(audio: np.ndarray, swing_db: float, bpm: float = 13.0) -> np.ndarray:
+    """The tone level swinging sinusoidally by swing_db peak to peak at `bpm` per minute, as a strong chest echo does."""
+    t = np.arange(audio.size) / FS
+    return audio * 10 ** (swing_db / 2 * np.sin(2 * np.pi * (bpm / 60.0) * t) / 20)
+
+
+class TestV2Gate:
+    def levels(self, audio: np.ndarray, window_s: float, step_s: float):
+        times, levels = tone_level_db(audio, FS, TONE, window_s, step_s)
+        return stable_span(times, levels, window_s=window_s)
+
+    def test_a_breath_rate_swing_of_the_level_is_rejected_by_the_v1_gate_but_passes_the_v2_gate(self):
+        """Five second windows see the swing (about 6 to 7 dB between windows here), twenty second windows average over
+        four or five breaths and see a steady tone."""
+        audio = modulate_level(synth_audio(15, 2.0, seconds=90.0, snr_db=25.0), swing_db=16.0)
+        assert self.levels(audio, TONE_WINDOW_S, TONE_STEP_S) is None
+        assert self.levels(audio, V2_TONE_WINDOW_S, V2_TONE_STEP_S) == (0.0, 90.0)
+
+    def test_a_sustained_20_db_collapse_is_rejected_by_both_gates(self):
+        audio = with_gain(synth_audio(15, 2.0, seconds=60.0, snr_db=25.0), [(30.0, -20.0)])
+        assert self.levels(audio, TONE_WINDOW_S, TONE_STEP_S) is None
+        assert self.levels(audio, V2_TONE_WINDOW_S, V2_TONE_STEP_S) is None
+
+    def test_stable_span_counts_a_twenty_second_window_as_twenty_seconds(self):
+        times = np.arange(10) * 5.0 + 10.0  # 20 s windows stepped by 5 s over a 65 s take
+        assert stable_span(times, np.full(10, -30.0), window_s=V2_TONE_WINDOW_S) == (0.0, 65.0)
+
+    def test_tone_level_accepts_window_and_step(self):
+        t = np.arange(60 * FS) / FS
+        times, _ = tone_level_db(0.1 * np.sin(2 * np.pi * TONE * t), FS, TONE, V2_TONE_WINDOW_S, V2_TONE_STEP_S)
+        assert times[0] == pytest.approx(10.0) and np.diff(times) == pytest.approx(5.0) and len(times) == 9
+
+
+class TestAnalyzeTakeV2:
+    def analyze(self, tmp_path, audio, method, extra=None):
+        json_path = write_take(tmp_path, audio, extra)
+        return analyze_take(json_path.with_suffix(".wav"), json_path, method)
+
+    def test_the_result_records_the_method_and_v1_is_the_default(self, tmp_path):
+        json_path = write_take(tmp_path, synth_audio(15, 2.0, seconds=60.0, snr_db=25.0), {"paced_bpm": 15})
+        assert analyze_take(json_path.with_suffix(".wav"), json_path)["method"] == "v1"
+        v2 = analyze_take(json_path.with_suffix(".wav"), json_path, "v2")
+        assert v2["method"] == "v2" and v2["tone_span_s"] == [0.0, 60.0]
+        assert abs(v2["median_bpm"] - 15) < RATE_TOLERANCE_BPM and len(v2["windows"]) == 7
+
+    def test_v2_uses_its_own_gate(self, tmp_path):
+        audio = modulate_level(synth_audio(15, 2.0, seconds=90.0, snr_db=25.0), swing_db=16.0)
+        assert self.analyze(tmp_path / "one", audio, "v1")["rejected"]
+        two = self.analyze(tmp_path / "two", audio, "v2")
+        assert not two["rejected"] and two["tone_span_s"] == [0.0, 90.0] and len(two["windows"]) == 13
+
+    def test_a_rejected_v2_take_names_the_twenty_second_window_in_its_reason(self, tmp_path):
+        audio = with_gain(synth_audio(15, 2.0, seconds=60.0, snr_db=25.0), [(30.0, -20.0)])
+        result = self.analyze(tmp_path, audio, "v2")
+        assert result["rejected"] and result["method"] == "v2" and "30 s needed" in result["reason"]
+
+    def test_v2_keeps_the_v1_apnea_flag(self, tmp_path):
+        audio = synth_audio(15, 2.0, seconds=90.0, snr_db=25.0, hold=(40.0, 60.0))
+        one = self.analyze(tmp_path / "one", audio, "v1")
+        two = self.analyze(tmp_path / "two", audio, "v2")
+        assert one["apnea"] == two["apnea"]
+
+    def test_an_unknown_method_is_refused(self, tmp_path):
+        json_path = write_take(tmp_path, synth_audio(15, 2.0, seconds=12.0))
+        with pytest.raises(ValueError, match="unknown method"):
+            analyze_take(json_path.with_suffix(".wav"), json_path, "v3")
+
+
+class TestSinceAndMethodFlags:
+    def three_takes(self, root: Path) -> list[Path]:
+        audio = synth_audio(15, 2.0, seconds=60.0, snr_db=25.0)
+        stamps = ["2026-11-21T10:30:00-05:00", "2026-11-21T11:05:00-05:00", "2026-11-21T16:07:00+00:00"]  # the last is 11:07 Montreal
+        return [write_take(root, audio, {"createdAt": stamp, "paced_bpm": 15}, name=f"take{i}") for i, stamp in enumerate(stamps)]
+
+    def test_takes_since_keeps_those_created_at_or_after_the_timestamp_across_offsets(self, tmp_path):
+        from datetime import datetime
+
+        paths = self.three_takes(tmp_path)
+        since = datetime.fromisoformat("2026-11-21T11:05:00-05:00")
+        assert [p.stem for p in takes_since(paths, since)] == ["take1", "take2"]
+
+    def test_a_take_without_a_usable_created_at_is_left_out(self, tmp_path):
+        from datetime import datetime
+
+        path = write_take(tmp_path, synth_audio(15, 2.0, seconds=12.0), {"createdAt": "not a date"})
+        assert takes_since([path], datetime.fromisoformat("2020-01-01T00:00:00+00:00")) == []
+
+    def test_since_selects_the_takes_that_the_cli_analyses(self, tmp_path):
+        self.three_takes(tmp_path / "takes")
+        out = tmp_path / "out"
+        assert main([str(tmp_path / "takes"), "--out", str(out), "--no-plots", "--since", "2026-11-21T11:05:00-05:00"]) == 0
+        assert [r["take"] for r in json.loads((out / "summary.json").read_text())] == ["take1", "take2"]
+
+    def test_since_without_a_time_zone_is_refused(self, tmp_path):
+        self.three_takes(tmp_path / "takes")
+        with pytest.raises(SystemExit):
+            main([str(tmp_path / "takes"), "--out", str(tmp_path / "out"), "--since", "2026-11-21T11:05:00"])
+
+    def test_since_after_every_take_is_an_error(self, tmp_path):
+        self.three_takes(tmp_path / "takes")
+        assert main([str(tmp_path / "takes"), "--out", str(tmp_path / "out"), "--no-plots", "--since", "2027-01-01T00:00:00+00:00"]) == 1
+
+    def test_method_both_writes_each_method_and_the_side_by_side_without_touching_the_v1_names(self, tmp_path):
+        self.three_takes(tmp_path / "takes")
+        out = tmp_path / "out"
+        out.mkdir()
+        (out / "summary.md").write_text("an earlier v1 run")
+        assert main([str(tmp_path / "takes"), "--out", str(out), "--no-plots", "--method", "both", "--since", "2026-11-21T11:05:00-05:00"]) == 0
+        assert (out / "summary.md").read_text() == "an earlier v1 run"
+        assert not (out / "summary.json").exists()
+        for name in ("summary_v1.json", "summary_v1.md", "summary_v2.json", "summary_v2.md", "summary_both.md"):
+            assert (out / name).exists(), name
+        both = (out / "summary_both.md").read_text()
+        assert "Verdict v1:" in both and "Verdict v2:" in both and "| take1 |" in both and "| take0 |" not in both
+        assert {r["method"] for r in json.loads((out / "summary_v2.json").read_text())} == {"v2"}
+
+    def test_method_v2_alone_writes_v2_files_and_pngs_with_a_suffix(self, tmp_path):
+        pytest.importorskip("matplotlib")
+        takes = self.three_takes(tmp_path / "takes")
+        out = tmp_path / "out"
+        assert main([str(takes[1]), "--out", str(out), "--method", "v2"]) == 0
+        assert (out / "take1_v2.png").stat().st_size > 1000
+        assert (out / "summary_v2.md").exists() and not (out / "summary.md").exists() and not (out / "take1.png").exists()
+
+    def test_the_side_by_side_table_marks_a_take_one_method_rejected(self):
+        accepted = {"take": "t", "rejected": False, "paced_bpm": 15, "median_bpm": 14.6, "error_bpm": -0.4}
+        rejected = {"take": "t", "rejected": True, "reason": "tone level not stable: ...", "paced_bpm": None}
+        table = side_by_side_table([rejected], [accepted])
+        assert "| t | 15.0 | rejected | rejected | 14.6 | -0.4 |" in table
+        assert "Rejected by the v1 gate" in table and "Rejected by the v2 gate" not in table
 
 
 class TestCli:

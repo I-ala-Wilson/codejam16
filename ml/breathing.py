@@ -13,12 +13,14 @@ import json
 import math
 import sys
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import soundfile as sf
 from scipy import signal as sp
+from scipy.stats import theilslopes
 
 
 #: Breathing band: 6 to 42 breaths per minute.
@@ -64,6 +66,18 @@ MIN_PACED_TAKES = 4
 #: start, and at most this share of the breathing windows may be flagged.
 APNEA_ONSET_S = 10.0
 APNEA_MAX_FALSE_SHARE = 0.20
+#: Breathing v2 (RESULTS.md, "Breathing v2"): the unwrapped phase is detrended with a high-pass, each 30 s window gets a Hann
+#: periodogram zero-padded to V2_NFFT points, a power law is fitted to log power against log frequency over
+#: V2_FIT_BAND_HZ and divided out, and the highest whitened bin inside V2_RATE_BAND_HZ (7.2 to 30 breaths/min) is the rate.
+V2_HIGHPASS_HZ = 0.05
+POWER_FLOOR = 1e-30  # keeps log10 finite on an all-zero window
+V2_NFFT = 4096
+V2_FIT_BAND_HZ = (0.05, 1.5)
+V2_RATE_BAND_HZ = (0.12, 0.5)
+#: v2's tone gate averages over several breaths: 20 s windows stepped by 5 s (the 3 dB and 30 s limits are v1's).
+V2_TONE_WINDOW_S = 20.0
+V2_TONE_STEP_S = 5.0
+METHODS = ("v1", "v2")
 DEFAULT_OUT = Path(__file__).parent / "experiments" / "breathing"
 
 
@@ -141,6 +155,37 @@ def estimate_rate(
         spectrum = np.abs(np.fft.rfft((segment - segment.mean()) * taper, nfft))
         peak_hz = frequencies[in_band][np.argmax(spectrum[in_band])]
         rates.append((start / rate_hz, 60.0 * float(peak_hz)))
+    return rates
+
+
+def estimate_rate_v2(
+    phase_signal: np.ndarray, rate_hz: float, window_s: float = RATE_WINDOW_S, step_s: float = RATE_STEP_S
+) -> list[tuple[float, float]]:
+    """v2: (window start in seconds, breaths per minute) from the whitened periodogram peak of each window.
+
+    The unwrapped phase carries slow drift whose power rises toward low frequency and can outweigh a breath peak in a plain
+    FFT. Fitting a straight line to log power against log frequency (Theil-Sen, a median-slope fit the breath peak itself
+    barely moves) and dividing it out leaves a flat spectrum in which the breath stands out. The input is the unwrapped,
+    static-free phase, not the v1 band-passed one: that band-pass would cut the very drift the fit needs."""
+    length = int(round(window_s * rate_hz))
+    if length > V2_NFFT:
+        raise ValueError(f"a {window_s:g} s window at {rate_hz:g} Hz is longer than the {V2_NFFT}-point FFT")
+    step = int(round(step_s * rate_hz))
+    highpass = sp.butter(2, V2_HIGHPASS_HZ, btype="highpass", fs=rate_hz, output="sos")
+    detrended = sp.sosfiltfilt(highpass, phase_signal)
+    frequencies = np.fft.rfftfreq(V2_NFFT, 1.0 / rate_hz)
+    in_fit = (frequencies >= V2_FIT_BAND_HZ[0]) & (frequencies <= V2_FIT_BAND_HZ[1])
+    in_rate = (frequencies >= V2_RATE_BAND_HZ[0]) & (frequencies <= V2_RATE_BAND_HZ[1])
+    log_fit_frequency = np.log10(frequencies[in_fit])
+    log_rate_frequency = np.log10(frequencies[in_rate])
+    taper = np.hanning(length)
+    rates = []
+    for start in range(0, len(detrended) - length + 1, step):
+        segment = detrended[start : start + length]
+        power = np.abs(np.fft.rfft((segment - segment.mean()) * taper, V2_NFFT)) ** 2
+        slope, intercept, _, _ = theilslopes(np.log10(np.maximum(power[in_fit], POWER_FLOOR)), log_fit_frequency)
+        whitened = power[in_rate] / 10 ** (intercept + slope * log_rate_frequency)
+        rates.append((start / rate_hz, 60.0 * float(frequencies[in_rate][np.argmax(whitened)])))
     return rates
 
 
@@ -284,19 +329,22 @@ def _read_mono(wav_path: Path, expected_rate: int) -> tuple[np.ndarray, int]:
     return audio[:, 0], int(sample_rate)
 
 
-def _rejection_reason(times: np.ndarray, levels_db: np.ndarray) -> str:
-    span = _longest_stable_span(times, levels_db, TONE_MAX_DEV_DB, TONE_WINDOW_S)
+def _rejection_reason(times: np.ndarray, levels_db: np.ndarray, window_s: float) -> str:
+    span = _longest_stable_span(times, levels_db, TONE_MAX_DEV_DB, window_s)
     longest = 0.0 if span is None else span[1] - span[0]
     return (
         f"tone level not stable: the longest stretch within {TONE_MAX_DEV_DB:g} dB of the median lasts {longest:.0f} s, "
         f"{TONE_MIN_SPAN_S:g} s needed (level range {levels_db.min():.0f} to {levels_db.max():.0f} dB)"
         if len(levels_db)
-        else f"recording shorter than one {TONE_WINDOW_S:g} s tone window"
+        else f"recording shorter than one {window_s:g} s tone window"
     )
 
 
-def analyze_take(wav_path: Path, json_path: Path) -> dict[str, Any]:
+def analyze_take(wav_path: Path, json_path: Path, method: str = "v1") -> dict[str, Any]:
     """Everything the experiment reports for one take, or a rejection when its tone level is not stable.
+
+    method "v1" is the frozen first method (5 s tone gate, FFT peak of the band-passed phase); "v2" uses the 20 s tone gate
+    and estimate_rate_v2 on the unwrapped, static-free phase (the apnea flag is v1's in both). The result records it.
 
     The quality gate comes first: the audio is cropped to the longest stretch whose tone level is stable, and a take with
     no such stretch of TONE_MIN_SPAN_S is returned as {"rejected": True, "reason": ...} with no rate and no apnea result.
@@ -304,24 +352,33 @@ def analyze_take(wav_path: Path, json_path: Path) -> dict[str, Any]:
 
     paced_bpm, inhale_starts_s and the hold window are read only to be reported next to the estimate (and to leave hold
     windows out of the median); the demodulation bin and the rates are computed without them."""
+    if method not in METHODS:
+        raise ValueError(f"unknown method {method!r}, expected one of {METHODS}")
     meta = _flatten_breath(json.loads(json_path.read_text()))
     samples, sample_rate = _read_mono(wav_path, int(meta["sampleRate"]))
     tone_hz = float(meta["toneHz"])
-    times, levels = tone_level_db(samples, sample_rate, tone_hz)
-    span = stable_span(times, levels)
+    gate_window, gate_step = (V2_TONE_WINDOW_S, V2_TONE_STEP_S) if method == "v2" else (TONE_WINDOW_S, TONE_STEP_S)
+    times, levels = tone_level_db(samples, sample_rate, tone_hz, gate_window, gate_step)
+    span = stable_span(times, levels, window_s=gate_window)
     gate = {
         "take": json_path.stem,
+        "method": method,
         "person": str(meta.get("person", "")).lower(),
         "tone_level_range_db": [float(levels.min()), float(levels.max())] if len(levels) else None,
     }
     if span is None:
-        return {**gate, "rejected": True, "reason": _rejection_reason(times, levels)}
+        return {**gate, "rejected": True, "reason": _rejection_reason(times, levels, gate_window)}
     origin = span[0]
     choice = extract_signal(samples[int(round(span[0] * sample_rate)) : int(round(span[1] * sample_rate))], sample_rate, tone_hz)
     hold = read_hold_window(meta)
+    rate_windows = (
+        estimate_rate_v2(np.unwrap(np.angle(choice.baseband)), OUT_RATE_HZ)
+        if method == "v2"
+        else estimate_rate(choice.signal, OUT_RATE_HZ)
+    )
     windows = [
         {"start_s": origin + start, "bpm": bpm, "used_in_median": hold is None or not (origin + start < hold[1] and origin + start + RATE_WINDOW_S > hold[0])}
-        for start, bpm in estimate_rate(choice.signal, OUT_RATE_HZ)
+        for start, bpm in rate_windows
     ]
     kept = [w["bpm"] for w in windows if w["used_in_median"]]
     median_bpm = float(np.median(kept)) if kept else None
@@ -466,29 +523,98 @@ def find_breath_takes(root: Path) -> list[Path]:
     return sorted(p for p in root.rglob("*.json") if p.with_suffix(".wav").exists() and _is_breath_take(p))
 
 
+def _cell_or_rejected(row: dict[str, Any], key: str) -> str:
+    return "rejected" if row["rejected"] else _cell(row[key])
+
+
+def side_by_side_table(rows_v1: list[dict[str, Any]], rows_v2: list[dict[str, Any]]) -> str:
+    """v1 and v2 next to each other per take (rows in the same take order), each with its verdict and rejected takes."""
+    lines = [
+        f"Verdict v1: {verdict(rows_v1)}",
+        f"Verdict v2: {verdict(rows_v2)}",
+        "",
+        "| take | paced bpm | v1 median | v1 error | v2 median | v2 error |",
+        "|---|---|---|---|---|---|",
+    ]
+    for one, two in zip(rows_v1, rows_v2):
+        paced = _cell(one["paced_bpm"]) if not one["rejected"] else _cell(two.get("paced_bpm"))
+        lines.append(
+            f"| {one['take']} | {paced} | {_cell_or_rejected(one, 'median_bpm')} | {_cell_or_rejected(one, 'error_bpm')} | "
+            f"{_cell_or_rejected(two, 'median_bpm')} | {_cell_or_rejected(two, 'error_bpm')} |"
+        )
+    for name, rows in (("v1", rows_v1), ("v2", rows_v2)):
+        rejected = [r for r in rows if r["rejected"]]
+        if rejected:
+            lines += ["", f"Rejected by the {name} gate (not counted):", ""] + [f"- {r['take']}: {r['reason']}" for r in rejected]
+    return "\n".join(lines) + "\n"
+
+
+def _iso_timestamp(text: str) -> datetime:
+    try:
+        stamp = datetime.fromisoformat(text)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(f"not an ISO timestamp: {text!r}") from error
+    if stamp.tzinfo is None:
+        raise argparse.ArgumentTypeError(f"{text!r} has no time zone offset (for example 2026-11-21T11:05:00-05:00)")
+    return stamp
+
+
+def _created_at(json_path: Path) -> datetime | None:
+    """The recording's createdAt as an aware timestamp, or None when it is missing, malformed or has no offset."""
+    try:
+        stamp = datetime.fromisoformat(str(json.loads(json_path.read_text()).get("createdAt")))
+    except (OSError, ValueError):
+        return None
+    return stamp if stamp.tzinfo is not None else None
+
+
+def takes_since(json_paths: list[Path], since: datetime) -> list[Path]:
+    """The takes whose createdAt is at or after `since`; a take without a usable createdAt cannot be placed, so it is left out."""
+    return [p for p in json_paths if (stamp := _created_at(p)) is not None and stamp >= since]
+
+
+def _write_method_outputs(method: str, results: list[dict[str, Any]], out: Path, suffix: str, plots: bool) -> list[dict[str, Any]]:
+    """summary<suffix>.json / .md and (when plots) <take><suffix>.png; returns the JSON rows."""
+    rows = [{k: v for k, v in r.items() if k not in ("signal", "rate_hz", "signal_origin_s")} for r in results]
+    (out / f"summary{suffix}.json").write_text(json.dumps(rows, indent=2))
+    (out / f"summary{suffix}.md").write_text(summary_table(rows))
+    print(f"{method}: {len(results)} takes, {sum(r['rejected'] for r in results)} rejected by the tone-level gate: {verdict(results)}")
+    if plots:
+        for result in (r for r in results if not r["rejected"]):
+            plot_take(result, out / f"{result['take']}{suffix}.png")
+    return rows
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("path", type=Path, help="a recording .json, or a folder searched for <name>.json + <name>.wav")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--no-plots", action="store_true", help="write the summary only (no matplotlib needed)")
+    parser.add_argument("--method", choices=[*METHODS, "both"], default="v1")
+    parser.add_argument(
+        "--since", type=_iso_timestamp, help="keep only takes whose json createdAt is at or after this ISO timestamp with offset"
+    )
     args = parser.parse_args(argv)
     json_paths = [args.path] if args.path.is_file() else find_breath_takes(args.path)
+    if args.since is not None:
+        json_paths = takes_since(json_paths, args.since)
     if not json_paths:
-        print(f"no recordings (<name>.json with a <name>.wav) under {args.path}", file=sys.stderr)
+        print(f"no recordings (<name>.json with a <name>.wav) under {args.path}" + (f" since {args.since}" if args.since else ""), file=sys.stderr)
         return 1
     args.out.mkdir(parents=True, exist_ok=True)
-    results = [analyze_take(p.with_suffix(".wav"), p) for p in json_paths]
-    rows = [{k: v for k, v in r.items() if k not in ("signal", "rate_hz", "signal_origin_s")} for r in results]
-    (args.out / "summary.json").write_text(json.dumps(rows, indent=2))
-    (args.out / "summary.md").write_text(summary_table(rows))
-    print(f"{len(results)} takes, {sum(r['rejected'] for r in results)} rejected by the tone-level gate: {verdict(results)}")
-    if not args.no_plots:
-        try:
-            for result in (r for r in results if not r["rejected"]):
-                plot_take(result, args.out / f"{result['take']}.png")
-        except ImportError as error:
-            print(f"plots need matplotlib ({error}); the summary was written, rerun with --no-plots to skip", file=sys.stderr)
-            return 1
+    methods = METHODS if args.method == "both" else (args.method,)
+    # v1 alone keeps its original file names; next to v2 every method gets its own suffix so nothing is overwritten.
+    suffixes = {"v1": "" if args.method == "v1" else "_v1", "v2": "_v2"}
+    try:
+        rows = {
+            m: _write_method_outputs(m, [analyze_take(p.with_suffix(".wav"), p, m) for p in json_paths], args.out, suffixes[m], not args.no_plots)
+            for m in methods
+        }
+    except ImportError as error:
+        print(f"plots need matplotlib ({error}); rerun with --no-plots to skip them", file=sys.stderr)
+        return 1
+    if args.method == "both":
+        (args.out / "summary_both.md").write_text(side_by_side_table(rows["v1"], rows["v2"]))
     return 0
 
 
