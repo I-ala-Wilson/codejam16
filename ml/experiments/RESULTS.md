@@ -203,7 +203,7 @@ takes are rejected (the tone level swings 8.8 dB and 19.8 dB), his hold take is 
 | 0 | model alone | 0.433 | 0.47 | 0.53 | 28 | 48 |
 | 0 | with override | 0.416 | 0.47 | 0.43 | 31 | 82 |
 | 1 | model alone | 0.416 | 0.45 | 0.50 | 51 | 57 |
-| 1 | with override | 0.400 | n/a | lower | n/a | n/a |
+| 1 | with override | 0.400 | 0.45 | 0.40 | 50 | 93 |
 Both seeds lose macro recall (-0.017, -0.016) against the required gain of more than 0.02, and PULL recall is lower on both
 (PUSH too on seed 0), so the pre-registered rule refuses it. False alarms are unchanged, as designed. Full table:
 `round3/sign/SIGN.md`, raw numbers `round3/sign/sign.json`.
