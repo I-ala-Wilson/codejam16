@@ -4,6 +4,7 @@ import {
   ClassifierRuntime,
   DEFAULT_DECODER,
   createOnnxRunner,
+  decoderFromConfig,
   type ClassifierEvent,
   type DecoderConfig,
   type ModelRunner,
@@ -40,18 +41,7 @@ async function loadClassifierFromUrl(modelUrl: string): Promise<LoadedClassifier
   try {
     const response = await fetch(modelUrl.replace(/\.onnx$/, '.json'))
     if (!response.ok) return { runner, decoder: DEFAULT_DECODER }
-    const config = (await response.json()) as { thresholds?: Record<string, number>; decoder?: Partial<DecoderConfig> }
-    const d = config.decoder ?? {}
-    return {
-      runner,
-      decoder: {
-        thresholds: config.thresholds ?? DEFAULT_DECODER.thresholds,
-        smooth: d.smooth ?? DEFAULT_DECODER.smooth,
-        confirm: d.confirm ?? DEFAULT_DECODER.confirm,
-        refractoryMs: d.refractoryMs ?? DEFAULT_DECODER.refractoryMs,
-        waveRefractoryMs: d.waveRefractoryMs ?? DEFAULT_DECODER.waveRefractoryMs,
-      },
-    }
+    return { runner, decoder: decoderFromConfig(await response.json()) }
   } catch {
     return { runner, decoder: DEFAULT_DECODER }
   }

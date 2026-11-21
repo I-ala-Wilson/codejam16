@@ -3,7 +3,7 @@ import type { GestureType } from '../../contracts/engine.ts'
 // Runs the trained gesture model (ml/PROTOCOL.md) in the browser. The window layout, the scaling and the event decoder
 // mirror ml/dataset.py, ml/train.py and ml/evaluate.py; src/fixtures/ holds cross-language fixtures that keep them in step.
 
-export const CLASS_NAMES = ['NONE', 'PUSH', 'PULL', 'WAVE', 'OPEN_CLOSE', 'UNDO'] as const
+export const CLASS_NAMES = ['NONE', 'PUSH', 'PULL', 'WAVE', 'OPEN_CLOSE', 'UNDO', 'REPETITIVE'] as const
 export type ClassName = (typeof CLASS_NAMES)[number]
 
 /** One model input: this many frames of this many bins (about 1.0 s of the +-500 Hz band). */
@@ -19,6 +19,8 @@ export const CLIP_MAX_DB = 60
 const MAX_PENDING = 3
 
 export interface DecoderConfig {
+  /** Output order of the model (gesture.json `classes`); index 0 is NONE. Only as many as the model outputs are read. */
+  readonly classes: ReadonlyArray<string>
   readonly thresholds: Readonly<Record<string, number>>
   /** Average this many consecutive evaluations, fire after `confirm` in a row above threshold, then hold off. */
   readonly smooth: number
@@ -26,14 +28,44 @@ export interface DecoderConfig {
   readonly refractoryMs: number
   /** A wave is long, so it holds off the strokes that follow it for longer. */
   readonly waveRefractoryMs: number
+  /** A habit goes on for seconds, so it holds off for longer still (ml/evaluate.py HABIT_REFRACTORY_S). */
+  readonly habitRefractoryMs: number
 }
 
 export const DEFAULT_DECODER: DecoderConfig = {
-  thresholds: { PUSH: 0.8, PULL: 0.8, WAVE: 0.8, OPEN_CLOSE: 0.8, UNDO: 0.8 }, // ml/evaluate.py DEFAULT_THRESHOLDS
+  classes: CLASS_NAMES,
+  thresholds: { PUSH: 0.85, PULL: 0.85, WAVE: 0.85, OPEN_CLOSE: 0.85, UNDO: 0.85, REPETITIVE: 0.9 }, // ml/evaluate.py DEFAULT_THRESHOLDS
   smooth: 3,
   confirm: 2,
   refractoryMs: 600,
   waveRefractoryMs: 1200,
+  habitRefractoryMs: 3000,
+}
+
+const isClassList = (v: unknown): v is string[] =>
+  Array.isArray(v) && v.length >= 2 && v.every((c) => typeof c === 'string') && v[0] === 'NONE'
+
+const numberOr = (v: unknown, fallback: number): number => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
+const countOr = (v: unknown, fallback: number): number => (typeof v === 'number' && Number.isInteger(v) && v >= 1 ? v : fallback)
+
+/** The decoder settings from the gesture.json that `ml/run.py final` writes next to the model; anything missing or malformed takes the default. */
+export function decoderFromConfig(config: unknown): DecoderConfig {
+  if (typeof config !== 'object' || config === null || Array.isArray(config)) return DEFAULT_DECODER
+  const c = config as { classes?: unknown; thresholds?: unknown; decoder?: Record<string, unknown> | null }
+  const d = c.decoder && typeof c.decoder === 'object' ? c.decoder : {}
+  const thresholds =
+    typeof c.thresholds === 'object' && c.thresholds !== null && !Array.isArray(c.thresholds)
+      ? (c.thresholds as Record<string, number>)
+      : DEFAULT_DECODER.thresholds
+  return {
+    classes: isClassList(c.classes) ? c.classes : DEFAULT_DECODER.classes,
+    thresholds,
+    smooth: countOr(d.smooth, DEFAULT_DECODER.smooth),
+    confirm: countOr(d.confirm, DEFAULT_DECODER.confirm),
+    refractoryMs: numberOr(d.refractoryMs, DEFAULT_DECODER.refractoryMs),
+    waveRefractoryMs: numberOr(d.waveRefractoryMs, DEFAULT_DECODER.waveRefractoryMs),
+    habitRefractoryMs: numberOr(d.habitRefractoryMs, DEFAULT_DECODER.habitRefractoryMs),
+  }
 }
 
 export interface ClassifierEvent {
@@ -86,12 +118,13 @@ export class EventDecoder {
   }
 
   push(probs: ArrayLike<number>, tMs: number): ClassifierEvent | null {
-    const { smooth, confirm, thresholds } = this.config
+    const { smooth, confirm, thresholds, classes } = this.config
     this.history = [...this.history, Array.from(probs)].slice(-smooth)
-    const mean = CLASS_NAMES.map((_, c) => this.history.reduce((sum, p) => sum + p[c], 0) / this.history.length)
+    const names = classes.slice(0, probs.length) // never read past what the model outputs
+    const mean = names.map((_, c) => this.history.reduce((sum, p) => sum + p[c], 0) / this.history.length)
     const strongest = argmax(mean.slice(1)) + 1 // the best class other than NONE
     const candidate =
-      mean[strongest] >= (thresholds[CLASS_NAMES[strongest]] ?? Infinity) && argmax(mean) === strongest ? strongest : null
+      mean[strongest] >= (thresholds[names[strongest]] ?? Infinity) && argmax(mean) === strongest ? strongest : null
     if (tMs < this.holdUntilMs) {
       this.streak = 0
       this.previous = null
@@ -100,8 +133,9 @@ export class EventDecoder {
     this.streak = candidate !== null && candidate === this.previous ? this.streak + 1 : candidate !== null ? 1 : 0
     this.previous = candidate
     if (candidate === null || this.streak < confirm) return null
-    const cls = CLASS_NAMES[candidate] as GestureType
-    this.holdUntilMs = tMs + (cls === 'WAVE' ? this.config.waveRefractoryMs : this.config.refractoryMs)
+    const cls = names[candidate] as GestureType
+    const hold = cls === 'WAVE' ? this.config.waveRefractoryMs : cls === 'REPETITIVE' ? this.config.habitRefractoryMs : this.config.refractoryMs
+    this.holdUntilMs = tMs + hold
     this.streak = 0
     this.previous = null
     return { cls, tMs, probability: mean[candidate] }

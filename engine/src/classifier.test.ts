@@ -8,6 +8,7 @@ import {
   FrameWindow,
   WINDOW_FRAMES,
   createOnnxRunner,
+  decoderFromConfig,
   softmax,
   type ClassifierEvent,
   type ModelRunner,
@@ -34,7 +35,7 @@ describe('EventDecoder matches the Python reference decoder', () => {
 
   it('forgets its history on reset()', () => {
     const decoder = new EventDecoder(DEFAULT_DECODER)
-    const push = [0.02, 0.9, 0.02, 0.02, 0.02, 0.02]
+    const push = [0.02, 0.9, 0.02, 0.02, 0.02, 0.01, 0.01]
     expect(decoder.push(push, 0)).toBeNull()
     expect(decoder.push(push, 85)?.cls).toBe('PUSH')
     decoder.reset()
@@ -43,10 +44,84 @@ describe('EventDecoder matches the Python reference decoder', () => {
 
   it('respects a stricter threshold for one class', () => {
     const decoder = new EventDecoder({ ...DEFAULT_DECODER, thresholds: { ...DEFAULT_DECODER.thresholds, PULL: 0.95 } })
-    const pull = [0.02, 0.02, 0.9, 0.02, 0.02, 0.02]
+    const pull = [0.02, 0.02, 0.9, 0.02, 0.02, 0.01, 0.01]
     const events = Array.from({ length: 8 }, (_, i) => decoder.push(pull, i * 85)).filter(Boolean)
     expect(events).toEqual([])
   })
+})
+
+describe('the habit class', () => {
+  const habit = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.94]
+  const run = (decoder: EventDecoder, evals: number, start = 0): ClassifierEvent[] =>
+    Array.from({ length: evals }, (_, i) => decoder.push(habit, start + i * 85)).filter((e): e is ClassifierEvent => e !== null)
+
+  it('fires REPETITIVE once and then holds off for the 3 s habit refractory', () => {
+    const events = run(new EventDecoder(DEFAULT_DECODER), 30) // 2.5 s of scratching
+    expect(events.map((e) => e.cls)).toEqual(['REPETITIVE'])
+  })
+
+  it('fires again once the habit refractory has passed', () => {
+    const events = run(new EventDecoder(DEFAULT_DECODER), 80) // 6.8 s
+    expect(events.length).toBeGreaterThanOrEqual(2)
+    expect(events[1].tMs - events[0].tMs).toBeGreaterThanOrEqual(3000)
+  })
+
+  it('needs a stricter probability than a gesture does', () => {
+    expect(DEFAULT_DECODER.thresholds.REPETITIVE).toBeGreaterThan(DEFAULT_DECODER.thresholds.PUSH)
+    const fires = (probs: number[]): boolean => {
+      const decoder = new EventDecoder(DEFAULT_DECODER)
+      return Array.from({ length: 10 }, (_, i) => decoder.push(probs, i * 85)).some(Boolean)
+    }
+    expect(fires([0.04, 0.01, 0.01, 0.01, 0.01, 0.01, 0.91])).toBe(true) // above 0.90
+    expect(fires([0.09, 0.01, 0.01, 0.01, 0.01, 0.01, 0.86])).toBe(false) // a habit at 0.86 is not enough...
+    expect(fires([0.09, 0.86, 0.01, 0.01, 0.01, 0.01, 0.01])).toBe(true) // ...but a push at 0.86 is
+  })
+
+  it('uses the 0.85 gesture and 0.90 habit operating point of ml/evaluate.py', () => {
+    expect(DEFAULT_DECODER.thresholds).toEqual({ PUSH: 0.85, PULL: 0.85, WAVE: 0.85, OPEN_CLOSE: 0.85, UNDO: 0.85, REPETITIVE: 0.9 })
+  })
+})
+
+describe('decoderFromConfig (the gesture.json next to the model)', () => {
+  const seven = ['NONE', 'PUSH', 'PULL', 'WAVE', 'OPEN_CLOSE', 'UNDO', 'REPETITIVE']
+
+  it('takes the class list, thresholds and timings from the file', () => {
+    const d = decoderFromConfig({
+      classes: seven,
+      thresholds: { PUSH: 0.7, REPETITIVE: 0.9 },
+      decoder: { smooth: 4, confirm: 3, refractoryMs: 500, waveRefractoryMs: 1100, habitRefractoryMs: 2500 },
+    })
+    expect(d).toMatchObject({ classes: seven, smooth: 4, confirm: 3, refractoryMs: 500, waveRefractoryMs: 1100, habitRefractoryMs: 2500 })
+    expect(d.thresholds.REPETITIVE).toBe(0.9)
+  })
+
+  it('decodes a 6-output model from an old file (no classes, no habit timing) without reading past its outputs', () => {
+    const d = new EventDecoder(decoderFromConfig({ thresholds: { PUSH: 0.8 }, decoder: { smooth: 3, confirm: 2 } }))
+    const six = [0.02, 0.9, 0.02, 0.02, 0.02, 0.02]
+    expect(d.push(six, 0)).toBeNull()
+    expect(d.push(six, 85)?.cls).toBe('PUSH')
+    expect(decoderFromConfig({}).habitRefractoryMs).toBe(DEFAULT_DECODER.habitRefractoryMs)
+  })
+
+  it.each([0, -1, 2.5, Number.NaN])('keeps the default smoothing and confirm counts when the file says %s', (bad) => {
+    const d = decoderFromConfig({ decoder: { smooth: bad, confirm: bad } })
+    expect(d.smooth).toBe(DEFAULT_DECODER.smooth)
+    expect(d.confirm).toBe(DEFAULT_DECODER.confirm)
+  })
+
+  it('decodes a 6-output model with no file at all (the defaults)', () => {
+    const d = new EventDecoder(DEFAULT_DECODER)
+    const six = [0.02, 0.9, 0.02, 0.02, 0.02, 0.02]
+    d.push(six, 0)
+    expect(d.push(six, 85)?.cls).toBe('PUSH')
+  })
+
+  it.each([null, 'x', 42, [], { classes: 'PUSH' }, { classes: [1, 2] }, { classes: ['PUSH', 'NONE'] }])(
+    'falls back to the default class list for a malformed file: %j',
+    (bad) => {
+      expect(decoderFromConfig(bad).classes).toEqual(DEFAULT_DECODER.classes)
+    },
+  )
 })
 
 describe('softmax', () => {
