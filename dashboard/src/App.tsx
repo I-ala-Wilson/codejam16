@@ -20,6 +20,11 @@ function findActiveHelp(events: EventRow[]): EventRow | null {
   return events.reduceRight<EventRow | null>(applyAlert, null)
 }
 
+function recentRows(snapshot: EventRow[], arrivals: EventRow[], limit: number) {
+  return Array.from(new Map([...snapshot, ...arrivals].map(row => [row.id, row])).values())
+    .sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id).slice(0, limit)
+}
+
 function applyAlert(current: EventRow | null, event: EventRow): EventRow | null {
   if (event.app !== 'care') return current
   if (event.kind === 'help' || event.kind === 'pain') return event
@@ -81,9 +86,11 @@ export default function App() {
 
   useEffect(() => {
     let active = true
-    let channel: ReturnType<typeof supabase.channel> | null = null
+    let initialArrivals: EventRow[] | null = []
+    let snapshotStarted = false
 
-    async function connect() {
+    async function loadSnapshot() {
+      snapshotStarted = true
       const [recentResult, activityResult] = await Promise.all([
         supabase.from('events').select('*').order('created_at', { ascending: false }).limit(50),
         supabase
@@ -100,21 +107,26 @@ export default function App() {
       if (loadError) {
         setError(loadError.message)
       } else {
-        const rows = (recentResult.data ?? []) as EventRow[]
+        const arrivals = initialArrivals ?? []
+        const rows = recentRows(recentResult.data ?? [], arrivals, 50)
         setEvents(rows)
-        setActivityEvents(((activityResult.data ?? []) as EventRow[]).reverse())
+        setActivityEvents(recentRows(activityResult.data ?? [], arrivals.filter(row => row.app === 'care' && row.kind === 'activity'), 60).reverse())
         setActiveHelp(findActiveHelp(rows))
         setAlarm(rows.find(row => row.app === 'lock' && row.kind === 'alarm') ?? null)
       }
       setLoading(false)
+      initialArrivals = null
+    }
 
-      channel = supabase
+    const channel = supabase
         .channel('events')
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'events' },
           (payload) => {
+            if (!active) return
             const event = payload.new as EventRow
+            initialArrivals?.push(event)
             setEvents((current) => [event, ...current].slice(0, 50))
             if (event.app === 'care' && event.kind === 'activity') {
               setActivityEvents((current) => [...current.slice(-59), event])
@@ -124,13 +136,13 @@ export default function App() {
           },
         )
         .subscribe((status) => {
+          if (!active) return
+          if (status === 'SUBSCRIBED' && !snapshotStarted) void loadSnapshot()
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             setError('Realtime connection failed')
+            if (!snapshotStarted) void loadSnapshot()
           }
         })
-    }
-
-    void connect()
     return () => {
       active = false
       if (channel) void supabase.removeChannel(channel)
@@ -148,7 +160,7 @@ export default function App() {
           <button aria-pressed={view === 'lock'} onClick={() => setView('lock')}>Parent{alarm ? ' · ALARM' : ''}</button>
         </nav>
         <div className="dashboard-status" aria-live="polite">
-          <span className="dashboard-status__dot" /> Live · {events.length} recent events
+          <span className="dashboard-status__dot" /> {loading ? 'Connecting' : error ? 'Connection issue' : 'Live'} · {events.length} recent events
         </div>
 
         {loading && <p>Loading events…</p>}
