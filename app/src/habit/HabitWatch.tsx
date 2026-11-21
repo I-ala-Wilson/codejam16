@@ -9,8 +9,15 @@ import './habit.css'
 // Habit mode runs app-wide, like the lock guardian: when the sonar hears repetitive hand motion (scratching,
 // nail-biting) it plays a soft chime and shows a tiny corner note; the first nudge each hour also shows a gentle
 // bar along the bottom for 2 s. A double tap right after a nudge snoozes it for 10 minutes.
+// Live test (EJ, MacBook Air): 14/15 scratches caught, but 5 false nudges in 2 min of typing, and the double tap never
+// snoozed because the engine reports a natural double tap as PUSH, PUSH (issue #22). So: an UNDO or two PUSHes
+// close together count as the snooze tap; REPETITIVE is ignored while the keyboard or trackpad is in use on this
+// page; and one habit episode gives one nudge (a quiet cooldown after each nudge).
 const SNOOZE_MS = 10 * 60 * 1000
-const UNDO_WINDOW_MS = 4000
+const UNDO_WINDOW_MS = 6000
+const TAP_PAIR_MS = 1500
+const INPUT_QUIET_MS = 2500
+const COOLDOWN_MS = 8000
 const TOAST_MS = 3500
 const BAR_MS = 2000
 
@@ -19,6 +26,8 @@ export default function HabitWatch() {
   const [noteOn, setNoteOn] = useState(false)
   const [bar, setBar] = useState(false)
   const lastNudge = useRef(0)
+  const lastPush = useRef(0)
+  const lastInput = useRef(0)
   const hideNote = useRef(0)
   const hideBar = useRef(0)
   const show = (t: string) => {
@@ -32,14 +41,27 @@ export default function HabitWatch() {
     return () => { window.removeEventListener('echo-habit', start); clearTimeout(hideNote.current); clearTimeout(hideBar.current) }
   }, [])
 
+  useEffect(() => {
+    const mark = () => { lastInput.current = Date.now() }
+    const kinds = ['keydown', 'pointermove', 'pointerdown', 'wheel'] as const
+    for (const k of kinds) window.addEventListener(k, mark, { passive: true })
+    return () => { for (const k of kinds) window.removeEventListener(k, mark) }
+  }, [])
+
   useEffect(() => engine.onGesture((g) => {
     if (!habitOn()) return
     const t = Date.now()
-    if (g.type === 'UNDO' && t - lastNudge.current < UNDO_WINDOW_MS) {
-      lastNudge.current = 0; snooze(SNOOZE_MS); show('snoozed 10 min'); sendEvent('habit', 'snoozed', {}, 'UNDO')
-      return
+    if (t - lastNudge.current < UNDO_WINDOW_MS) {
+      const pair = g.type === 'PUSH' && t - lastPush.current < TAP_PAIR_MS
+      if (g.type === 'PUSH') lastPush.current = t
+      if (g.type === 'UNDO' || pair) {
+        lastNudge.current = 0; lastPush.current = 0
+        snooze(SNOOZE_MS); show('snoozed 10 min'); sendEvent('habit', 'snoozed', {}, 'UNDO')
+        return
+      }
     }
     if (g.type !== 'REPETITIVE' || t < snoozedUntil()) return
+    if (t - lastInput.current < INPUT_QUIET_MS || t - lastNudge.current < COOLDOWN_MS) return
     lastNudge.current = t
     logHabit(t); chime(true, 0.05)
     show(`hands · ${today().length} today`)
