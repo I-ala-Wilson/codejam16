@@ -4,6 +4,7 @@ import { extensionId, sendToExtension, type ExtReply } from './extension.ts'
 import { LABEL, LENGTH, loadPassword, matches, savePassword, type Sign } from './lock/password.ts'
 import { guardian } from './lock/guardian.ts'
 import { useSignInput } from './lock/useSignInput.ts'
+import { ensureSonar } from './sonar.ts'
 
 const DEFAULT_SITES = ['youtube.com', 'tiktok.com', 'roblox.com']
 
@@ -43,10 +44,15 @@ export default function Lock() {
   }, [listening])
 
   const refresh = async () => { try { setStatus(await sendToExtension({ type: 'STATUS' })) } catch { setStatus(null) } }
-  const startSonar = async () => {
-    setError('')
-    try { await engine.start(); await engine.calibrate(3000); setRunning(true) } catch (e) { setError(String(e)) }
-  }
+  // The sonar is always on: start it on open (and on the first click if the browser blocked audio), and track it from
+  // the live frames rather than a snapshot taken at mount.
+  useEffect(() => {
+    ensureSonar()
+    const kick = () => { if (!engine.health().running) ensureSonar() }
+    window.addEventListener('pointerdown', kick)
+    const poll = window.setInterval(() => setRunning(engine.health().running), 500)
+    return () => { clearInterval(poll); window.removeEventListener('pointerdown', kick) }
+  }, [])
   const lockNow = async () => {
     setError('')
     try {
@@ -110,7 +116,7 @@ export default function Lock() {
               <button className="lk__btn" onClick={() => { setDraft([]); go('set') }}>Redo</button>
             </div>
           ) : !running ? (
-            <div className="lk__row"><button className="lk__btn lk__btn--primary" onClick={startSonar}>Start listening</button></div>
+            <div className="lk__status">starting sonar… keep still</div>
           ) : (
             <>
               <SonarMeter />
@@ -149,9 +155,7 @@ export default function Lock() {
               {Array.from({ length: LENGTH }, (_, i) => <div key={i} className={`lk__minislot${password ? ' on' : ''}`}>{password ? '*' : ''}</div>)}
             </div>
             <p>{password ? 'Four hand signs. Only someone who knows them can change them.' : 'Four hand signs that only you know.'}</p>
-            {!running
-              ? <button className="lk__btn lk__btn--primary" onClick={startSonar}>Start sonar</button>
-              : <button className="lk__btn lk__btn--primary" onClick={() => go(password ? 'verify' : 'set')}>{password ? 'Change password' : 'Set password'}</button>}
+            <button className="lk__btn lk__btn--primary" onClick={() => go(password ? 'verify' : 'set')}>{password ? 'Change password' : 'Set password'}</button>
             {/* owner-only escape hatch for forgotten passwords: shown only with ?owner in the URL, never to a kid */}
             {password && new URLSearchParams(location.search).has('owner') && <>{' '}<button className="lk__btn" onClick={() => { localStorage.removeItem('echo.lock.password'); setPassword(null); setMessage('') }}>Reset password</button></>}
           </section>
