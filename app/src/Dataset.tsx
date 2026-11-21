@@ -52,7 +52,11 @@ export default function Dataset() {
   const leadInMotion = useRef(false)
   const phaseRef = useRef<Phase>('idle')
 
-  useEffect(() => { localStorage.setItem('echo.login', login) }, [login])
+  useEffect(() => {
+    // a different person starts their own battery at take 1
+    if (localStorage.getItem('echo.login') !== login) setIdx(0)
+    localStorage.setItem('echo.login', login)
+  }, [login])
   useEffect(() => { localStorage.setItem('echo.laptop', laptopModel) }, [laptopModel])
   useEffect(() => { localStorage.setItem('echo.hand', hand) }, [hand])
   useEffect(() => { localStorage.setItem('echo.volume', String(volumePct)) }, [volumePct])
@@ -173,7 +177,7 @@ export default function Dataset() {
               </>
             )}
             {' '}<button onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}>Redo last take</button>
-            {' '}<button onClick={() => { if (confirm('Start the battery from the beginning?')) setIdx(0) }}>Restart battery</button>
+            {' '}<button onClick={() => setIdx(0)}>Restart battery</button>
           </Box>
         </>
       )}
