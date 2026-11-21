@@ -7,10 +7,11 @@ const REPS = 12
 const GO_MS = 1000
 const REST_MS = 900
 
-type Item = { gesture: GestureType | 'FREE'; how: string }
+// alternate: GO prompts alternate between the listed moves (e.g. PUSH then PULL), so every move returns the hand.
+type Item = { gesture: GestureType | 'FREE'; how: string; label?: string; alternate?: string[] }
 const GESTURES: Item[] = [
-  { gesture: 'PUSH', how: 'Start about 30 cm away. On GO, one brisk push of about 15 cm (doorbell speed), then hold. During rest, drift back SLOWLY.' },
-  { gesture: 'PULL', how: 'Start about 15 cm away. On GO, one brisk pull back of about 15 cm, then hold. During rest, drift forward SLOWLY.' },
+  { gesture: 'PUSH', label: 'PUSH ↔ PULL', alternate: ['PUSH', 'PULL'],
+    how: 'Hand about 30 cm from the screen. Each GO says PUSH or PULL: one brisk 15 cm move that way, then stop. They alternate, so you never run out of room.' },
   { gesture: 'WAVE', how: 'Wave side to side, fast, for the whole GO window.' },
   { gesture: 'OPEN_CLOSE', how: 'Hand toward the screen: open and close your fist 3 times quickly.' },
   { gesture: 'UNDO', how: 'Two quick pulls back to back (pull, reset, pull).' },
@@ -75,12 +76,13 @@ export default function Record() {
   const take = async (item: Item) => {
     setError('')
     try {
-      engine.startRecording({ person: person.trim().toLowerCase(), gesture: item.gesture, laptop: laptop.trim().toLowerCase().replace(/\s+/g, '-') })
+      engine.startRecording({ person: person.trim().toLowerCase(), gesture: item.gesture,
+        note: item.alternate ? `alternating ${item.alternate.join(',')} per rep, starting with ${item.alternate[0]}` : undefined, laptop: laptop.trim().toLowerCase().replace(/\s+/g, '-') })
     } catch (e) { setError(String(e)); return }
     setCurrent(item)
-    for (let i = 1; i <= REPS; i++) {
+    for (let i = 1; i <= (item.alternate ? REPS * item.alternate.length : REPS); i++) {
       // PUSH/PULL/UNDO need time to drift back to the start slowly between reps
-      setRep(i); setPhase('rest'); await sleep(['PUSH', 'PULL', 'UNDO'].includes(item.gesture) ? 2200 : REST_MS)
+      setRep(i); setPhase('rest'); await sleep(item.gesture === 'UNDO' ? 2200 : REST_MS)
       setPhase('go'); await sleep(GO_MS)
     }
     setPhase('rest'); await sleep(600)
@@ -112,7 +114,7 @@ export default function Record() {
             {GESTURES.map((g) => (
               <div key={g.gesture} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0' }}>
                 <button onClick={() => take(g)} disabled={!running || !ready} style={{ minWidth: 130 }}>
-                  {done.includes(g.gesture) ? '✓ ' : ''}{g.gesture}
+                  {done.includes(g.gesture) ? '✓ ' : ''}{g.label ?? g.gesture}
                 </button>
                 <span>{g.how}</span>
               </div>
@@ -123,10 +125,10 @@ export default function Record() {
       )}
 
       {current && (
-        <Box title={`Recording ${current.gesture}: rep ${rep} of ${REPS}`}>
+        <Box title={`Recording ${current.label ?? current.gesture}: rep ${rep} of ${current.alternate ? REPS * current.alternate.length : REPS}`}>
           <p>{current.how}</p>
           <div style={{ fontSize: 72, fontWeight: 900, textAlign: 'center', padding: '30px 0', border: '2px solid #000', borderRadius: 8, background: phase === 'go' ? '#000' : '#fff', color: phase === 'go' ? '#fff' : '#000' }}>
-            {phase === 'go' ? 'GO' : 'rest: slowly back to start'}
+            {phase === 'go' ? (current.alternate ? `GO: ${current.alternate[(rep - 1) % current.alternate.length]}` : 'GO') : (current.gesture === 'UNDO' ? 'rest: slowly push back to start' : 'rest')}
           </div>
           <p>Keep everyone else still and away from the laptop while recording.</p>
         </Box>
