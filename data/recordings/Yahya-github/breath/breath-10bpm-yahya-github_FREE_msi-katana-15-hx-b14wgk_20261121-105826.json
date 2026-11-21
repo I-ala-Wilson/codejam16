@@ -1,0 +1,44 @@
+{
+  "person": "yahya-github",
+  "gesture": "FREE",
+  "laptop": "msi-katana-15-hx-b14wgk",
+  "note": "breath 10bpm, paced 10 bpm, laptop 30-40 cm from chest, screen angled at torso",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 0,
+      "end": 2048,
+      "label": "FREE"
+    },
+    {
+      "start": 1157120,
+      "end": 1163264,
+      "label": "FREE"
+    }
+  ],
+  "createdAt": "2026-11-21T10:58:26-05:00",
+  "breath": {
+    "take": "10bpm",
+    "paced_bpm": 10,
+    "hold": null,
+    "inhale_starts_s": [
+      0,
+      6,
+      12,
+      18,
+      24,
+      30,
+      36,
+      42,
+      48,
+      54,
+      60
+    ]
+  },
+  "corrected": {
+    "person": "yahya",
+    "reason": "the form saved the short name; the repo uses the GitHub login lowercased"
+  }
+}
