@@ -10,14 +10,15 @@
 .ex__caption { position: absolute; left: 48px; top: 36px; pointer-events: none; }
 .ex__name { font-size: 112px; line-height: .85; color: var(--ink-strong); letter-spacing: .01em; }
 .ex__sub { font-size: 30px; margin-top: 14px; letter-spacing: .02em; }
-.ex__readout { position: absolute; left: 48px; bottom: 40px; width: 340px; padding: 16px 18px 14px; border: 1px dotted var(--ink); background: rgba(11, 11, 12, .82); font-size: 22px; line-height: 1.25; }
-.ex__row { display: flex; justify-content: space-between; gap: 12px; }
-.ex__num { color: var(--ink-strong); }
-.ex__big { font-size: 40px; line-height: 1; color: var(--ink-strong); }
-.ex__small { font-size: 19px; }
-.ex__formula { font-size: 30px; color: var(--ink-strong); margin: 8px 0 2px; }
-.ex__spec { display: block; width: 100%; height: 72px; margin-top: 12px; }
-.ex__axis { display: flex; justify-content: space-between; font-size: 17px; margin-top: 2px; }
+.ex__readout { position: absolute; left: 48px; bottom: 40px; width: 380px; box-sizing: border-box; padding: 20px; border: 1px dotted var(--ink); background: rgba(11, 11, 12, .82); line-height: 1.2; }
+.ex__label { font: 400 18px/1 var(--pixel); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+.ex__formula { margin-top: 14px; font-size: 22px; color: #f2f2f0; }
+.ex__sub-tex { margin-top: 14px; font-size: 16px; color: #f2f2f0; text-align: center; white-space: nowrap; }
+.ex__formula .katex, .ex__sub-tex .katex { color: #f2f2f0; font-weight: normal; }
+.ex__result { margin-top: 14px; font: 400 44px/1 var(--pixel); color: var(--ink-strong); }
+.ex__echo { margin-top: 6px; font: 400 18px/1 var(--pixel); letter-spacing: .02em; color: var(--ink); }
+.ex__spec { display: block; width: 100%; height: 72px; margin-top: 16px; }
+.ex__axis { display: flex; justify-content: space-between; font: 400 17px/1 var(--pixel); margin-top: 4px; }
 
 /* embedded on Home: words live in a left column, the scene is drawn to the right of it */
 .ex--embedded .ex__caption { left: 56px; top: 56px; width: 420px; }

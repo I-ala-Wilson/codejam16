@@ -19,7 +19,7 @@ export const GESTURES = [
   { name: 'PULL', sub: 'hand away · echo stretched · pitch down', dur: 4 },
   { name: 'WAVE', sub: 'side to side · pitch wobbles up, down, up', dur: 4 },
   { name: 'OPEN / CLOSE', sub: 'fingers fold and spread · small shifts both ways', dur: 4 },
-  { name: 'UNDO', sub: 'double tap toward the screen · two quick blips', dur: 3 },
+  { name: 'UNDO', sub: 'two quick finger taps toward the screen · two small blips', dur: 3 },
 ] as const
 
 export type Frame = { gesture: number; v: number; df: number }
@@ -45,27 +45,35 @@ const BG = 0x1e1f21
 const INK = 0xf2f2f0
 const ACCENT = INK // no colour accent: echoes are told apart by their dashes
 
-// Each wavefront is an arc band of fixed world thickness, drawn on a quad in the vertical plane of travel.
-const arcVert = /* glsl */ `
-uniform float uScale;
-varying vec2 vP;
+// Each wavefront is a thin expanding spherical cap (a shallow bowl opening along the direction of travel). It is drawn
+// as fine lines of fixed world thickness: a bright rim where the shell is seen edge-on, plus faint latitude rings and
+// meridians so the bowl reads as 3D. Echoes are dashed along the rim and meridians.
+const shellVert = /* glsl */ `
+varying vec3 vL; varying vec3 vN; varying vec3 vW;
 void main() {
-  vP = position.xy * uScale;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vL = position;
+  vN = normalize(mat3(modelMatrix) * normal);
+  vec4 w = modelMatrix * vec4(position, 1.0);
+  vW = w.xyz;
+  gl_Position = projectionMatrix * viewMatrix * w;
 }`
-const arcFrag = /* glsl */ `
+const shellFrag = /* glsl */ `
 uniform vec3 uColor; uniform float uAlpha; uniform float uR; uniform float uHalf; uniform float uDash;
-varying vec2 vP;
+varying vec3 vL; varying vec3 vN; varying vec3 vW;
+float line(float d) { float x = d / 0.0012; return exp(-x * x); }
 void main() {
-  float d = length(vP);
-  float ang = abs(atan(vP.x, vP.y));
-  float mask = 1.0 - smoothstep(uHalf * 0.55, uHalf, ang);
-  if (uDash > 0.0) mask *= step(0.5, fract(atan(vP.x, vP.y) * uDash));
-  float x = (d - uR) / 0.0012; // a thin crisp line, one or two dither pixels wide
-  float band = exp(-x * x);
-  float a = uAlpha * band * mask;
+  float th = acos(clamp(vL.y, -1.0, 1.0));
+  float ph = atan(vL.z, vL.x);
+  float ndv = abs(dot(normalize(vN), normalize(cameraPosition - vW)));
+  float rim = line(uR * (1.0 - sqrt(max(0.0, 1.0 - ndv * ndv))));
+  float rings = line(uR * abs(th - uHalf / 3.0)) + line(uR * abs(th - 2.0 * uHalf / 3.0));
+  float step8 = 6.2831853 / 8.0;
+  float lon = line(uR * sin(th) * abs(fract(ph / step8 + 0.5) - 0.5) * step8) * smoothstep(0.05, 0.25, th);
+  float dash = uDash > 0.0 ? step(0.5, fract(th * uDash * 1.6)) : 1.0;
+  float edge = 1.0 - smoothstep(uHalf * 0.6, uHalf, th);
+  float a = uAlpha * edge * ((rim + 0.3 * lon) * dash + 0.3 * rings);
   if (a < 0.004) discard;
-  gl_FragColor = vec4(uColor, a);
+  gl_FragColor = vec4(uColor, min(a, 1.0));
 }`
 
 const ditherVert = /* glsl */ `
@@ -134,21 +142,6 @@ function orient(bone: THREE.Object3D, q0: THREE.Quaternion, a: THREE.Vector3, b:
 
 type Wave = { mesh: THREE.Mesh; mat: THREE.ShaderMaterial; on: boolean; t0: number; c: THREE.Vector3; hit: boolean; hitR: number; k: number }
 
-const X = new V(1, 0, 0)
-const bx = new V(), bz = new V(), basis = new THREE.Matrix4()
-// Orient a wave quad: local +y along the travel direction, plane turned to face the camera as much as it can, so a
-// wavefront reads as an arc from the side and from the front alike.
-const toEye = new V()
-function orientArc(m: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3, eye: THREE.Vector3) {
-  const d = new V().subVectors(to, from).normalize()
-  toEye.subVectors(eye, from).normalize()
-  bz.copy(toEye).addScaledVector(d, -toEye.dot(d))
-  if (bz.lengthSq() < 1e-6) bz.copy(X).addScaledVector(d, -X.dot(d))
-  bz.normalize()
-  bx.crossVectors(d, bz)
-  m.quaternion.setFromRotationMatrix(basis.makeBasis(bx, d, bz))
-}
-
 export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -158,11 +151,11 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 20)
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x30302c, 1.5))
-  const key = new THREE.DirectionalLight(0xffffff, 2.2)
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x101010, 0.25))
+  const key = new THREE.DirectionalLight(0xffffff, 2.8)
   key.position.set(1.2, 2.2, 1.4)
   scene.add(key)
-  const rim = new THREE.DirectionalLight(0xffffff, 0.8)
+  const rim = new THREE.DirectionalLight(0xffffff, 0.6)
   rim.position.set(-1.5, 1.2, -1.2)
   scene.add(rim)
 
@@ -183,7 +176,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   for (const [x, z] of [[-0.62, -0.36], [0.62, -0.36], [-0.62, 0.32], [0.62, 0.32]]) box(0.035, 0.705, 0.035, deskMat, x, 0.3525, z, true)
 
   // Laptop base, keyboard, trackpad, speaker grilles
-  const alu = lam(0xb6b6b6)
+  const alu = lam(0x8a8a8a)
   box(0.31, 0.016, 0.22, alu, 0, 0.748, 0, true)
   const keyTex = texFromCanvas(256, 112, (g) => {
     g.fillStyle = '#2b2b2b'; g.fillRect(0, 0, 256, 112)
@@ -199,7 +192,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     return m
   }
   flat(0.215, 0.092, keyTex, 0xffffff, 0, -0.04)
-  flat(0.1, 0.062, null, 0x9c9c9c, 0, 0.062)
+  flat(0.1, 0.062, null, 0x6c6c6c, 0, 0.062)
   const grilleTex = texFromCanvas(40, 140, (g) => {
     g.fillStyle = '#b6b6b6'; g.fillRect(0, 0, 40, 140)
     g.fillStyle = '#161616'
@@ -316,7 +309,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
 
   // Rigged person: a Ready Player Me young man (three.js example, Mixamo bone names), seated once on load; the right arm is solved every frame
   type Arm = { up: THREE.Vector3; fore: THREE.Vector3; hand: THREE.Vector3; bend: THREE.Vector3; palm: THREE.Vector3; across: THREE.Vector3 }
-  type Rig = { bone: (n: string) => THREE.Bone; q0: (n: string) => THREE.Quaternion; l1: number; l2: number; arm: Record<'Left' | 'Right', Arm>; curl: { b: THREE.Bone; q: THREE.Quaternion; axis: THREE.Vector3; k: number; spread: THREE.Vector3; ks: number }[] }
+  type Rig = { bone: (n: string) => THREE.Bone; q0: (n: string) => THREE.Quaternion; l1: number; l2: number; arm: Record<'Left' | 'Right', Arm>; curl: { b: THREE.Bone; q: THREE.Quaternion; axis: THREE.Vector3; k: number; spread: THREE.Vector3; ks: number; index: boolean; thumb: boolean }[] }
   let rig: Rig | null = null
   let disposed = false
   const SEAT_Y = 0.52, HIP_Z = 0.62
@@ -394,7 +387,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     try {
       const bones = new Map<string, THREE.Bone>()
       const old = new Set<THREE.Material>()
-      const bodyMat = new THREE.MeshLambertMaterial({ color: 0xcfcfcd }) // one smooth grey: a sculpted shape, no face or clothes detail
+      const bodyMat = new THREE.MeshLambertMaterial({ color: 0x9a9a98 }) // one smooth grey: a sculpted shape, no face or clothes detail
       root.traverse((o) => {
         if ((o as THREE.Bone).isBone) bones.set(o.name.replace(/^mixamorig:?/, ''), o as THREE.Bone)
         const m = o as THREE.SkinnedMesh
@@ -413,6 +406,22 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
         mt.dispose()
       }
       const bone = (n: string) => { const b = bones.get(n); if (!b) throw new Error('guy.glb: missing bone ' + n); return b }
+      // With the eyes hidden, the empty sockets catch the light as bright dots: fill them flush with the face
+      for (const eye of ['LeftEye', 'RightEye']) {
+        const c = bone(eye).getWorldPosition(new V())
+        root.traverse((o) => {
+          const m = o as THREE.SkinnedMesh
+          if (m.name !== 'Wolf3D_Head') return
+          const pos = m.geometry.attributes.position, nrm = m.geometry.attributes.normal, v = new V()
+          for (let i = 0; i < pos.count; i++) {
+            if (v.fromBufferAttribute(pos, i).distanceTo(c) > 0.022) continue
+            pos.setZ(i, Math.max(pos.getZ(i), c.z + 0.008))
+            nrm.setXYZ(i, 0, 0.15, 0.99)
+          }
+          pos.needsUpdate = true
+          nrm.needsUpdate = true
+        })
+      }
       const at = (n: string) => bone(n).getWorldPosition(new V())
       scene.add(root)
       root.updateMatrixWorld(true)
@@ -455,23 +464,34 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       }
       root.updateMatrixWorld(true)
 
-      // Finger joints curl about the axis that swings them into the palm
+      // Finger joints curl about the bind-pose axis that swings each bone into the palm, capped at full curl to
+      // MCP 80°, PIP 95°, DIP 60°. The thumb opposes gently toward the middle finger (CMC 25°, MCP 35°, IP 40°),
+      // so it lands on the fingers instead of rotating through the palm.
       const palmR = arms.Right.palm
-      for (const [f, ks] of [['Index', [1.1, 1.6, 1.2]], ['Middle', [1.1, 1.6, 1.2]], ['Ring', [1.1, 1.6, 1.2]], ['Pinky', [1.1, 1.6, 1.2]], ['Thumb', [0.4, 0.6, 0.6]]] as const) {
+      const D = Math.PI / 180
+      const midPip = at('RightHandMiddle2')
+      for (const [f, ks] of [['Index', [80 * D, 95 * D, 60 * D]], ['Middle', [80 * D, 95 * D, 60 * D]], ['Ring', [80 * D, 95 * D, 60 * D]], ['Pinky', [80 * D, 95 * D, 60 * D]], ['Thumb', [25 * D, 35 * D, 40 * D]]] as const) {
         for (let i = 0; i < 3; i++) {
           const n = 'RightHand' + f + (i + 1)
           const along = dir(n, 'RightHand' + f + (i + 2))
           const inv = q0(n).clone().invert()
-          const axis = new V().crossVectors(along, palmR).normalize().applyQuaternion(inv)
+          const toward = f === 'Thumb' ? ortho(midPip.clone().sub(at(n)), along) : palmR
+          const axis = new V().crossVectors(along, toward).normalize().applyQuaternion(inv)
           // Knuckles also fan out, away from the middle finger (the thumb away from the index)
           const ref = f === 'Thumb' ? 'RightHandIndex1' : 'RightHandMiddle1'
           const fan = i === 0 && f !== 'Middle' ? new V().crossVectors(along, ortho(at(n).sub(at(ref)), along)).normalize().applyQuaternion(inv) : new V(1, 0, 0)
           const ks2 = i === 0 ? ({ Index: 0.1, Middle: 0, Ring: 0.08, Pinky: 0.2, Thumb: 0.35 } as const)[f] : 0
-          r.curl.push({ b: bone(n), q: bone(n).quaternion.clone(), axis, k: ks[i], spread: fan, ks: ks2 })
+          r.curl.push({ b: bone(n), q: bone(n).quaternion.clone(), axis, k: ks[i], spread: fan, ks: ks2, index: f === 'Index', thumb: f === 'Thumb' })
         }
       }
 
-      solveArm(r, 'Left', new V(-0.24, 0.775, 0.2), new V(-0.8, -0.6, 0.4), new V(0.1, 0, -1).normalize(), new V(0, -1, 0))
+      // Left fingers relaxed with a slight curl, resting on the desk
+      for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) for (let i = 0; i < 3; i++) {
+        const n = 'LeftHand' + f + (i + 1)
+        const axis = new V().crossVectors(dir(n, 'LeftHand' + f + (i + 2)), arms.Left.palm).normalize().applyQuaternion(q0(n).clone().invert())
+        bone(n).quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(axis, [0.15, 0.25, 0.15][i]))
+      }
+      solveArm(r, 'Left', new V(-0.3, 0.8, 0.27), new V(-0.8, -0.6, 0.4), new V(0.1, 0, -1).normalize(), new V(0, -1, 0))
       rig = r
       scene.remove(person)
       person.traverse(free)
@@ -487,14 +507,15 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   }, undefined, (e) => console.warn('guy.glb failed to load; keeping the simple figure', e))
 
   // Wavefront pool
-  const quad = new THREE.PlaneGeometry(2, 2)
+  const caps = new Map<number, THREE.SphereGeometry>()
   const makeWave = (half: number, dash = 0) => {
+    if (!caps.has(half)) caps.set(half, new THREE.SphereGeometry(1, 64, 24, 0, Math.PI * 2, 0, half))
     const mat = new THREE.ShaderMaterial({
-      uniforms: { uColor: { value: new V() }, uAlpha: { value: 0 }, uR: { value: 0 }, uHalf: { value: half }, uScale: { value: 1 }, uDash: { value: dash } },
-      vertexShader: arcVert, fragmentShader: arcFrag,
+      uniforms: { uColor: { value: new V() }, uAlpha: { value: 0 }, uR: { value: 0 }, uHalf: { value: half }, uDash: { value: dash } },
+      vertexShader: shellVert, fragmentShader: shellFrag,
       transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
     })
-    const mesh = new THREE.Mesh(quad, mat)
+    const mesh = new THREE.Mesh(caps.get(half)!, mat)
     mesh.visible = false
     mesh.frustumCulled = false
     scene.add(mesh)
@@ -535,7 +556,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   const FAR = new V(0.07, 0.93, 0.25), NEAR = new V(0.07, 0.93, 0.08)
   const pose = (g: number, u: number, out: THREE.Vector3) => {
     out.copy(FAR)
-    let curl = 0.12, tilt = 0, spread = 0
+    let curl = 0.12, tilt = 0, spread = 0, point = 0, tap = 0
     if (g === 0) { out.y += 0.0015 * Math.sin(u * 2.1); out.z += 0.001 * Math.sin(u * 1.3) }
     else if (g === 1) { out.z = THREE.MathUtils.lerp(FAR.z, NEAR.z, ss((u - 0.5) / 2.2)); curl = 0; spread = 1 }
     else if (g === 2) { out.z = THREE.MathUtils.lerp(NEAR.z, FAR.z, ss((u - 0.5) / 2.2)); curl = 0; spread = 1 }
@@ -544,17 +565,28 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       out.x += 0.085 * Math.sin(ph) * env
       out.z -= 0.045 * Math.sin(ph) * env
       tilt = -0.35 * Math.cos(ph) * env
-    } else if (g === 4) curl = 0.12 + 0.88 * (0.5 - 0.5 * Math.cos((2 * Math.PI * u) / 2))
+    } else if (g === 4) curl = 0.5 - 0.5 * Math.cos((2 * Math.PI * u) / 2) // open hand to full fist and back
     else {
-      // UNDO: two quick pokes at the screen with an open hand, 0.18 s each, 0.25 s apart, then a pause
-      curl = 0; spread = 1
-      for (const t0 of [0.6, 1.03]) if (u > t0 && u < t0 + 0.18) out.z -= 0.045 * Math.sin((Math.PI * (u - t0)) / 0.18)
+      // UNDO: hand turns palm down and points the index at the screen, then double-clicks the air with that finger
+      // (two 0.15 s knuckle flexes 0.2 s apart, the wrist nudging forward ~1.5 cm with each), then a pause
+      point = ss(u / 0.45) * ss((3 - u) / 0.45)
+      out.y += 0.06 * point // lift the pointing hand clear of the keyboard
+      curl = 0.12 + 0.58 * point // the other three fingers curl to ~70%, the thumb rests on the middle finger
+      for (const t0 of [0.8, 1.15]) if (u > t0 && u < t0 + 0.15) {
+        const b = Math.sin((Math.PI * (u - t0)) / 0.15)
+        tap = b
+        out.z -= 0.015 * b
+      }
     }
-    return { curl, tilt, spread }
+    return { curl, tilt, spread, point, tap }
   }
 
   let gi = 0, gu = 0, simT = 0, camT = 0
-  let camAz = 1.62, camEl = 0.22, camRad = 1.78
+  // Camera state [azimuth, elevation, radius, look-at x, y, z], moved by a critically damped spring so every
+  // change eases in and out like a hand-operated camera
+  const cam = [1.62, 0.22, 1.78, 0.03, 0.88, 0.1], camV = [0, 0, 0, 0, 0, 0], camGoal = cam.slice()
+  const CAM_W = 1.7 // spring stiffness: a big move settles in about 3 s
+  let handXs = 0.07
   let paused = false, orbit = true, dither = true
   let blendT = 1
   const blendFrom = new V()
@@ -568,18 +600,23 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     const p = pose(gi, gu, Ht)
     if (blendT < 1) Hgoal.lerpVectors(blendFrom, Ht, ss(blendT)); else Hgoal.copy(Ht)
     curl = p.curl; tilt = p.tilt; spread = p.spread
+    const point = p.point, tap = p.tap
     if (rig) {
       // Palm to the laptop, fingers up, rolled by the wave tilt; the echo then reflects off the real palm
       wrist.copy(Hgoal).add(new V(0, -0.055, 0.012))
-      qTilt.setFromEuler(eTilt.set(-0.45, 0, tilt))
+      qTilt.setFromEuler(eTilt.set(-0.45 - point * (Math.PI / 2 - 0.75), 0, tilt))
       fDir.set(0, 1, 0).applyQuaternion(qTilt)
       pN.set(0, 0, -1).applyQuaternion(qTilt)
       solveArm(rig, 'Right', wrist, new V(0.45, -1, 0.35), fDir, pN)
-      for (const c of rig.curl) c.b.quaternion.copy(c.q).multiply(qC.setFromAxisAngle(c.axis, curl * c.k)).multiply(qC.setFromAxisAngle(c.spread, spread * c.ks))
+      for (const c of rig.curl) {
+        const cu = c.index ? THREE.MathUtils.lerp(curl, 0.05 + 0.32 * tap, point) : c.thumb ? Math.max(curl, point) : curl
+        c.b.quaternion.copy(c.q).multiply(qC.setFromAxisAngle(c.axis, cu * c.k)).multiply(qC.setFromAxisAngle(c.spread, spread * c.ks))
+      }
       const h = rig.bone('RightHand')
       h.updateMatrixWorld(true)
       h.getWorldPosition(Hn)
       Hn.lerp(rig.bone('RightHandMiddle1').getWorldPosition(mid), 0.55)
+      if (point > 0) Hn.lerp(rig.bone('RightHandIndex4').getWorldPosition(mid), point) // UNDO reflects off the fingertip
       return
     }
     Hn.copy(Hgoal)
@@ -630,6 +667,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     }
   }
 
+  const travel = new V()
   const drawWaves = () => {
     for (const w of outs) {
       if (!w.on) { w.mesh.visible = false; continue }
@@ -639,9 +677,8 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       if (a <= 0 || r > 1.5) { w.on = false; w.mesh.visible = false; continue }
       w.mesh.visible = true
       w.mesh.position.copy(S)
-      orientArc(w.mesh, S, Hn, camera.position)
-      w.mesh.scale.setScalar(r + 0.02)
-      w.mat.uniforms.uScale.value = r + 0.02
+      w.mesh.quaternion.setFromUnitVectors(Y, travel.subVectors(Hn, S).normalize())
+      w.mesh.scale.setScalar(Math.max(r, 1e-4))
       w.mat.uniforms.uR.value = r
       w.mat.uniforms.uColor.value.copy(inkV)
       w.mat.uniforms.uAlpha.value = a
@@ -653,9 +690,8 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       if (r >= dist) { w.on = false; w.mesh.visible = false; continue }
       w.mesh.visible = true
       w.mesh.position.copy(w.c)
-      orientArc(w.mesh, w.c, M, camera.position)
-      w.mesh.scale.setScalar(r + 0.02)
-      w.mat.uniforms.uScale.value = r + 0.02
+      w.mesh.quaternion.setFromUnitVectors(Y, travel.subVectors(M, w.c).normalize())
+      w.mesh.scale.setScalar(Math.max(r, 1e-4))
       w.mat.uniforms.uR.value = r
       const k = 0.5 + 0.5 * w.k
       w.mat.uniforms.uColor.value.lerpVectors(dimRef, brightRef, k)
@@ -664,7 +700,6 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   }
 
   const target = new V(0.03, 0.88, 0.1)
-  const sideTarget = target.clone(), frontTarget = new V(0.03, 0.82, 0.32)
   const label = (el: HTMLElement, p: THREE.Vector3) => {
     const q = p.clone().project(camera)
     el.style.transform = `translate(${((q.x + 1) / 2) * W}px, ${((1 - q.y) / 2) * H}px)`
@@ -677,15 +712,19 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     last = now
     if (!paused && dt > 0) step(dt)
     if (orbit) camT += dt
-    // WAVE: swing round to face the person from slightly above, then pan left and right with the hand so the
-    // wavefronts can be followed; every other gesture keeps the slow side orbit.
+    // WAVE: ease round to face him from slightly above and follow the hand with a heavily damped pan; every other
+    // gesture holds the side view with a very slow drift and a tiny breathing sway
     const waving = gi === 3
-    const azGoal = waving ? Math.PI + 0.32 * Math.sin((gu * 2 * Math.PI) / 4) : 1.62 + 0.38 * Math.sin((camT * 2 * Math.PI) / 40)
-    const elGoal = waving ? 0.78 : 0.22, radGoal = waving ? 2.05 : 1.78
-    const kCam = Math.min(1, dt * 2.2)
-    camAz += (azGoal - camAz) * kCam; camEl += (elGoal - camEl) * kCam; camRad += (radGoal - camRad) * kCam
-    const az = camAz, el = camEl, rad = camRad
-    target.lerp(waving ? frontTarget : sideTarget, kCam)
+    handXs += (Hn.x - handXs) * Math.min(1, dt / 1.5)
+    const sway = 0.004 * Math.sin((camT * 2 * Math.PI) / 9.3)
+    if (waving) camGoal.splice(0, 6, Math.PI + 0.5 * (handXs - 0.07), 0.78, 2.3, 0.03 + 0.5 * (handXs - 0.07), 0.86, 0.32)
+    else camGoal.splice(0, 6, 1.62 + 0.15 * Math.sin((camT * 2 * Math.PI) / 90) + sway, 0.22 + 0.006 * Math.sin((camT * 2 * Math.PI) / 7), 1.78, 0.03, 0.88, 0.1)
+    for (let k = 0; k < 6; k++) {
+      camV[k] += (CAM_W * CAM_W * (camGoal[k] - cam[k]) - 2 * CAM_W * camV[k]) * dt
+      cam[k] += camV[k] * dt
+    }
+    const [az, el, rad] = cam
+    target.set(cam[3], cam[4], cam[5])
     camera.position.set(target.x + rad * Math.sin(az) * Math.cos(el), target.y + rad * Math.sin(el), target.z + rad * Math.cos(az) * Math.cos(el))
     camera.lookAt(target)
     drawWaves()

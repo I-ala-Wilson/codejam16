@@ -1,5 +1,7 @@
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 import { createExplainer, GESTURES, F0, C, type Frame } from './scene.ts'
 import './explainer.css'
 
@@ -43,23 +45,30 @@ export default function Explainer({ embedded = false, children }: { embedded?: b
   const host = useRef<HTMLDivElement>(null)
   const speaker = useRef<HTMLDivElement>(null)
   const mic = useRef<HTMLDivElement>(null)
-  const vEl = useRef<HTMLSpanElement>(null)
-  const subEl = useRef<HTMLSpanElement>(null)
-  const dfEl = useRef<HTMLSpanElement>(null)
-  const echoEl = useRef<HTMLSpanElement>(null)
+  const subEl = useRef<HTMLDivElement>(null)
+  const formulaEl = useRef<HTMLDivElement>(null)
+  const dfEl = useRef<HTMLDivElement>(null)
+  const echoEl = useRef<HTMLDivElement>(null)
   const spec = useRef<HTMLCanvasElement>(null)
   const [gesture, setGesture] = useState(0)
 
   useEffect(() => {
-    let shown = -1
+    let shown = -1, heldAt = -1e9, heldKey = ''
+    katex.render(String.raw`\Delta f = \dfrac{2\,v\,f_0}{c}`, formulaEl.current!)
     const onFrame = (f: Frame) => {
       if (f.gesture !== shown) { shown = f.gesture; setGesture(f.gesture) }
-      const v = Math.abs(f.v) < 0.01 ? 0 : f.v
-      const df = (2 * v * F0) / C
-      vEl.current!.textContent = `${fmt(v, 2)} m/s`
-      subEl.current!.textContent = `= 2 × ${fmt(v, 2)} × ${F0} / ${C}`
+      // One sample of v drives every number on the panel, refreshed together about 8 times a second
+      const now = performance.now()
+      if (now - heldAt < 125) return
+      heldAt = now
+      const v = Math.round(f.v * 100) / 100 || 0
+      const df = Math.round((2 * v * F0) / C)
+      const key = `${v}|${df}`
+      if (key === heldKey) return
+      heldKey = key
+      katex.render(String.raw`\Delta f = \dfrac{2 \times (${fmt(v, 2)}) \times ${F0}}{${C}} = ${fmt(df, 0)}\ \text{Hz}`, subEl.current!)
       dfEl.current!.textContent = `${fmt(df, 0)} Hz`
-      echoEl.current!.textContent = `${(F0 + df).toFixed(0)} Hz ${df > 0 ? '· pitch up' : df < 0 ? '· pitch down' : ''}`
+      echoEl.current!.textContent = `echo ${F0 + df} Hz${df > 0 ? ' · pitch up' : df < 0 ? ' · pitch down' : ''}`
       drawSpectrum(spec.current!, df)
     }
     const c = createExplainer(host.current!, { onFrame, labels: { speaker: speaker.current!, mic: mic.current! } })
@@ -91,11 +100,11 @@ export default function Explainer({ embedded = false, children }: { embedded?: b
         <div className="ex__sub">{g.sub}</div>
       </div>
       <div className="ex__readout">
-        <div className="ex__row"><span>hand speed v</span><span ref={vEl} className="ex__num" /></div>
-        <div className="ex__formula">Δf = 2 · v · f0 / c</div>
-        <div className="ex__row ex__small"><span ref={subEl} /></div>
-        <div className="ex__row"><span>shift Δf</span><span ref={dfEl} className="ex__num ex__big" /></div>
-        <div className="ex__row ex__small"><span>echo</span><span ref={echoEl} /></div>
+        <div className="ex__label">Doppler shift</div>
+        <div className="ex__formula" ref={formulaEl} />
+        <div className="ex__sub-tex" ref={subEl} />
+        <div className="ex__result" ref={dfEl} />
+        <div className="ex__echo" ref={echoEl} />
         <canvas ref={spec} className="ex__spec" />
         <div className="ex__axis"><span>-{SPAN} Hz</span><span>20 kHz</span><span>+{SPAN} Hz</span></div>
       </div>
