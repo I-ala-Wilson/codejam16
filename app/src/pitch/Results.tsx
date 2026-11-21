@@ -6,14 +6,13 @@ import './pitch.css'
 // 3 m is the furthest live detection in our tests (training takes were at 20 to 50 cm).
 const STATS = [
   { big: '96%', label: '48 of 50 live trials' },
-  { big: '3 m', label: 'detected, trained at 50 cm' },
-  { big: '36 h', label: 'idea to prototype' },
+  { big: '3 m', label: 'highest observed detection range, trained at 50 cm' },
 ]
 
 export default function Results() {
   return (
     <section className="pz" aria-labelledby="pz-results">
-      <h2 id="pz-results" className="pz__title">Honest numbers</h2>
+      <h2 id="pz-results" className="pz__title">Our figures</h2>
       <div className="pz__honest">
         <div className="pz__honeststats">
           {STATS.map((s) => (
