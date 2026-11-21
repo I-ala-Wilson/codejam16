@@ -7,8 +7,8 @@ export type GestureType =
   | 'WAVE'        // fast back-and-forth for >= 1 s
   | 'HOLD'        // no motion for >= 1.5 s after motion
   | 'OPEN_CLOSE'  // one hand open/close pulse (count = pulses in a burst)
-  | 'UNDO'        // FLICK AWAY: one very fast, very short flick of the fingers away from the screen ('shoo').
-                  //   Distinguished from PULL by much higher speed and much shorter duration (thresholds tuned on recordings)
+  | 'UNDO'        // DOUBLE TAP TOWARD: two quick, small taps toward the screen within ~600 ms (like double-clicking the air).
+                  //   Small strokes, so it is distinct from PUSH (one bigger stroke) and WAVE (4+ alternating strokes)
   | 'REPETITIVE'  // sustained 3-8 Hz small oscillation >= 4 s (scratching / nail biting), for Habit
   | 'SWIPE_LEFT' | 'SWIPE_RIGHT'           // moonshot (two-tone)
   | 'ASL_HELP' | 'ASL_YES' | 'ASL_NO' | 'ASL_MORE' | 'ASL_THANK_YOU'; // moonshot (classifier)

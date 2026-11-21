@@ -14,7 +14,7 @@ const GESTURES: Item[] = [
     how: 'Hand about 30 cm from the screen. Each GO says PUSH or PULL: one brisk 15 cm move that way, then stop. They alternate, so you never run out of room.' },
   { gesture: 'WAVE', how: 'Wave side to side, fast, for the whole GO window.' },
   { gesture: 'OPEN_CLOSE', how: 'Hand toward the screen: open and close your fist 3 times quickly.' },
-  { gesture: 'UNDO', how: 'FLICK AWAY: hand close to the screen, then one very fast, short flick of your fingers away from it, like shooing a fly. Then slowly bring your hand back.' },
+  { gesture: 'UNDO', how: 'DOUBLE TAP: hand about 25 cm away, two quick small taps toward the screen (like double-clicking the air), then hold.' },
   { gesture: 'HOLD', how: 'Hand in front of the screen, completely still for the GO window.' },
   { gesture: 'REPETITIVE', how: 'Scratch your forearm in front of the laptop, small fast movements.' },
   { gesture: 'FREE', how: 'Normal activity: type, reach for a drink, shift in your seat. Teaches it what is NOT a gesture.' },
@@ -82,7 +82,7 @@ export default function Record() {
     setCurrent(item)
     for (let i = 1; i <= (item.alternate ? REPS * item.alternate.length : REPS); i++) {
       // PUSH/PULL/UNDO need time to drift back to the start slowly between reps
-      setRep(i); setPhase('rest'); await sleep(item.gesture === 'UNDO' ? 2200 : REST_MS)
+      setRep(i); setPhase('rest'); await sleep(REST_MS)
       setPhase('go'); await sleep(GO_MS)
     }
     setPhase('rest'); await sleep(600)
@@ -128,7 +128,7 @@ export default function Record() {
         <Box title={`Recording ${current.label ?? current.gesture}: rep ${rep} of ${current.alternate ? REPS * current.alternate.length : REPS}`}>
           <p>{current.how}</p>
           <div style={{ fontSize: 72, fontWeight: 900, textAlign: 'center', padding: '30px 0', border: '2px solid #000', borderRadius: 8, background: phase === 'go' ? '#000' : '#fff', color: phase === 'go' ? '#fff' : '#000' }}>
-            {phase === 'go' ? (current.alternate ? `GO: ${current.alternate[(rep - 1) % current.alternate.length]}` : 'GO') : (current.gesture === 'UNDO' ? 'rest: slowly push back to start' : 'rest')}
+            {phase === 'go' ? (current.alternate ? `GO: ${current.alternate[(rep - 1) % current.alternate.length]}` : 'GO') : 'rest'}
           </div>
           <p>Keep everyone else still and away from the laptop while recording.</p>
         </Box>

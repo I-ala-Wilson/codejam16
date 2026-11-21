@@ -30,7 +30,7 @@ export default function Gestures() {
       {error && <p><b>Problem:</b> {error}</p>}
       <p>Try each one about 20-30 cm from the screen and check the big readout:
         <b> PUSH</b> then <b>PULL</b> (brisk 15 cm toward, then back: the pull is your return), <b>WAVE</b> (fast side to side, 1 s+),
-        <b> OPEN_CLOSE</b> (open/close fist quickly), <b>UNDO</b> (a very fast short flick of the fingers away, like shooing a fly), <b>HOLD</b> (stop and keep still 1.5 s).</p>
+        <b> OPEN_CLOSE</b> (open/close fist quickly), <b>UNDO</b> (double tap: two quick small taps toward the screen), <b>HOLD</b> (stop and keep still 1.5 s).</p>
       <div style={{ fontSize: 64, fontWeight: 900, textAlign: 'center', border: '2px solid #000', borderRadius: 8, padding: '24px 0', margin: '12px 0' }}>
         {last ? `${last.type}${last.count ? ` ×${last.count}` : ''}` : 'waiting...'}
       </div>

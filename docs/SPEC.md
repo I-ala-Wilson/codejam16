@@ -1,4 +1,4 @@
-SPEC_VERSION: 3
+SPEC_VERSION: 4
 
 # SPEC: Echo (sonar gesture engine, three apps)
 
@@ -118,7 +118,7 @@ See `contracts/`:
 | Closing | Sun 16:30 | one of us present for the prize cheque |
 
 ## Changes
-- v3 (Fri 22:26): UNDO is now a FLICK AWAY (one very fast, very short flick of the fingers away), not two quick pulls (contracts/engine.ts).
+- v4 (Fri 22:28): UNDO is a DOUBLE TAP TOWARD: two quick small taps toward the screen within ~600 ms (contracts/engine.ts). Replaces v3's flick away.
 - v2 (Fri 22:10): recordings are 16-bit WAV committed to `data/recordings/<login>/` (contracts/recording.md); Record page added to app.
 
 ## 10. Open questions
