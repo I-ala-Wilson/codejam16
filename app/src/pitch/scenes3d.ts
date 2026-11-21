@@ -103,8 +103,9 @@ export const costTile3D = make3D(() => {
   const rig = new THREE.Group(); rig.position.set(-1.9, 0.6, 0)
   const vc = videoCamera(); vc.scale.setScalar(0.9); rig.add(vc); rig.add(tripod()); scene.add(rig)
   const lap = laptop(); lap.position.set(1.9, -1.2, 0); lap.scale.setScalar(1.05); scene.add(lap)
+  const lid = new THREE.Object3D(); lid.position.set(0, 1.35, -0.85); lap.add(lid) // top centre of the screen
   return {
-    scene, camera, anchors: { rig: vc, lap },
+    scene, camera, anchors: { rig: vc, lap, lid },
     update(t) {
       rig.rotation.y = -0.6 + Math.sin(t * 0.35) * 0.25
       lap.rotation.y = -0.5 + Math.sin(t * 0.35 + 1) * 0.2
@@ -112,8 +113,8 @@ export const costTile3D = make3D(() => {
   }
 }, (g, at) => {
   // prices stay crisp on top of the dither so they read at a glance
-  const [cx, cy] = at('rig'), [lx, ly] = at('lap')
-  price(g, '$$$', cx, cy - 78); price(g, '$0', lx, ly - 150)
+  const [cx, cy] = at('rig'), [lx, ly] = at('lid')
+  price(g, '$$$', cx, cy - 78); price(g, '$0', lx, ly - 28)
 })
 
 export const privacyTile3D = make3D(() => {
