@@ -239,6 +239,7 @@ export const model: Scene = {
 // Five AI agents, each driven by one of us, never talk to each other directly: every message goes through one shared
 // board (a GitHub issue). Labelled messages travel sender -> board -> recipient, and the board keeps a running log.
 type AgentNode = { key: string; agent: string; role: string; who: string; x: number; y: number }
+const CLAUDE_PATH = new Path2D('m19.6 66.5 19.7-11 .3-1-.3-.5h-1l-3.3-.2-11.2-.3L14 53l-9.5-.5-2.4-.5L0 49l.2-1.5 2-1.3 2.9.2 6.3.5 9.5.6 6.9.4L38 49.1h1.6l.2-.7-.5-.4-.4-.4L29 41l-10.6-7-5.6-4.1-3-2-1.5-2-.6-4.2 2.7-3 3.7.3.9.2 3.7 2.9 8 6.1L37 36l1.5 1.2.6-.4.1-.3-.7-1.1L33 25l-6-10.4-2.7-4.3-.7-2.6c-.3-1-.4-2-.4-3l3-4.2L28 0l4.2.6L33.8 2l2.6 6 4.1 9.3L47 29.9l2 3.8 1 3.4.3 1h.7v-.5l.5-7.2 1-8.7 1-11.2.3-3.2 1.6-3.8 3-2L61 2.6l2 2.9-.3 1.8-1.1 7.7L59 27.1l-1.5 8.2h.9l1-1.1 4.1-5.4 6.9-8.6 3-3.5L77 13l2.3-1.8h4.3l3.1 4.7-1.4 4.9-4.4 5.6-3.7 4.7-5.3 7.1-3.2 5.7.3.4h.7l12-2.6 6.4-1.1 7.6-1.3 3.5 1.6.4 1.6-1.4 3.4-8.2 2-9.6 2-14.3 3.3-.2.1.2.3 6.4.6 2.8.2h6.8l12.6 1 3.3 2 1.9 2.7-.3 2-5.1 2.6-6.8-1.6-16-3.8-5.4-1.3h-.8v.4l4.6 4.5 8.3 7.5L89 80.1l.5 2.4-1.3 2-1.4-.2-9.2-7-3.6-3-8-6.8h-.5v.7l1.8 2.7 9.8 14.7.5 4.5-.7 1.4-2.6 1-2.7-.6-5.8-8-6-9-4.7-8.2-.5.4-2.9 30.2-1.3 1.5-3 1.2-2.5-2-1.4-3 1.4-6.2 1.6-8 1.3-6.4 1.2-7.9.7-2.6v-.2H49L43 72l-9 12.3-7.2 7.6-1.7.7-3-1.5.3-2.8L24 86l10-12.8 6-7.9 4-4.6-.1-.5h-.3L17.2 77.4l-4.7.6-2-2 .2-3 1-1 8-5.5Z')
 const NODES: AgentNode[] = [
   { key: 'lead', agent: 'CLAUDE', role: 'lead: app + lock', who: 'IAN', x: 96, y: 50 },
   { key: 'ml', agent: 'CLAUDE', role: 'model + engine', who: 'YAHYA', x: 544, y: 50 },
@@ -307,12 +308,8 @@ export const agents: Scene = {
       g.beginPath(); g.roundRect(n.x - 17, n.y - 17, 34, 34, 7); g.fill(); g.stroke()
       g.fillStyle = live ? BG : INK; g.strokeStyle = live ? BG : INK; g.lineCap = 'round'; g.lineJoin = 'round'
       if (n.agent === 'CLAUDE') {
-        // the Claude spark: rounded, slightly uneven rays fanning out from the centre
-        const rays = [[0.05, 12.5], [0.6, 10], [1.08, 12], [1.6, 9.5], [2.1, 12.5], [2.62, 10.5], [3.12, 12], [3.66, 9.5], [4.18, 12.5], [4.7, 10], [5.22, 12], [5.74, 10.5]]
-        g.lineWidth = 3.2; g.lineCap = 'round'
-        for (const [a, L] of rays) {
-          g.beginPath(); g.moveTo(n.x + Math.cos(a) * 1.5, n.y + Math.sin(a) * 1.5); g.lineTo(n.x + Math.cos(a) * L, n.y + Math.sin(a) * L); g.stroke()
-        }
+        // the official Claude symbol (Wikimedia Commons, File:Claude_AI_symbol.svg), drawn in ink at 24 px
+        g.save(); g.translate(n.x - 12, n.y - 12); g.scale(0.24, 0.24); g.fill(CLAUDE_PATH); g.restore()
       } else {
         g.lineWidth = 2.4
         g.beginPath(); g.moveTo(n.x - 9, n.y - 6); g.lineTo(n.x - 2, n.y); g.lineTo(n.x - 9, n.y + 6); g.stroke()
