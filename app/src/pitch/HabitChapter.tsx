@@ -1,5 +1,5 @@
 import DitherCanvas from '../hwb/DitherCanvas.tsx'
-import { habitScene } from './scenes.ts'
+import { habitScene3D } from './scenes3d.ts'
 import './pitch.css'
 
 // Home pitch chapter: Habit, the Health and Undo Button challenges. Figures supplied by the lead (pitch document) and
@@ -24,7 +24,7 @@ export default function HabitChapter({ go }: { go: (page: string) => void }) {
           <p className="pz__line">Typing does nothing. Scratching sets off an alarm and a bar along the bottom. A double tap in the air snoozes it for ten minutes.</p>
           <button className="pz__btn" onClick={() => go('habit-app')}>Open live demo</button>
         </div>
-        <div className="pz__frame"><DitherCanvas scene={habitScene} label="A hand scratches a forearm next to a laptop; a bar along the bottom reads Hands down for a moment." /></div>
+        <div className="pz__frame"><DitherCanvas scene={habitScene3D} label="A hand scratches a forearm beside a laptop, then lifts away when the Habit reminder appears." /></div>
       </div>
     </section>
   )
