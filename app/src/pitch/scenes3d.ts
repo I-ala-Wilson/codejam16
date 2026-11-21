@@ -214,12 +214,14 @@ const scratchingHand = make3D(() => {
     // the desk sits at elbow height; the left forearm lies across it in front of the body
     const lSh = at('LeftArm'), rSh = at('RightArm'), mid = lSh.clone().add(rSh).multiplyScalar(0.5)
     const deskY = mid.y - 0.25 // elbow height, so the forearms lie flat with natural elbows
-    // Remove only the torso and head: clip the block |x| < 0.135 (between the shoulders) behind z = chest front.
+    // Remove only the torso and head: clip the block between the shoulders (|x| < 0.135), in front of the chest, above hand height.
     // clipIntersection clips a point only when it is inside ALL three planes, so the arms (outside the block) stay whole.
+    // The y plane keeps everything below hand height, so the forearms and hands crossing the middle are never cut.
     body.clippingPlanes = [
-      new THREE.Plane(new V3(0, 0, 1), -(mid.z + 0.15)),
+      new THREE.Plane(new V3(0, 0, 1), -(mid.z + 0.26)),
       new THREE.Plane(new V3(1, 0, 0), -(mid.x + 0.135)),
       new THREE.Plane(new V3(-1, 0, 0), mid.x - 0.135),
+      new THREE.Plane(new V3(0, -1, 0), deskY + 0.16),
     ]
     body.clipIntersection = true
     desk.position.set(mid.x, deskY - 0.03, mid.z + 0.45)
