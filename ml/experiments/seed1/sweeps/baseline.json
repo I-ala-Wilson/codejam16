@@ -1,0 +1,91 @@
+{
+  "name": "baseline",
+  "recipe": {},
+  "seed": 1,
+  "curve": [
+    {
+      "threshold": 0.5,
+      "macro_recall": 0.5911315161315162,
+      "false_alarms_per_minute": 12.79278431939056,
+      "fold_recall": {
+        "ej2007": 0.56875,
+        "i-ala-wilson": 0.6604166666666667,
+        "miguel982": 0.5604166666666667,
+        "naomi": 0.55,
+        "yahya-github": 0.5771043771043771
+      }
+    },
+    {
+      "threshold": 0.6,
+      "macro_recall": 0.5624174655424655,
+      "false_alarms_per_minute": 9.09775144274308,
+      "fold_recall": {
+        "ej2007": 0.5520833333333334,
+        "i-ala-wilson": 0.6333333333333333,
+        "miguel982": 0.5291666666666667,
+        "naomi": 0.585,
+        "yahya-github": 0.5272516835016835
+      }
+    },
+    {
+      "threshold": 0.7,
+      "macro_recall": 0.5285148128898128,
+      "false_alarms_per_minute": 6.422648279907557,
+      "fold_recall": {
+        "ej2007": 0.5229166666666667,
+        "i-ala-wilson": 0.61875,
+        "miguel982": 0.45625,
+        "naomi": 0.62,
+        "yahya-github": 0.4824915824915825
+      }
+    },
+    {
+      "threshold": 0.8,
+      "macro_recall": 0.4644489441364441,
+      "false_alarms_per_minute": 3.9647009255677568,
+      "fold_recall": {
+        "ej2007": 0.43333333333333335,
+        "i-ala-wilson": 0.56875,
+        "miguel982": 0.37916666666666665,
+        "naomi": 0.655,
+        "yahya-github": 0.4046927609427609
+      }
+    },
+    {
+      "threshold": 0.85,
+      "macro_recall": 0.42912961037961034,
+      "false_alarms_per_minute": 2.9927254714470783,
+      "fold_recall": {
+        "ej2007": 0.3854166666666667,
+        "i-ala-wilson": 0.5458333333333333,
+        "miguel982": 0.3354166666666667,
+        "naomi": 0.655,
+        "yahya-github": 0.3660984848484849
+      }
+    },
+    {
+      "threshold": 0.9,
+      "macro_recall": 0.37083814583814584,
+      "false_alarms_per_minute": 1.801147479101017,
+      "fold_recall": {
+        "ej2007": 0.30416666666666664,
+        "i-ala-wilson": 0.5041666666666667,
+        "miguel982": 0.2854166666666667,
+        "naomi": 0.655,
+        "yahya-github": 0.2874368686868687
+      }
+    },
+    {
+      "threshold": 0.95,
+      "macro_recall": 0.2636545199045199,
+      "false_alarms_per_minute": 0.8975346019464199,
+      "fold_recall": {
+        "ej2007": 0.19166666666666668,
+        "i-ala-wilson": 0.41041666666666665,
+        "miguel982": 0.19999999999999998,
+        "naomi": 0.545,
+        "yahya-github": 0.14246632996632996
+      }
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+import torch
 
 from dataset import CLASSES
 from run import load_corpus, lopo_reports, main, pooled_recall, render_report, train_final
@@ -53,17 +54,36 @@ def test_the_final_model_is_exported_with_the_config_the_engine_needs(root: Path
     assert config["classes"] == list(CLASSES)
     assert config["windowFrames"] == 48 and config["bins"] == 87 and config["scaleDb"] == 60.0
     assert set(config["thresholds"]) == set(CLASSES[1:])
-    assert {"smooth", "confirm", "refractoryMs", "waveRefractoryMs"} <= set(config["decoder"])
+    assert {"smooth", "confirm", "refractoryMs", "waveRefractoryMs", "habitRefractoryMs"} <= set(config["decoder"])
     assert sorted(config["trainedOn"]) == ["ana", "bo", "cy"]
 
 
 def test_the_cli_writes_the_report_and_the_model(root: Path, tmp_path: Path):
     report = tmp_path / "REPORT.md"
-    assert main(["lopo", str(root), "--epochs", "3", "--out", str(report), "--device", "cpu"]) == 0
+    assert main(["lopo", str(root), "--epochs", "3", "--out", str(report), "--allow-cpu", "--device", "cpu"]) == 0
     assert "PUSH" in report.read_text()
-    assert main(["final", str(root), "--epochs", "3", "--out-dir", str(tmp_path / "model"), "--device", "cpu"]) == 0
+    assert main(["final", str(root), "--epochs", "3", "--out-dir", str(tmp_path / "model"), "--allow-cpu", "--device", "cpu"]) == 0
     assert (tmp_path / "model" / "gesture.onnx").exists()
 
 
 def test_the_cli_refuses_an_empty_folder(tmp_path: Path):
-    assert main(["lopo", str(tmp_path), "--epochs", "1", "--out", str(tmp_path / "r.md"), "--device", "cpu"]) == 2
+    assert main(["lopo", str(tmp_path), "--epochs", "1", "--out", str(tmp_path / "r.md"), "--allow-cpu", "--device", "cpu"]) == 2
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="needs a GPU")
+def test_it_refuses_to_train_on_the_cpu_when_a_gpu_is_available(root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    out = tmp_path / "model"
+    assert main(["final", str(root), "--epochs", "1", "--out-dir", str(out), "--device", "cpu"]) == 2
+    assert "CPU" in capsys.readouterr().err
+    assert not (out / "gesture.onnx").exists()  # it stopped before training anything
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="needs a GPU")
+def test_it_trains_on_the_gpu_by_default_and_says_so(root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    assert main(["final", str(root), "--epochs", "1", "--out-dir", str(tmp_path / "model")]) == 0
+    assert "training on cuda" in capsys.readouterr().out
+
+
+def test_it_says_which_device_it_trains_on_even_when_the_cpu_is_forced(root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    assert main(["final", str(root), "--epochs", "1", "--out-dir", str(tmp_path / "m"), "--allow-cpu", "--device", "cpu"]) == 0
+    assert "training on cpu" in capsys.readouterr().out

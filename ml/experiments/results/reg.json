@@ -1,0 +1,31 @@
+{
+  "name": "reg",
+  "recipe": {
+    "dropout": 0.4,
+    "weight_decay": 0.05
+  },
+  "epochs": 30,
+  "runs": [
+    {
+      "seed": 0,
+      "fold_recall": {
+        "ej2007": 0.39166666666666666,
+        "i-ala-wilson": 0.5875,
+        "miguel982": 0.46458333333333335,
+        "naomi": 0.775,
+        "yahya-github": 0.41769781144781143
+      },
+      "class_recall": {
+        "OPEN_CLOSE": 0.425,
+        "PULL": 0.5833333333333334,
+        "PUSH": 0.5923076923076923,
+        "REPETITIVE": 0.2708333333333333,
+        "UNDO": 0.4594594594594595,
+        "WAVE": 0.6189189189189189
+      },
+      "false_alarms_per_minute": 3.963378876851821,
+      "train_f1": 0.9003860327390948,
+      "heldout_f1": 0.5432477055515166
+    }
+  ]
+}

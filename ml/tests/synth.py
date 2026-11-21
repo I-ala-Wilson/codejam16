@@ -47,6 +47,9 @@ def _gesture(x: np.ndarray, t: np.ndarray, label: str, cue_s: float, rng: np.ran
     elif label == "UNDO":
         _burst(x, t, start, 0.12, rng.uniform(60, 90), db)
         _burst(x, t, start + 0.32, 0.12, rng.uniform(60, 90), db)
+    elif label.startswith("REPETITIVE"):  # a sustained 5 Hz small oscillation, like scratching
+        for k in range(14):
+            _burst(x, t, cue_s + 0.1 + 0.2 * k, 0.1, (1 if k % 2 == 0 else -1) * rng.uniform(30, 55), db - 6)
     else:
         raise ValueError(f"unknown gesture {label}")
 
@@ -79,7 +82,9 @@ def make_take(
     lead_in_motion=True puts a hand wave into the lead-in, like a person who did not keep still."""
     rng = np.random.default_rng(seed)
     is_none = label == "NONE"
-    seconds = NONE_TAKE_S if is_none else LEAD_IN_S + n_cues * PERIOD_S + 1.0
+    habit = label.startswith("REPETITIVE")  # the Habit battery uses a 3.0 s cue window every 5.0 s
+    period, cue_len = (5.0, 3.0) if habit else (PERIOD_S, CUE_S)
+    seconds = NONE_TAKE_S if is_none else LEAD_IN_S + n_cues * period + 1.0
     t = np.arange(int(seconds * FS)) / FS
     x = amp(-36) * np.sin(2 * np.pi * TONE * t) + rng.uniform(-1, 1, t.size) * amp(noise_db)
     reps: list[tuple[int, int, str]] = []
@@ -88,11 +93,16 @@ def make_take(
             _burst(x, t, 0.4 + 0.5 * k, 0.4, (1 if k % 2 == 0 else -1) * 100.0, -52.0)
     if not is_none:
         for k in range(n_cues):
-            cue = LEAD_IN_S + PERIOD_S * k
+            cue = LEAD_IN_S + period * k
             _gesture(x, t, label, cue, rng)
-            reps.append((int(cue * FS), int((cue + CUE_S) * FS), label))
+            reps.append((int(cue * FS), int((cue + cue_len) * FS), label))
     return Session(
         name=f"{person}_{label}_{seed}", person=person, gesture=label, laptop="synthetic", sample_rate=FS,
         tone_hz=TONE, samples=x.astype(np.float32), reps=reps,
-        meta={"takeKind": "none" if is_none else "gesture", "cueWindowMs": 1500, "periodMs": 3000, "leadInMs": 3000},
+        meta={
+            "takeKind": "none" if is_none else "gesture",
+            "cueWindowMs": round(cue_len * 1000),
+            "periodMs": round(period * 1000),
+            "leadInMs": 3000,
+        },
     )

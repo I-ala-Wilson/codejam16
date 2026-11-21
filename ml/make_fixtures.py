@@ -24,13 +24,13 @@ OUT = Path(__file__).resolve().parent.parent / "engine" / "src" / "fixtures"
 EVAL_PERIOD_S = 0.085
 
 
-def _sequence(rng: np.random.Generator, plan: list[tuple[str, int]]) -> np.ndarray:
-    """A noisy probability sequence: each (class, evaluations) piece leans toward that class."""
+def _sequence(rng: np.random.Generator, plan: list[tuple[str, int]], lean: tuple[float, float] = (1.5, 4.5)) -> np.ndarray:
+    """A noisy probability sequence: each (class, evaluations) piece leans toward that class by a draw from `lean`."""
     rows = []
     for name, n in plan:
         for _ in range(n):
             logits = rng.normal(0.0, 0.6, len(CLASSES))
-            logits[CLASSES.index(name)] += rng.uniform(1.5, 4.5)
+            logits[CLASSES.index(name)] += rng.uniform(*lean)
             e = np.exp(logits - logits.max())
             rows.append(e / e.sum())
     return np.array(rows)
@@ -42,14 +42,21 @@ def decoder_cases() -> list[dict]:
         [("NONE", 12), ("PUSH", 8), ("NONE", 15)],
         [("PUSH", 5), ("NONE", 20), ("PULL", 6), ("NONE", 5)],
         [("WAVE", 14), ("NONE", 3), ("PUSH", 6), ("NONE", 20)],
-        [("NONE", 10), ("UNDO", 3), ("NONE", 3), ("UNDO", 3), ("NONE", 20)],
+        [("NONE", 10), ("UNDO", 6), ("NONE", 12), ("UNDO", 6), ("NONE", 20)],
         [("OPEN_CLOSE", 30), ("NONE", 10)],
         [("NONE", 40)],
         [("PUSH", 3), ("PULL", 3), ("PUSH", 3), ("PULL", 3), ("NONE", 10)],
     ]
+    # Every sequence leans hard enough to clear the decoder thresholds (0.85, habit 0.90), or a parity case that fires
+    # nothing proves nothing about the decoder.
+    habit_plans = [
+        [("NONE", 8), ("REPETITIVE", 30), ("NONE", 6)],  # fires once, then holds off for 3 s while it goes on
+        [("REPETITIVE", 90), ("NONE", 5)],  # a long habit fires again after the hold-off
+    ]
     cases = []
-    for plan in plans:
-        probs = _sequence(rng, plan).round(6)  # the rounded values are what the JSON carries, so decode those
+    for plan in plans + habit_plans:
+        lean = (4.5, 6.5)
+        probs = _sequence(rng, plan, lean).round(6)  # the rounded values are what the JSON carries, so decode those
         times = (np.arange(len(probs)) * EVAL_PERIOD_S).round(6)
         events = decode_events(probs, times, DEFAULT_THRESHOLDS)
         cases.append(

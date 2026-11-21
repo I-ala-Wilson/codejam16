@@ -11,7 +11,9 @@ transfers, which is the overfitting.
 
 ## How we tuned without fooling ourselves
 - The acceptance rule was fixed before any run (`tune.py decide`): beat the baseline by more than 2x the measured seed
-  noise (floor 0.01), better for 4 of 5 people, no more false alarms, no wider train-to-held-out gap.
+  noise (floor 0.01), better for 4 of 5 people, at most 0.25 more false alarms per minute, no wider train-to-held-out gap
+  (+0.02 allowed). The noise is the sample standard deviation of the baseline's seeds (rounds 1-2 were judged with the
+  population one, which is 0.71x smaller; the 0.01 floor decided every verdict there, so none changes).
 - At most 8 candidates, then a second seed for the winner. Nothing was added to chase a number.
 - Fresh live-test takes (Sat 08:00) are the sealed final check: never tuned on.
 
@@ -43,6 +45,18 @@ probabilities were decoded at 7 thresholds and compared by recall at equal false
 `none3` wins at every false-alarm level in both seeds, by more than the seed-to-seed spread (about 0.04 at 4/min, about
 0.01 at 1-2/min). It is the new default: `train.NONE_WEIGHT = 3.0`. The older `baseline` result files used equal sampling
 (`none_weight = 1.0`); to rerun the old baseline write `{"none_weight": 1.0}` explicitly.
+
+## What the rule did not cover (read this before trusting the headline numbers)
+- The `decide` rule judged only the 7 single-threshold candidates, and refused all of them. Adopting `none3` came from the
+  later threshold sweep, which had no pre-registered rule: 2 seeds, 6 recipes, 4 false-alarm levels, and gains of +0.03 to
+  +0.05 against a seed spread of up to 0.04 at the 4/min level. It won in both seeds at every level, which is good
+  evidence but not proof; a different seed pair could narrow it.
+- The operating point (0.85) was picked from the same 5-person curves that the final report scores, so the final numbers
+  are mildly optimistic (selection, not training, leakage). The sealed check is the fresh Saturday live-test takes.
+- GPU training is not bit-reproducible (cuDNN, a CUDA random stream), so a rerun with the same seed differs slightly;
+  that wobble is part of the seed spread above.
+- Cached results in `results/` and `sweeps/` are keyed by recipe, epochs and seeds, not by the code version: delete the
+  folder after changing training code, or the old numbers are reused.
 
 ## Operating point (a product choice, made overnight; change it in gesture.json, no retraining)
 With the adopted model: threshold 0.8 gives about 2.6 false alarms/min and 0.48 recall, **0.85 about 1.9 and 0.43

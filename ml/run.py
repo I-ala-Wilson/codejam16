@@ -12,19 +12,21 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+import torch
+
 from data import Session, find_sessions, load_session
-from dataset import CLASSES, STRIDE_FRAMES, WINDOW_FRAMES, Windows, concat, session_windows
+from dataset import CLASSES, STRIDE_FRAMES, WINDOW_FRAMES, Windows, concat, spectrogram_of, windows_of
 from evaluate import (
     CONFIRM_EVALS,
     DEFAULT_THRESHOLDS,
+    HABIT_REFRACTORY_S,
     REFRACTORY_S,
     SMOOTH_EVALS,
     WAVE_REFRACTORY_S,
     EvalReport,
     evaluate_takes,
 )
-from features import spectrogram_db
-from train import ONNX_BINS, SCALE_DB, export_onnx, pick_device, train
+from train import ONNX_BINS, SCALE_DB, export_onnx, macro_f1, pick_device, predict_proba, train
 
 TARGET_RECALL = 0.80
 TARGET_FALSE_ALARMS_PER_MINUTE = 1.0
@@ -37,6 +39,10 @@ class FoldReport:
     person: str
     report: EvalReport
     n_train_windows: int
+    #: Macro F1 (per window, no decoder) on a sample of the windows it trained on, and on the held-out person's windows.
+    #: A big gap between the two is overfitting, whatever the held-out rep recall says.
+    train_f1: float = 0.0
+    heldout_f1: float = 0.0
 
 
 def load_corpus(root: Path) -> list[Session]:
@@ -48,7 +54,7 @@ def usable_sessions(sessions: list[Session]) -> list[Session]:
     keep still does not make a take unusable (dataset.take_floor falls back to the quietest frames)."""
     usable: list[Session] = []
     for session in sessions:
-        if spectrogram_db(session.samples, session.sample_rate, session.tone_hz).shape[0] >= WINDOW_FRAMES:
+        if spectrogram_of(session).shape[0] >= WINDOW_FRAMES:
             usable.append(session)
         else:
             sys.stderr.write(f"skipping {session.name}: too short for one model window\n")
@@ -56,19 +62,24 @@ def usable_sessions(sessions: list[Session]) -> list[Session]:
 
 
 def _windows(sessions: list[Session]) -> Windows:
-    return concat([session_windows(s) for s in sessions])
+    return concat([windows_of(s) for s in sessions])
 
 
-def lopo_reports(sessions: list[Session], epochs: int, device: str, seed: int) -> list[FoldReport]:
-    """Train on everyone except one person and score that person's takes with the streaming decoder."""
+def lopo_reports(sessions: list[Session], epochs: int, device: str, seed: int, **train_kwargs: float) -> list[FoldReport]:
+    """Train on everyone except one person and score that person's takes with the streaming decoder.
+
+    `train_kwargs` are the regularisation settings of train() (weight_decay, dropout, aug_strength, ...)."""
     sessions = usable_sessions(sessions)
     folds: list[FoldReport] = []
     for person in sorted({s.person for s in sessions}):
-        train_sessions = [s for s in sessions if s.person != person]
-        train_windows = _windows(train_sessions)
-        model = train(train_windows, None, epochs=epochs, device=device, seed=seed).model
-        report = evaluate_takes(model, [s for s in sessions if s.person == person], device)
-        folds.append(FoldReport(person, report, len(train_windows.y)))
+        train_windows = _windows([s for s in sessions if s.person != person])
+        held_out = [s for s in sessions if s.person == person]
+        result = train(train_windows, None, epochs=epochs, device=device, seed=seed, **train_kwargs)
+        held_windows = _windows(held_out)
+        held_f1 = macro_f1(held_windows.y, predict_proba(result.model, held_windows.x, device).argmax(axis=1), len(CLASSES))
+        folds.append(
+            FoldReport(person, evaluate_takes(result.model, held_out, device), len(train_windows.y), result.train_macro_f1, held_f1)
+        )
     return folds
 
 
@@ -98,6 +109,7 @@ def render_report(folds: list[FoldReport], epochs: int, device: str, seed: int) 
         "streaming decoder (a class must fire inside the cue window). Takes without a usable hands-off lead-in are skipped.",
         f"Targets: rep recall of {TARGET_RECALL:.0%} or more per class, at most {TARGET_FALSE_ALARMS_PER_MINUTE:.0f} false alarm per minute on NONE takes.",
         f"A class under {DROP_BELOW_RECALL:.0%} is dropped from the Lock vocabulary (LOW means between {DROP_BELOW_RECALL:.0%} and {TARGET_RECALL:.0%}).",
+        "How the recipe and thresholds were chosen, and what these numbers mean: ml/experiments/RESULTS.md.",
         "",
         "## Rep recall by held-out person",
         "",
@@ -142,12 +154,20 @@ def train_final(sessions: list[Session], epochs: int, device: str, seed: int, ou
             "confirm": CONFIRM_EVALS,
             "refractoryMs": round(REFRACTORY_S * 1000),
             "waveRefractoryMs": round(WAVE_REFRACTORY_S * 1000),
+            "habitRefractoryMs": round(HABIT_REFRACTORY_S * 1000),
         },
         "trainedOn": sorted({s.person for s in sessions}),
         "epochs": epochs,
         "windows": len(windows.y),
     }
     (out_dir / "gesture.json").write_text(json.dumps(config, indent=2) + "\n")
+
+
+def device_problem(device: str, allow_cpu: bool) -> str | None:
+    """Why training on `device` must be refused, or None. A GPU that is available is the only acceptable default."""
+    if torch.cuda.is_available() and not device.startswith("cuda") and not allow_cpu:
+        return f"A GPU is available but --device is {device}: refusing to train on the CPU (pass --allow-cpu to override)"
+    return None
 
 
 def main(argv: list[str]) -> int:
@@ -158,12 +178,20 @@ def main(argv: list[str]) -> int:
         p.add_argument("root", type=Path, help="folder of recordings (data/recordings)")
         p.add_argument("--epochs", type=int, default=DEFAULT_EPOCHS)
         p.add_argument("--seed", type=int, default=0)
-        p.add_argument("--device", default=pick_device())
+        p.add_argument("--device", default=pick_device(), help="cuda by default whenever a GPU is available")
+        p.add_argument("--allow-cpu", action="store_true", help="train on the CPU even though a GPU is available")
         if name == "lopo":
             p.add_argument("--out", type=Path, default=Path(__file__).parent / "REPORT.md")
         else:
             p.add_argument("--out-dir", type=Path, default=Path(__file__).parent / "models")
     args = parser.parse_args(argv)
+
+    problem = device_problem(args.device, args.allow_cpu)
+    if problem:
+        sys.stderr.write(problem + "\n")
+        return 2
+    gpu = f" ({torch.cuda.get_device_name(0)})" if args.device.startswith("cuda") else ""
+    sys.stdout.write(f"training on {args.device}{gpu}\n")
 
     sessions = load_corpus(args.root)
     if not usable_sessions(sessions):

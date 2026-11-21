@@ -1,0 +1,30 @@
+{
+  "name": "aug2",
+  "recipe": {
+    "aug_strength": 2.0
+  },
+  "epochs": 30,
+  "runs": [
+    {
+      "seed": 0,
+      "fold_recall": {
+        "ej2007": 0.4395833333333334,
+        "i-ala-wilson": 0.6145833333333334,
+        "miguel982": 0.48125,
+        "naomi": 0.795,
+        "yahya-github": 0.4298190235690236
+      },
+      "class_recall": {
+        "OPEN_CLOSE": 0.440625,
+        "PULL": 0.5722222222222222,
+        "PUSH": 0.6487179487179487,
+        "REPETITIVE": 0.3,
+        "UNDO": 0.5216216216216216,
+        "WAVE": 0.6162162162162163
+      },
+      "false_alarms_per_minute": 5.1886668935763565,
+      "train_f1": 0.8213164316595047,
+      "heldout_f1": 0.530899837695226
+    }
+  ]
+}

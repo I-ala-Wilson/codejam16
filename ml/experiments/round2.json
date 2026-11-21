@@ -1,0 +1,4 @@
+{
+  "none3": {"none_weight": 3.0},
+  "none3_ep15_aug2": {"none_weight": 3.0, "epochs": 15, "aug_strength": 2.0}
+}

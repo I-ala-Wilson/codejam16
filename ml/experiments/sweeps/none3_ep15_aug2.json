@@ -1,0 +1,95 @@
+{
+  "name": "none3_ep15_aug2",
+  "recipe": {
+    "none_weight": 3.0,
+    "epochs": 15,
+    "aug_strength": 2.0
+  },
+  "seed": 0,
+  "curve": [
+    {
+      "threshold": 0.5,
+      "macro_recall": 0.6436158514283514,
+      "false_alarms_per_minute": 9.822519491130924,
+      "fold_recall": {
+        "ej2007": 0.6020833333333333,
+        "i-ala-wilson": 0.7416666666666667,
+        "miguel982": 0.5895833333333333,
+        "naomi": 0.89,
+        "yahya-github": 0.5299031986531987
+      }
+    },
+    {
+      "threshold": 0.6,
+      "macro_recall": 0.6120059963809964,
+      "false_alarms_per_minute": 6.798204025537683,
+      "fold_recall": {
+        "ej2007": 0.5520833333333334,
+        "i-ala-wilson": 0.7354166666666667,
+        "miguel982": 0.5479166666666667,
+        "naomi": 0.8800000000000001,
+        "yahya-github": 0.4819234006734006
+      }
+    },
+    {
+      "threshold": 0.7,
+      "macro_recall": 0.562966452028952,
+      "false_alarms_per_minute": 4.793137860873408,
+      "fold_recall": {
+        "ej2007": 0.49374999999999997,
+        "i-ala-wilson": 0.69375,
+        "miguel982": 0.47291666666666665,
+        "naomi": 0.8800000000000001,
+        "yahya-github": 0.4394781144781145
+      }
+    },
+    {
+      "threshold": 0.8,
+      "macro_recall": 0.48622697216447214,
+      "false_alarms_per_minute": 2.863584407841295,
+      "fold_recall": {
+        "ej2007": 0.42083333333333334,
+        "i-ala-wilson": 0.6125,
+        "miguel982": 0.41041666666666665,
+        "naomi": 0.835,
+        "yahya-github": 0.33672138047138045
+      }
+    },
+    {
+      "threshold": 0.85,
+      "macro_recall": 0.4246099464849465,
+      "false_alarms_per_minute": 2.1124119276834055,
+      "fold_recall": {
+        "ej2007": 0.3645833333333333,
+        "i-ala-wilson": 0.5541666666666667,
+        "miguel982": 0.36041666666666666,
+        "naomi": 0.745,
+        "yahya-github": 0.26994949494949494
+      }
+    },
+    {
+      "threshold": 0.9,
+      "macro_recall": 0.347254466004466,
+      "false_alarms_per_minute": 1.2864532024942499,
+      "fold_recall": {
+        "ej2007": 0.2708333333333333,
+        "i-ala-wilson": 0.45625,
+        "miguel982": 0.30833333333333335,
+        "naomi": 0.6799999999999999,
+        "yahya-github": 0.20462962962962963
+      }
+    },
+    {
+      "threshold": 0.95,
+      "macro_recall": 0.22044448294448293,
+      "false_alarms_per_minute": 0.392196082215999,
+      "fold_recall": {
+        "ej2007": 0.1625,
+        "i-ala-wilson": 0.32916666666666666,
+        "miguel982": 0.18125,
+        "naomi": 0.51,
+        "yahya-github": 0.09292929292929293
+      }
+    }
+  ]
+}

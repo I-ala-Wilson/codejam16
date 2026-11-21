@@ -16,13 +16,13 @@ def _block(c_in: int, c_out: int) -> nn.Sequential:
 class GestureCNN(nn.Module):
     """Input (batch, 1, 48, 87) of dB over the floor divided by 60; output (batch, n_classes) logits."""
 
-    def __init__(self, n_classes: int = 6, width: int = 16) -> None:
+    def __init__(self, n_classes: int = 7, width: int = 16, dropout: float = 0.2) -> None:
         super().__init__()
         self.features = nn.Sequential(_block(1, width), _block(width, 2 * width), _block(2 * width, 4 * width))
         self.head = nn.Sequential(
             nn.Linear(8 * width, 64),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.2),
+            nn.Dropout(dropout),
             nn.Linear(64, n_classes),
         )
 

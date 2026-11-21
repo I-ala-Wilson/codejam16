@@ -1,0 +1,32 @@
+{
+  "name": "none3_ep15_aug2",
+  "recipe": {
+    "none_weight": 3.0,
+    "epochs": 15,
+    "aug_strength": 2.0
+  },
+  "epochs": 15,
+  "runs": [
+    {
+      "seed": 0,
+      "fold_recall": {
+        "ej2007": 0.37083333333333335,
+        "i-ala-wilson": 0.5958333333333333,
+        "miguel982": 0.39999999999999997,
+        "naomi": 0.835,
+        "yahya-github": 0.3605639730639731
+      },
+      "class_recall": {
+        "OPEN_CLOSE": 0.478125,
+        "PULL": 0.5722222222222222,
+        "PUSH": 0.5102564102564102,
+        "REPETITIVE": 0.32083333333333336,
+        "UNDO": 0.4756756756756757,
+        "WAVE": 0.4864864864864865
+      },
+      "false_alarms_per_minute": 2.668547899750737,
+      "train_f1": 0.8336144432920788,
+      "heldout_f1": 0.5704244236238809
+    }
+  ]
+}

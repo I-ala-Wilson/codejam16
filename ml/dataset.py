@@ -7,8 +7,13 @@ import numpy as np
 from data import LEAD_IN_MARGIN_S, LEAD_IN_S, Session, make_windows, protocol_labels
 from features import GUARD_BINS, excess_db, frame_centers, motion_energy, spectrogram_db, still_floor
 
-CLASSES = ("NONE", "PUSH", "PULL", "WAVE", "OPEN_CLOSE", "UNDO")
+CLASSES = ("NONE", "PUSH", "PULL", "WAVE", "OPEN_CLOSE", "UNDO", "REPETITIVE")
 CLASS_INDEX = {name: i for i, name in enumerate(CLASSES)}
+
+
+def canonical_label(label: str) -> str:
+    """The Habit battery labels its reps REPETITIVE-scratch and REPETITIVE-nailbite; both are the one REPETITIVE class."""
+    return "REPETITIVE" if label.startswith("REPETITIVE") else label
 #: One model input: 48 frames, about 1.0 s at 47 frames per second.
 WINDOW_FRAMES = 48
 STRIDE_FRAMES = 4
@@ -102,13 +107,39 @@ def take_excess(session: Session, spec: np.ndarray) -> tuple[np.ndarray, bool]:
     return excess, lead_in_clean
 
 
+# Each take's spectrogram and windows are expensive (single-threaded FFTs) and a leave-one-person-out run needs them for
+# every fold and again to score. Keyed by object identity, holding the take so its id cannot be reused; callers must not
+# modify what they get back.
+_SPECTROGRAMS: dict[int, tuple[Session, np.ndarray]] = {}
+_WINDOWS: dict[int, tuple[Session, Windows]] = {}
+
+
+def spectrogram_of(session: Session) -> np.ndarray:
+    """spectrogram_db of the take, computed once."""
+    entry = _SPECTROGRAMS.get(id(session))
+    if entry is None:
+        entry = (session, spectrogram_db(session.samples, session.sample_rate, session.tone_hz))
+        _SPECTROGRAMS[id(session)] = entry
+    return entry[1]
+
+
+def windows_of(session: Session) -> Windows:
+    """session_windows with the default window and stride, computed once."""
+    entry = _WINDOWS.get(id(session))
+    if entry is None:
+        entry = (session, session_windows(session))
+        _WINDOWS[id(session)] = entry
+    return entry[1]
+
+
 def session_windows(session: Session, length: int = WINDOW_FRAMES, stride: int = STRIDE_FRAMES) -> Windows:
     """Windows of one take. Labels outside CLASSES (for example FREE) are dropped; IGNORE gaps are never windows."""
-    spec = spectrogram_db(session.samples, session.sample_rate, session.tone_hz)
+    spec = spectrogram_of(session)
     if spec.shape[0] < length:
         return empty_windows(spec.shape[1])
     excess, lead_in_clean = take_excess(session, spec)
-    x, names = make_windows(excess, protocol_labels(session, spec.shape[0], lead_in_clean), length, stride)
+    x, raw_names = make_windows(excess, protocol_labels(session, spec.shape[0], lead_in_clean), length, stride)
+    names = [canonical_label(name) for name in raw_names]
     keep = [i for i, name in enumerate(names) if name in CLASS_INDEX]
     if not keep:
         return empty_windows(spec.shape[1])

@@ -1,0 +1,7 @@
+{
+  "ep15": {"epochs": 15},
+  "width8": {"width": 8},
+  "reg": {"dropout": 0.4, "weight_decay": 0.05},
+  "aug2": {"aug_strength": 2.0},
+  "gain12": {"gain_db": 12.0}
+}
