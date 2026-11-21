@@ -12,7 +12,7 @@ Four humans worked with five AI agents (three Claude Code, one QA, one Codex) on
 ## 4. Considerations
 - **Privacy:** sensing happens on your device. Only gesture events ever leave it, never audio.
 - **Cost:** $0 extra hardware, just the speaker and mic you already have.
-- **Accessibility:** control without touching the device or speaking, for hospital beds and ASL users.
+- **Accessibility:** control without touching the device or speaking, for hospital beds and for people who can't easily speak or reach a call button.
 - **Honesty:** we publish our real accuracy, and PUSH and PULL still get confused.
 - **Not a medical device:** ECHØ is a demo, not a diagnostic tool.
 
