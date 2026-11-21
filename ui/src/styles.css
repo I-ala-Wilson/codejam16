@@ -1,6 +1,6 @@
 :root {
-  --bg: #1e1f21;
-  --bg-deep: #141516;
+  --bg: #000000;
+  --bg-deep: #0b0b0c;
   --ink: #f2f2f0;
   --ink-strong: #ffffff;
   --rule: 1px dotted var(--ink);
