@@ -424,21 +424,22 @@ const STAGES = [
   { name: 'RUN', note: 'in browser · 12/s' },
 ]
 const PSTEP = 1.2, PX = [64, 192, 320, 448, 576], PY = 70
-const activeStage = (t: number) => Math.floor(t / PSTEP) % STAGES.length
+// one continuous pulse travels the whole line; the stage it is passing is the active one
+const CYCLE = PSTEP * STAGES.length
+const pulseX = (t: number) => PX[0] + (PX[4] - PX[0]) * ((t % CYCLE) / CYCLE)
+const activeStage = (t: number) => Math.min(4, Math.max(0, Math.round((pulseX(t) - PX[0]) / (PX[1] - PX[0]))))
 
 export const pipeline: Scene = {
   draw(g, t) {
     // clean line pictograms in solid ink (dim ink still dithers to dots, so only the active stage gets the full glow)
     const a = activeStage(t), p = (t % PSTEP) / PSTEP
-    g.strokeStyle = gray(1); g.lineWidth = 1.5
+    g.strokeStyle = gray(1); g.lineWidth = 2
     g.beginPath(); g.moveTo(PX[0] + 42, PY); g.lineTo(PX[4] - 42, PY); g.stroke()
-    if (a < 4) {
-      const x = PX[a] + 42 + (PX[a + 1] - PX[a] - 84) * smooth(p)
-      g.fillStyle = gray(1); g.beginPath(); g.arc(x, PY, 5, 0, TAU); g.fill()
-    }
+    // the pulse glides at constant speed, fading in at the start and out at the end of the line
+    const px = pulseX(t), u = (t % CYCLE) / CYCLE, fade = Math.min(1, u * 12, (1 - u) * 12)
+    g.fillStyle = `rgba(255,255,255,${fade.toFixed(3)})`; g.beginPath(); g.arc(px, PY, 4, 0, TAU); g.fill()
     STAGES.forEach((_, i) => {
       const on = i === a, x = PX[i], y = PY
-      if (on) { const glow = g.createRadialGradient(x, y, 10, x, y, 56); glow.addColorStop(0, 'rgba(255,255,255,0.18)'); glow.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = glow; g.fillRect(x - 56, y - 56, 112, 112) }
       g.fillStyle = gray(1); g.strokeStyle = gray(1); g.lineWidth = 2.5
       if (i === 0) {
         for (let k = 0; k < 5; k++) { const px = x - 28 + k * 14; g.beginPath(); g.arc(px, y - 9, 4.5, 0, TAU); g.fill(); g.beginPath(); g.arc(px, y + 9, 7, Math.PI, 0); g.fill() }
