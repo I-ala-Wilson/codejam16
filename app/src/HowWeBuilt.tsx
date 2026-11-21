@@ -9,22 +9,22 @@ const PANELS = [
   {
     title: 'The signal', big: '20 kHz', scene: signal,
     alt: 'A laptop speaker sends solid sound arcs to a hand; dashed echo arcs return to the mic, and the echo peak slides beside the 20 kHz tone.',
-    caption: 'An inaudible tone. A hand moving toward the screen raises the echo’s pitch; away lowers it.',
+    caption: 'The laptop speaker plays a steady 20 kHz tone that is too high for people to hear, and the microphone listens for its echo off your hand. When your hand moves toward the screen the echo returns at a slightly higher pitch, and when it moves away the pitch drops, which is the Doppler effect. We chose sound because every laptop already has a speaker and a microphone, it works in complete darkness, and it never captures an image of anyone.',
   },
   {
     title: 'The model', big: '147 recordings', scene: model,
     alt: 'A scrolling spectrogram with gesture streaks feeds a small convolutional network that picks one of seven gestures.',
-    caption: '147 recordings from 5 people, a small network trained on a GPU, running in your browser so audio never leaves the device.',
+    caption: 'We recorded 147 sessions from five people performing each gesture on cue, so every slice of echo has a known label. We trained a small neural network on a GPU to recognise the shape each gesture leaves in the echo, and we tested it only on people it had never seen to keep our accuracy honest. The finished model runs inside the browser, which keeps it fast, lets it work without an internet connection, and means that no audio ever leaves the device.',
   },
   {
     title: 'The agents', big: '4 + 5', unit: 'humans + agents', scene: agents,
     alt: 'Four humans and five AI agents around one shared board, with messages travelling to and from it.',
-    caption: 'Each agent owned its own folders, read the same spec, and posted to one shared board. Humans decided, recorded and tested.',
+    caption: 'Four of us worked alongside five AI coding agents, and each agent owned its own part of the code so that no two agents could overwrite each other. Every agent read the same specification and reported its progress to one shared board, which let us coordinate the whole team from a single conversation. We made the decisions, recorded the training data, and tested every feature live, while the agents wrote and checked most of the code.',
   },
   {
     title: 'The trade-offs', big: '$0', scene: tradeoffs,
     alt: 'Icons: no camera, any laptop, stays on device, built for patients.',
-    caption: 'Limits: weaker laptops echo less, it needs a calm room, and it is not a medical device.',
+    caption: 'We built ECHØ to cost nothing, to run on hardware people already own, and to protect privacy by design. Sound gives up some precision compared with a camera, since weaker laptops produce fainter echoes and a noisy room makes gestures harder to read. It is a proof of concept and not a medical device, and we have been open about where it falls short.',
   },
 ]
 
