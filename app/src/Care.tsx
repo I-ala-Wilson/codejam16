@@ -29,8 +29,18 @@ export default function Care() {
   const pendingPush = useRef<ReturnType<typeof setTimeout> | null>(null)
   const helpRef = useRef<Help>(null)
 
-  useEffect(() => { ensureSonar().then(setRunning) }, [])
-  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 250); return () => clearInterval(id) }, [])
+  const startListening = () => ensureSonar().then(ok => {
+    if (ok) { setLastMove(Date.now()); setInactiveSent(false) }
+    setRunning(ok)
+  })
+  useEffect(() => { void startListening() }, [])
+  useEffect(() => {
+    const id = setInterval(() => {
+      setNow(Date.now())
+      if (!engine.health().running) setRunning(false)
+    }, 250)
+    return () => clearInterval(id)
+  }, [])
 
   // movement level from the echo energy
   useEffect(() => engine.onFrame((f) => {
@@ -75,18 +85,21 @@ export default function Care() {
 
   // activity every 10 s, for the timeline and the caregiver
   useEffect(() => {
+    if (!running) return
+    level.current = peak.current = gestures.current = 0
     const id = setInterval(() => {
+      if (!engine.health().running) return
       const v = peak.current; peak.current = level.current
       setHistory((h) => [...h.slice(-59), v])
       sendEvent('care', 'activity', { level: Math.round(v * 100) / 100, gestures: gestures.current })
       gestures.current = 0
     }, 10000)
     return () => clearInterval(id)
-  }, [])
+  }, [running])
 
   const still = Math.floor((now - lastMove) / 1000)
   useEffect(() => {
-    if (running && still >= INACTIVE_S && !inactiveSent) { setInactiveSent(true); sendEvent('care', 'inactive', { seconds: still }) }
+    if (running && engine.health().running && still >= INACTIVE_S && !inactiveSent) { setInactiveSent(true); sendEvent('care', 'inactive', { seconds: still }) }
   }, [still, running, inactiveSent])
 
   if (help) {
@@ -110,7 +123,7 @@ export default function Care() {
         <h1 className="lk__title">Wave for help.</h1>
         <p className="lk__sub">Wave your hand side to side at the screen, about 20 cm away. No camera, works in the dark.</p>
         {!running
-          ? <div className="lk__row"><button className="lk__btn lk__btn--primary" onClick={() => ensureSonar().then(setRunning)}>Start listening</button></div>
+          ? <div className="lk__row"><span role="status">Sensor offline · no activity readings</span><button className="lk__btn lk__btn--primary" onClick={startListening}>Start listening</button></div>
           : <>
             <Strip values={history} />
             <div className="lk__status">

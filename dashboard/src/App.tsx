@@ -167,7 +167,7 @@ export default function App() {
         {error && <p role="alert">Unable to load events: {error}</p>}
 
         {view === 'care'
-          ? <Care inactive={latestInactive} activity={activityEvents.map(event => numericPayload(event, 'level') ?? 0)} />
+          ? <Care inactive={latestInactive} activity={activityEvents.map(event => numericPayload(event, 'level') ?? 0)} readings={activityEvents} />
           : <Parent events={feed} alarm={alarm} acknowledge={() => setAlarm(null)} />}
 
         <Rule />
