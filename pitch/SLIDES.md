@@ -26,7 +26,7 @@ Categories said out loud: Health (Care), Touch Grass + Undo (Lock), Undo (Habit)
 ## 4. Three apps, one engine
 - **Care (Health):** a hands-free help call where cameras aren't allowed, like hospital beds and bathrooms, and for people who sign in ASL.
 - **Lock (Touch Grass + Undo):** undo handing your kid the iPad. Blocked sites look like "This site can't be reached", so to the kid the Wi-Fi is just broken and they go outside. Only your secret hand signs open it.
-- **Habit (Undo):** undo a habit. It catches scratching or nail biting and gives a soft nudge.
+- **Habit (Undo):** undo a habit. It catches scratching and fidgeting and gives a soft nudge.
 - **People First:** no camera, no audio kept, and only gesture events ever leave the laptop.
 
 ## 5. Live demo: the secret lock
