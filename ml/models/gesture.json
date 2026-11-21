@@ -1,0 +1,39 @@
+{
+  "classes": [
+    "NONE",
+    "PUSH",
+    "PULL",
+    "WAVE",
+    "OPEN_CLOSE",
+    "UNDO"
+  ],
+  "windowFrames": 48,
+  "strideFrames": 4,
+  "bins": 87,
+  "scaleDb": 60.0,
+  "clipDb": [
+    -10.0,
+    60.0
+  ],
+  "thresholds": {
+    "PUSH": 0.8,
+    "PULL": 0.8,
+    "WAVE": 0.8,
+    "OPEN_CLOSE": 0.8,
+    "UNDO": 0.8
+  },
+  "decoder": {
+    "smooth": 3,
+    "confirm": 2,
+    "refractoryMs": 600,
+    "waveRefractoryMs": 1200
+  },
+  "trainedOn": [
+    "ej2007",
+    "i-ala-wilson",
+    "naomi",
+    "yahya-github"
+  ],
+  "epochs": 30,
+  "windows": 41691
+}

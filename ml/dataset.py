@@ -18,6 +18,10 @@ MOTION_DB = 6.0
 MAX_LEAD_IN_MOTION_FRACTION = 0.10
 #: When the lead-in is not still, the floor comes from this share of the quietest frames of the take.
 QUIET_FRACTION = 0.30
+#: Tone health (dB) every take is scaled to, or None for no scaling. Set by experiments and by the final model config.
+SNR_REFERENCE_DB: float | None = None
+MIN_SNR_FOR_SCALING_DB = 10.0
+EXCESS_CLIP_DB = (-10.0, 60.0)
 
 
 @dataclass(frozen=True)
@@ -76,13 +80,34 @@ def take_floor(session: Session, spec: np.ndarray) -> tuple[np.ndarray, bool]:
     return still_floor(spec[_quietest_frames(spec)]), False
 
 
+def tone_snr_db(spec: np.ndarray) -> float:
+    """How far the carrier stands above the off-tone bins in the take's quietest frames (dB): the laptop's tone health."""
+    quiet = spec[_quietest_frames(spec)]
+    centre = quiet.shape[1] // 2
+    carrier = quiet[:, centre - GUARD_BINS : centre + GUARD_BINS + 1].max(axis=1)
+    off = np.abs(np.arange(quiet.shape[1]) - centre) > GUARD_BINS + 2
+    return float(np.median(carrier) - np.median(quiet[:, off]))
+
+
+def take_excess(session: Session, spec: np.ndarray) -> tuple[np.ndarray, bool]:
+    """Model input in dB over the take's floor, and whether the lead-in was clean.
+
+    With SNR_REFERENCE_DB set, the excess is scaled by reference / tone SNR so that laptops whose echoes are tens of dB
+    louder or quieter than others (a strong or a weak speaker and mic) look alike to the model."""
+    floor, lead_in_clean = take_floor(session, spec)
+    excess = excess_db(spec, floor)
+    if SNR_REFERENCE_DB is not None:
+        scale = SNR_REFERENCE_DB / max(tone_snr_db(spec), MIN_SNR_FOR_SCALING_DB)
+        excess = np.clip(excess * scale, EXCESS_CLIP_DB[0], EXCESS_CLIP_DB[1]).astype(np.float32)
+    return excess, lead_in_clean
+
+
 def session_windows(session: Session, length: int = WINDOW_FRAMES, stride: int = STRIDE_FRAMES) -> Windows:
     """Windows of one take. Labels outside CLASSES (for example FREE) are dropped; IGNORE gaps are never windows."""
     spec = spectrogram_db(session.samples, session.sample_rate, session.tone_hz)
     if spec.shape[0] < length:
         return empty_windows(spec.shape[1])
-    floor, lead_in_clean = take_floor(session, spec)
-    excess = excess_db(spec, floor)
+    excess, lead_in_clean = take_excess(session, spec)
     x, names = make_windows(excess, protocol_labels(session, spec.shape[0], lead_in_clean), length, stride)
     keep = [i for i, name in enumerate(names) if name in CLASS_INDEX]
     if not keep:

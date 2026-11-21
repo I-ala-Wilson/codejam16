@@ -11,11 +11,13 @@ import numpy as np
 import torch
 
 from data import Session
-from dataset import CLASSES, STRIDE_FRAMES, WINDOW_FRAMES, take_floor
-from features import excess_db, frame_centers, spectrogram_db
+from dataset import CLASSES, STRIDE_FRAMES, WINDOW_FRAMES, take_excess
+from features import frame_centers, spectrogram_db
 from train import predict_proba
 
-DEFAULT_THRESHOLDS = {name: 0.7 for name in CLASSES[1:]}
+#: 0.8 is the middle of the sweep: 0.7 recalls more but fires 25 false alarms a minute on unseen NONE takes, 0.9 halves those
+#: but loses a sixth of the gestures. Retune per class once there is more data.
+DEFAULT_THRESHOLDS = {name: 0.8 for name in CLASSES[1:]}
 #: Average this many consecutive evaluations, fire after this many in a row above threshold, then hold off.
 SMOOTH_EVALS = 3
 CONFIRM_EVALS = 2
@@ -79,7 +81,7 @@ def stream_probs(model: torch.nn.Module, session: Session, device: str) -> tuple
     spec = spectrogram_db(session.samples, session.sample_rate, session.tone_hz)
     if spec.shape[0] < WINDOW_FRAMES:
         return np.zeros((0, len(CLASSES))), np.zeros(0)
-    excess = excess_db(spec, take_floor(session, spec)[0])
+    excess, _ = take_excess(session, spec)
     starts = list(range(0, spec.shape[0] - WINDOW_FRAMES + 1, STRIDE_FRAMES))
     windows = np.stack([excess[s : s + WINDOW_FRAMES] for s in starts]).astype(np.float32)
     ends = frame_centers(spec.shape[0])[[s + WINDOW_FRAMES - 1 for s in starts]] / session.sample_rate

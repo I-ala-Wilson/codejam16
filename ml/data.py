@@ -50,7 +50,7 @@ def load_session(json_path: Path) -> Session:
     reps = [(int(r["start"]), int(r["end"]), str(r["label"])) for r in meta.get("reps", [])]
     return Session(
         name=json_path.stem,
-        person=str(meta.get("person", "")),
+        person=str(meta.get("person", "")).lower(),  # logins differ only in case between batteries (I-ala-Wilson, I-ala-wilson)
         gesture=str(meta.get("gesture", "")),
         laptop=str(meta.get("laptop", "")),
         sample_rate=int(sample_rate),

@@ -94,6 +94,13 @@ class TestSessions:
         assert np.abs(s.samples).max() <= 1.0
         assert s.reps == [(6000, 12000, "PUSH")]
 
+    def test_the_same_login_in_a_different_case_is_the_same_person(self, tmp_path: Path):
+        path = write_session(tmp_path, "ian", tone(1.0), [])
+        meta = json.loads(path.read_text())
+        meta["person"] = "I-ala-Wilson"
+        path.write_text(json.dumps(meta))
+        assert load_session(path).person == "i-ala-wilson"
+
     def test_rejects_a_stereo_recording(self, tmp_path: Path):
         path = write_session(tmp_path, "ian", tone(1.0), [])
         sf.write(path.with_suffix(".wav"), np.stack([tone(1.0), tone(1.0)], axis=1), FS, subtype="PCM_16")
