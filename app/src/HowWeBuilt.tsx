@@ -21,9 +21,9 @@ const PANELS = [
     ],
   },
   {
-    title: 'The agents', big: '4 + 5', unit: 'humans + agents', scene: agents,
+    title: 'The agents', big: '5 agents', unit: 'one shared board', scene: agents,
     alt: 'Four humans and five AI agents around one shared board, with messages travelling to and from it.',
-    caption: 'The four of us worked alongside five AI coding agents, and each agent owned its own part of the code so that no two agents could overwrite each other. Every agent read the same specification and reported its progress to one shared board, which let us coordinate all of our agents, and permitted them to assign each other tasks to ensure work was always getting done. Humans made the architecture decisions, recorded all the training data, and tested every feature live, while the agents wrote and checked most of the code.',
+    caption: 'Four of us worked with five AI coding agents, each owning its own part of the code and reporting to one shared board where they could assign each other tasks. We made the architecture decisions, recorded the training data and tested every feature live, while the agents wrote and checked most of the code.',
   },
   {
     title: 'The trade-offs', big: '$0', scene: tradeoffs,
