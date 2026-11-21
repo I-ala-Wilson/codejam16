@@ -1,4 +1,6 @@
 export { Window } from './Window.tsx'
 export { Button } from './Button.tsx'
 export { Banner } from './Banner.tsx'
+export { Rule } from './Rule.tsx'
+export { Slot } from './Slot.tsx'
 import './styles.css'

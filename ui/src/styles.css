@@ -1,16 +1,52 @@
-:root { color: #000; background: #fff; font-family: Helvetica, Arial, sans-serif; }
-.echo-window { border: 2px solid #000; border-radius: 8px; box-shadow: 3px 3px 0 #000; overflow: hidden; margin: 16px; }
-.echo-window__bar { background: #000; color: #fff; padding: 6px 12px; font-weight: 700; }
-.echo-window__body { padding: 16px; }
-.echo-button { font: inherit; font-weight: 700; padding: 8px 16px; border: 2px solid #000; border-radius: 8px; box-shadow: 3px 3px 0 #000; cursor: pointer; }
-.echo-button--primary { background: #000; color: #fff; }
-.echo-button--secondary { background: #fff; color: #000; }
-.echo-button:active { transform: translate(3px, 3px); box-shadow: none; }
-.echo-button:focus-visible { outline: 3px solid #000; outline-offset: 2px; }
-.echo-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px; padding: 12px 16px; border: 2px solid #000; border-radius: 8px; box-shadow: 3px 3px 0 #000; }
-.echo-banner__text { display: flex; flex-direction: column; gap: 2px; }
-.echo-banner__title { font-size: 1.1em; }
-.echo-banner--alert { background: #000; color: #fff; }
-.echo-banner--warn { background: #fff; color: #000; border-style: dashed; }
-.echo-banner--ok { background: #fff; color: #000; }
-.echo-banner__close { font: inherit; font-size: 1.4em; line-height: 1; background: transparent; color: inherit; border: 2px solid currentColor; border-radius: 8px; cursor: pointer; padding: 0 8px; }
+:root {
+  --bg: #1e1f21;
+  --bg-deep: #141516;
+  --ink: #f2f2f0;
+  --ink-strong: #ffffff;
+  --rule: 1px dotted var(--ink);
+  --font-serif: Georgia, 'Times New Roman', Times, serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+h1, h2, h3 { font-family: var(--font-serif); font-weight: 400; color: var(--ink-strong); }
+
+/* Window: dotted frame, mono uppercase title */
+.echo-window { border: var(--rule); border-radius: 2px; background: var(--bg-deep); margin: 16px; }
+.echo-window__bar { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-strong); padding: 12px 20px 0; }
+.echo-window__body { padding: 16px 20px 20px; }
+
+/* Button: mono uppercase, dotted outline, inverted on hover/active */
+.echo-button { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; padding: 8px 16px; border: var(--rule); border-radius: 2px; background: transparent; color: var(--ink); cursor: pointer; transition: background-color 300ms, color 300ms; }
+.echo-button--primary { border-style: solid; color: var(--ink-strong); }
+.echo-button:hover, .echo-button:active { background: var(--ink); color: var(--bg); }
+.echo-button:focus-visible { outline: 1px solid var(--ink-strong); outline-offset: 3px; }
+
+/* Banner: alert inverted + large serif, warn dotted + serif, ok plain serif */
+.echo-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 16px; padding: 14px 20px; border-radius: 2px; font-family: var(--font-serif); }
+.echo-banner__text { display: flex; flex-direction: column; gap: 4px; }
+.echo-banner__title { font-weight: 400; font-size: 22px; line-height: 1.2; }
+.echo-banner__detail { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+.echo-banner--alert { background: var(--ink-strong); color: var(--bg); }
+.echo-banner--alert .echo-banner__title { font-size: 30px; }
+.echo-banner--warn { border: var(--rule); color: var(--ink); }
+.echo-banner--ok { color: var(--ink); }
+.echo-banner__close { font-family: var(--font-mono); font-size: 18px; line-height: 1; background: transparent; color: inherit; border: 1px dotted currentColor; border-radius: 2px; cursor: pointer; padding: 2px 8px; }
+
+/* Rule: 1px dotted horizontal line */
+.echo-rule { border: 0; border-top: var(--rule); margin: 16px 0; }
+
+/* Slot: dotted square, filled = inverted with a large serif glyph */
+.echo-slot { display: inline-flex; vertical-align: top; align-items: center; justify-content: center; width: 56px; height: 56px; border: var(--rule); border-radius: 2px; font-family: var(--font-serif); font-size: 32px; color: var(--ink); transition: background-color 300ms, color 300ms; }
+.echo-slot--filled { border-style: solid; background: var(--ink); color: var(--bg); }

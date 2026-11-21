@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 
-// Scaffold component. EJ's lane owns everything in ui/.
 export function Window({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="echo-window">
