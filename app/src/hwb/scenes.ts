@@ -436,7 +436,12 @@ export const pipeline: Scene = {
     g.beginPath(); g.moveTo(PX[0] + 42, PY); g.lineTo(PX[4] - 42, PY); g.stroke()
     // the pulse glides at constant speed, fading in at the start and out at the end of the line
     const px = pulseX(t), u = (t % CYCLE) / CYCLE, fade = Math.min(1, u * 12, (1 - u) * 12)
-    g.fillStyle = `rgba(255,255,255,${fade.toFixed(3)})`; g.beginPath(); g.arc(px, PY, 4, 0, TAU); g.fill()
+    // a sleek light streak: a solid bar whose tail tapers to a point behind it (solid white, so it stays crisp in the dither)
+    if (fade > 0.05) {
+      const len = 46 * fade, hh = 3.5
+      g.fillStyle = gray(1)
+      g.beginPath(); g.moveTo(px + 6, PY); g.lineTo(px, PY - hh); g.lineTo(px - len, PY - 0.6); g.lineTo(px - len, PY + 0.6); g.lineTo(px, PY + hh); g.closePath(); g.fill()
+    }
     STAGES.forEach((_, i) => {
       const x = PX[i], y = PY
       g.fillStyle = gray(1); g.strokeStyle = gray(1); g.lineWidth = 2.5
