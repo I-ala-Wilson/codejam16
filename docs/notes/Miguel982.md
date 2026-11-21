@@ -1,13 +1,14 @@
 # Miguel982
 
 ## Now
-- Issue #8: dashboard realtime event list.
-- Next: add `dashboard/src/supabase.ts`, load the latest 50 events, and subscribe to realtime inserts in `dashboard/src/App.tsx`.
+- Issue #10: dashboard Care + Parent views with alert banners.
+- Next: build the two filtered views on top of the realtime event list and test each event kind.
 
 ## Done
 - WSL setup, GitHub authentication, sync, and recovery completed.
 - SPEC v1 ACKed; ownership is `backend/*` and `dashboard/*`.
 - Issue #4: events schema, realtime publication, RLS, anon SELECT/INSERT grants, and HTTP 201 live acceptance.
+- Issue #8: dashboard loads the latest 50 events and receives realtime inserts; live smoke test delivered in 790 ms.
 
 ## How to run my lane
 - Backend: execute `backend/schema.sql` in the Supabase SQL editor.
