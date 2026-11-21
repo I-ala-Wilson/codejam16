@@ -317,6 +317,20 @@ model's UNDO in `engine/src/index.ts` behind `ruleUndo` in gesture.json (shared 
 UNDO) with tests; app changes are Ian's. If not accepted: refused, no re-tuning on these takes (a second version would be a
 new pre-registration and would say it was tuned on the same data).
 
+### New double-tap UNDO detector result: REFUSED (false alarms)
+`engine/tools/undo-score.ts` on all 175 gesture takes in `data/recordings`, parameters exactly as frozen above, one run
+(one reading made explicit in the code: a burst is decided only 700 ms after its second stroke starts, so a third stroke of
+a wave can still join it).
+- UNDO rep recall: EJ 66/80 (83%), Ian 49/80 (61%), Michael 75/160 (47%), Naomi 10/40 (25%), Yahya 54/90 (60%), pooled
+  254/450 (56%). Passes both recall bars (pooled >= 55%, EJ >= 40%), against 6% for the old rule detector.
+- False UNDO events per minute: NONE takes 1.28 (75 in 58.6 min, bar 0.3), PUSH/PULL/WAVE/OPEN_CLOSE/REPETITIVE takes
+  1.87 (232 in 124.1 min, bar 1.0), outside the reps of UNDO takes 0.38.
+Both false-alarm bars fail by a factor of 4 and about 2, so by the pre-registered rule the detector is NOT added to the
+engine (it stays unwired; the code and its tests are kept only so the number can be reproduced). It is not a usable
+backup on its own: it would give a stray UNDO about every 45 seconds of idle sitting. Not claimed: that a stricter
+double-tap rule or the rule AND-ed with a weak model UNDO probability cannot work; both would be new candidates under new
+pre-registrations, judged on held-out data this time because these takes have now been looked at.
+
 ## Breathing v2: time-boxed second shot (Ian's DIRECT 7065406175). PRE-REGISTERED before any new take is analysed
 v1 stays as written above and keeps its verdict (NO-GO on the 15 takes it was run on). v2 is an alternative method next to it,
 judged only on takes that were not used to design it, with a hard stop at 13:30 today: if v2 is not a GO by then, breathing

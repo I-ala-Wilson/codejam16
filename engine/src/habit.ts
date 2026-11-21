@@ -1,7 +1,7 @@
 import type { GestureEvent } from '../../contracts/engine.ts'
 import type { MotionFrame } from './gestures.ts'
 
-// Rule-based Habit detector: scratching, nail biting and fidgeting show up in the echo as fast back-and-forth hand
+// Rule-based Habit detector: scratching and fidgeting show up in the echo as fast back-and-forth hand
 // motion. Ian's DIRECT 7064729504 fixed the rule before it was measured on any recording: the direction (sign of
 // shiftHz) flips 2-6 times a second, with motion above the idle floor for at least 1.5 s. It runs next to the trained
 // classifier and is OR-ed with it in index.ts.

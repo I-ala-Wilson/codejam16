@@ -26,7 +26,7 @@ CONFIRM_EVALS = 2
 REFRACTORY_S = 0.6
 #: A wave is long, so it holds off the strokes that follow it for longer.
 WAVE_REFRACTORY_S = 1.2
-#: A habit (scratching, nail biting) lasts seconds: fire once, then hold off so it is not reported every 0.6 s.
+#: A habit (scratching, fidgeting) lasts seconds: fire once, then hold off so it is not reported every 0.6 s.
 HABIT_REFRACTORY_S = 3.0
 #: An event belongs to a cue window when it falls from a little before it to a while after it (decision latency).
 MATCH_HEAD_S = 0.15
