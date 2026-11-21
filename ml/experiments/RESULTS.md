@@ -300,6 +300,23 @@ rule above. If not, nothing is removed and the result is reported. PUSH and PULL
 Not claimed: that these takes are "wrong" (a pull may legitimately start with a reach toward the screen); only whether
 training without them helps people the model has not seen.
 
+## New double-tap UNDO detector (Ian's DIRECT 7066324794). PRE-REGISTERED before it is scored (Sat 21 Nov 12:35)
+The first rule detector scored 6% (refused, above). This one is written from the measured shape of real UNDO cues (two
+toward strokes about 0.30 s apart, strokes peaking at 118-184 Hz), not tuned afterwards. All numbers below are FROZEN:
+- A toward stroke: at least 3 consecutive frames (gaps of up to 2 frames allowed) with shiftHz >= +30, peak >= 45 Hz.
+- A burst: toward strokes whose starts are less than 700 ms apart.
+- UNDO fires when a burst has exactly 2 toward strokes whose starts are 150-600 ms apart, the burst spans at most 1.3 s, and
+  there is no strong motion (|shiftHz| >= 30 for 2 or more frames, either sign) for 300 ms after the second stroke ends.
+  It is reported at that moment, source 'rules', confidence 0.7, hold-off 800 ms. 3 or more toward strokes in a burst
+  (a wave) never fires.
+Scoring (`engine/tools/undo-score.ts`, the real DSP on every take in `data/recordings`, breath takes excluded): an UNDO
+event is a hit for a rep if it falls between the rep's start and 1.0 s after its end; events elsewhere are false.
+Accept (all must hold): UNDO rep recall pooled >= 0.55 AND EJ >= 0.40; false UNDO events per minute <= 1.0 pooled over the
+PUSH, PULL, WAVE, OPEN_CLOSE and REPETITIVE takes AND <= 0.3 per minute on NONE takes. If accepted: it is OR-ed with the
+model's UNDO in `engine/src/index.ts` behind `ruleUndo` in gesture.json (shared refractory, so one double tap gives one
+UNDO) with tests; app changes are Ian's. If not accepted: refused, no re-tuning on these takes (a second version would be a
+new pre-registration and would say it was tuned on the same data).
+
 ## Breathing v2: time-boxed second shot (Ian's DIRECT 7065406175). PRE-REGISTERED before any new take is analysed
 v1 stays as written above and keeps its verdict (NO-GO on the 15 takes it was run on). v2 is an alternative method next to it,
 judged only on takes that were not used to design it, with a hard stop at 13:30 today: if v2 is not a GO by then, breathing
