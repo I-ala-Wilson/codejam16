@@ -20,7 +20,7 @@
     "PUSH": 0.85,
     "PULL": 0.85,
     "WAVE": 0.85,
-    "OPEN_CLOSE": 0.6,
+    "OPEN_CLOSE": 0.45,
     "UNDO": 0.95,
     "REPETITIVE": 0.9
   },
