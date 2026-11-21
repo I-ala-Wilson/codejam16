@@ -78,6 +78,11 @@ export class FramePipeline {
     })
   }
 
+  /** Use a floor learned elsewhere (offline scoring of a recording) instead of calibrating live. */
+  setFloor(floor: Float32Array): void {
+    this.floor = floor
+  }
+
   /** Reject every calibration still waiting (engine stopped, capture lost). */
   cancelCalibration(reason: Error): void {
     const pending = this.calibrations

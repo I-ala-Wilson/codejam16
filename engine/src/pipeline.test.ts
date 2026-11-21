@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { buildFloor } from './dsp.ts'
 import { FramePipeline, HOP, WINDOW } from './pipeline.ts'
 
 const FS = 48000
@@ -163,6 +164,17 @@ describe('FramePipeline', () => {
     const push = makeStream([carrier, { hz: 20117, amp: dbToAmp(-56) }], noise, 11)
     const frames = feed(p, push, 8)
     expect(frames[frames.length - 1].shiftHz).toBeGreaterThan(60) // a corrupted floor would hide this push
+  })
+
+  it('measures motion against a floor supplied with setFloor() instead of calibrating', () => {
+    const learner = new FramePipeline({ sampleRate: FS, toneHz: 20000 })
+    const stillBins = feed(learner, makeStream([carrier], noise), 80).map((f) => f.bins)
+    const p = new FramePipeline({ sampleRate: FS, toneHz: 20000 })
+    expect(p.isCalibrated).toBe(false)
+    p.setFloor(buildFloor(stillBins))
+    expect(p.isCalibrated).toBe(true)
+    const frames = feed(p, makeStream([carrier, { hz: 20117, amp: dbToAmp(-56) }], noise, 5), WINDOW / HOP + 4)
+    expect(frames[frames.length - 1].shiftHz).toBeGreaterThan(60)
   })
 
   it('rejects a chunk of the wrong size', () => {
