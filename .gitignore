@@ -34,3 +34,6 @@ coverage/
 # ML scratch (recordings live in data/recordings/<login>/, committed)
 ml/data/
 ml/.venv/
+
+# onnxruntime wasm (copied by app/copy-ort.sh)
+app/public/ort/

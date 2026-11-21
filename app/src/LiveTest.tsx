@@ -25,18 +25,22 @@ export default function LiveTest() {
   const [running, setRunning] = useState(engine.health().running)
   const [gesture, setGesture] = useState<GestureType>('PUSH')
   const [distance, setDistance] = useState(20)
-  const [phase, setPhase] = useState<'idle' | 'away' | 'leadin' | 'cue' | 'rest' | 'saving'>('idle')
+  const [phase, setPhase] = useState<'idle' | 'away' | 'leadin' | 'cue' | 'rest' | 'fa' | 'saving'>('idle')
   const [count, setCount] = useState(0)
   const [rep, setRep] = useState(0)
   const [lastResult, setLastResult] = useState('')
   const [tally, setTally] = useState<Tally>(() => JSON.parse(localStorage.getItem(`echo.tally.${login}`) ?? '{}'))
   const [error, setError] = useState('')
+  const [fa, setFa] = useState<{ kind: string; minutes: number; alarms: number; types: Record<string, number> }[]>(() => JSON.parse(localStorage.getItem(`echo.fa.${login}`) ?? '[]'))
+  const [faSecs, setFaSecs] = useState(0)
+  const [faLive, setFaLive] = useState(0)
   const frames = useRef(0)
   const events = useRef<GestureEvent[]>([])
   const sources = useRef<Record<string, number>>({})
 
   useEffect(() => { localStorage.setItem('echo.login', login); setTally(JSON.parse(localStorage.getItem(`echo.tally.${login}`) ?? '{}')) }, [login])
   useEffect(() => { localStorage.setItem(`echo.tally.${login}`, JSON.stringify(tally)) }, [tally, login])
+  useEffect(() => { localStorage.setItem(`echo.fa.${login}`, JSON.stringify(fa)) }, [fa, login])
   useEffect(() => {
     const offF = engine.onFrame(() => { frames.current += 1 })
     const offG = engine.onGesture((e) => {
@@ -106,6 +110,41 @@ export default function LiveTest() {
     setPhase('idle'); setRep(0)
   }
 
+  // False-alarm check: 60 s of idle or typing; every gesture event is a false alarm. Saved as a NONE take (hard negatives).
+  const runFalseAlarm = async (kind: 'idle' | 'typing') => {
+    setError(''); setFaLive(0)
+    setPhase('away'); for (let s = 2; s > 0; s--) { setCount(s); await sleep(1000) }
+    const person = login.trim()
+    const lap = laptop.trim().toLowerCase().replace(/\s+/g, '-') || 'laptop'
+    try { engine.startRecording({ person, gesture: 'FREE', laptop: lap, note: `false-alarm check: ${kind}` }) }
+    catch (e) { setError(String(e)); setPhase('idle'); return }
+    events.current = []
+    setPhase('fa')
+    const end = Date.now() + 60000
+    while (Date.now() < end) {
+      setFaSecs(Math.ceil((end - Date.now()) / 1000))
+      setFaLive(events.current.filter((e) => e.type !== 'HOLD').length)
+      await sleep(250)
+    }
+    const alarms = events.current.filter((e) => e.type !== 'HOLD')
+    const types: Record<string, number> = {}
+    for (const e of alarms) types[e.type] = (types[e.type] ?? 0) + 1
+    setPhase('saving')
+    try {
+      const s = await engine.stopRecording()
+      const stamp = s.filename.match(/_(\d{8}-\d{6})\.wav$/)?.[1] ?? Date.now().toString()
+      const base = `${person.toLowerCase()}_NONE-fa${kind}_${lap}_live_${stamp}`
+      const meta = { ...(s.meta as Record<string, unknown>), gesture: 'NONE', reps: [], takeKind: 'none', noneKind: `fa-${kind}`,
+        battery: 'livetest', laptopModel: laptop, protocol: 'ml/PROTOCOL.md',
+        falseAlarms: alarms.map((e) => ({ type: e.type, confidence: e.confidence, source: e.source })),
+        note: `false-alarm check (${kind}): ${alarms.length} false alarms in 60 s; ${JSON.stringify(types)}` }
+      download(await toPcm16(s.wav), `${base}.wav`)
+      download(new Blob([JSON.stringify(meta, null, 2)], { type: 'application/json' }), `${base}.json`)
+    } catch (e) { setError(String(e)) }
+    setFa((f) => [...f, { kind, minutes: 1, alarms: alarms.length, types }])
+    setPhase('idle')
+  }
+
   const busy = phase !== 'idle'
   const spec = SPEC[gesture]
   return (
@@ -125,6 +164,12 @@ export default function LiveTest() {
             </select>{' '}
             <button onClick={run} disabled={!running}>Start test</button>
             <p>On each beep + GO: {spec.how}, then hand back to rest and keep still. Every test is saved as extra training data (two files download); move them to data/recordings/&lt;your login&gt;/ like the dataset.</p>
+          </Box>
+          <Box title="False-alarm check (60 s, nothing should fire)">
+            <button onClick={() => runFalseAlarm('idle')} disabled={!running}>Idle: sit naturally, hands resting</button>{' '}
+            <button onClick={() => runFalseAlarm('typing')} disabled={!running}>Typing: type and use the trackpad</button>
+            <p>Any gesture detected during these 60 s is a false alarm. Each run also saves as a NONE take (the most useful training data for cutting false alarms); move the files to data/recordings/&lt;your login&gt;/.</p>
+            {fa.length > 0 && <p>{fa.map((r, i) => <span key={i} style={{ marginRight: 14 }}>{r.kind}: <b>{r.alarms}/min</b>{Object.keys(r.types).length ? ` (${Object.entries(r.types).map(([k, v]) => `${k}×${v}`).join(', ')})` : ''}</span>)}</p>}
           </Box>
           <Box title={`Results for ${login || '…'} (this laptop)`}>
             {Object.keys(tally).length === 0 ? <p>No tests yet.</p> : (
@@ -146,16 +191,17 @@ export default function LiveTest() {
         </>
       )}
       {busy && (
-        <Box title={`${gesture} at ${distance} cm${rep ? `: cue ${rep} of ${REPS}` : ''}`}>
+        <Box title={phase === 'fa' ? 'False-alarm check' : `${gesture} at ${distance} cm${rep ? `: cue ${rep} of ${REPS}` : ''}`}>
           <div style={{ fontSize: 60, fontWeight: 900, textAlign: 'center', padding: '26px 0', border: '2px solid #000', borderRadius: 8,
             background: phase === 'cue' ? '#000' : '#fff', color: phase === 'cue' ? '#fff' : '#000' }}>
             {phase === 'away' && `Take your hands away… ${count}`}
             {phase === 'leadin' && `Hands off, keep still… ${count}`}
             {phase === 'cue' && `GO: ${gesture}`}
             {phase === 'rest' && 'hand back to rest, stay still'}
+            {phase === 'fa' && `${faSecs}s · false alarms: ${faLive}`}
             {phase === 'saving' && 'saving…'}
           </div>
-          <p style={{ fontSize: 24, textAlign: 'center' }}>{lastResult}</p>
+          <p style={{ fontSize: 24, textAlign: 'center' }}>{phase === 'fa' ? 'Carry on normally. Do NOT make any gestures.' : lastResult}</p>
         </Box>
       )}
       {error && <p><b>Problem:</b> {error}</p>}
