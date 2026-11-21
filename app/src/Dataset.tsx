@@ -4,6 +4,7 @@ import { HOP } from '@engine/pipeline.ts'
 import { Window } from '@ui/index.ts'
 import { engine } from './engine.ts'
 import { toPcm16, download } from './Record.tsx'
+import { UI_SOUND_GAIN } from './sonar.ts'
 
 // Guided runner for the dataset battery in ml/PROTOCOL.md (sections 2, 3, 7).
 // Labels come from the cues: each rep = [cue sample, cue sample + cueWindow], sample-exact via frame count x HOP.
@@ -242,7 +243,7 @@ let beepCtx: AudioContext | null = null
 function beep() {
   beepCtx ??= new AudioContext()
   const o = beepCtx.createOscillator(); const g = beepCtx.createGain()
-  o.frequency.value = 1000; g.gain.value = 0.15
+  o.frequency.value = 1000; g.gain.value = UI_SOUND_GAIN
   o.connect(g).connect(beepCtx.destination)
   o.start(); o.stop(beepCtx.currentTime + 0.12)
 }

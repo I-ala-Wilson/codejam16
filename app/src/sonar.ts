@@ -25,9 +25,12 @@ export function keepSonarOn(): () => void {
   return stop
 }
 
+/** Gain for UI beeps and chimes. The system volume stays high for the 20 kHz tone, so these stay quiet. */
+export const UI_SOUND_GAIN = 0.03
+
 let actx: AudioContext | null = null
 /** A soft two-note chime (care confirmations, habit nudges). */
-export function chime(up = true, gain = 0.08) {
+export function chime(up = true, gain = UI_SOUND_GAIN * 0.7) {
   actx ??= new AudioContext()
   const t = actx.currentTime
   for (const [i, f] of (up ? [660, 880] : [880, 660]).entries()) {

@@ -4,6 +4,7 @@ import { HOP } from '@engine/pipeline.ts'
 import { Window } from '@ui/index.ts'
 import { engine } from './engine.ts'
 import { toPcm16, download } from './Record.tsx'
+import { UI_SOUND_GAIN } from './sonar.ts'
 
 // Cued live test (Yahya's plan step 3): cue a gesture, see what the model fired, tally hits/misses per gesture
 // per person, and save every attempt as a cue-labelled take (more training data, with the prediction stored).
@@ -225,7 +226,7 @@ let beepCtx: AudioContext | null = null
 function beep() {
   beepCtx ??= new AudioContext()
   const o = beepCtx.createOscillator(); const g = beepCtx.createGain()
-  o.frequency.value = 1000; g.gain.value = 0.15
+  o.frequency.value = 1000; g.gain.value = UI_SOUND_GAIN
   o.connect(g).connect(beepCtx.destination)
   o.start(); o.stop(beepCtx.currentTime + 0.12)
 }
