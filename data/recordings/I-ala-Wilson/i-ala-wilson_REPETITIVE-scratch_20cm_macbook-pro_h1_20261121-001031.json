@@ -1,0 +1,145 @@
+{
+  "person": "I-ala-wilson",
+  "gesture": "REPETITIVE",
+  "laptop": "macbook-pro",
+  "note": "SCRATCH at 20 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 288384,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 384000,
+      "end": 528000,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 624640,
+      "end": 768640,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 864256,
+      "end": 1008256,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1104896,
+      "end": 1248896,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1344512,
+      "end": 1488512,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1585152,
+      "end": 1729152,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1824768,
+      "end": 1968768,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2065408,
+      "end": 2209408,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 2305024,
+      "end": 2449024,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2545664,
+      "end": 2689664,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 2785280,
+      "end": 2929280,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3025920,
+      "end": 3169920,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3265536,
+      "end": 3409536,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3506176,
+      "end": 3650176,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3745792,
+      "end": 3889792,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3986432,
+      "end": 4130432,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 4226048,
+      "end": 4370048,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 4466688,
+      "end": 4610688,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 4706304,
+      "end": 4850304,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T00:10:31-05:00",
+  "takeKind": "gesture",
+  "battery": "habit",
+  "variant": "scratch",
+  "distanceCm": 20,
+  "cueWindowMs": 3000,
+  "periodMs": 5000,
+  "leadInMs": 3000,
+  "leadInMotion": false,
+  "hand": "L",
+  "volumePct": 70,
+  "laptopModel": "Macbook Pro",
+  "protocol": "ml/PROTOCOL.md",
+  "handNote": "Ian did the habit add-on twice: first pass assumed right hand, second pass left (hand field was not changed at record time)"
+}
