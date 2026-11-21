@@ -283,6 +283,23 @@ does not catch the double tap on real hands even though 71% of EJ's cues contain
 Doppler (measured separately). Nothing changes in the engine. Not claimed: that a better double-tap rule cannot work; that
 would be a new candidate under a new pre-registered rule.
 
+## Bad data: do mislabeled takes hurt training? (Yahya's request, Sat 21 Nov 12:30). PRE-REGISTERED before the experiment runs
+Scan (physics, no model): for every PUSH and PULL take, the share of cues whose Doppler sign matches the label, three ways
+(sign of the first strong stroke, of the largest-magnitude shift, of the summed strong shift inside the cue window). A
+take is a SUSPECT when the best of the three is below 0.35. Six takes qualify, all PULL on the MacBook Pro (Ian's four,
+both sessions, agreement 0-30%; Naomi's two): `ml/experiments/baddata/suspects.txt`. Ian's and Naomi's PUSH takes and every
+other person's PULL takes agree (EJ 78-100%, Yahya 70-100%); Michael's are mixed (35-60%) and above the line. So the
+contradiction is about those takes (toward-first pulls on that laptop), not a global sign flip.
+Hypothesis: these six teach the model that PULL looks like toward motion, adding to the PUSH-for-PULL confusion.
+Experiment (leave-one-person-out, baseline recipe, seeds 0 and 1, current data incl. Dell takes, GPU):
+- A: train on every take; B: the same but the six suspects are left out of TRAINING only.
+- Both are SCORED on the identical held-out set: every held-out take except the six suspects (a fair clean test).
+Decision with `tune.decide` (B vs A, `fa_slack` 0, per-seed pairing, 4 of 5 people): if B is accepted, add the six takes to a
+training exclusion list (`ml/exclude_takes.txt`, files are never deleted) and retrain the shipped model under the retrain
+rule above. If not, nothing is removed and the result is reported. PUSH and PULL recall are reported either way.
+Not claimed: that these takes are "wrong" (a pull may legitimately start with a reach toward the screen); only whether
+training without them helps people the model has not seen.
+
 ## Breathing v2: time-boxed second shot (Ian's DIRECT 7065406175). PRE-REGISTERED before any new take is analysed
 v1 stays as written above and keeps its verdict (NO-GO on the 15 takes it was run on). v2 is an alternative method next to it,
 judged only on takes that were not used to design it, with a hard stop at 13:30 today: if v2 is not a GO by then, breathing
