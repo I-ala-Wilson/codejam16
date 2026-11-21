@@ -16,7 +16,7 @@ export default function Home({ go }: { go: (page: string) => void }) {
       <div className="home__text">
         <div className="home__mark">{'ECHO Ø'}</div>
         <h1>Your laptop can hear your hands.</h1>
-        <p className="home__lede">By leveraging the power of sound and some neat physics, Echo Null is able to discern your movements and gestures, creating a wide set of applicability for all devices with a speaker and a microphone.</p>
+        <p className="home__lede">By leveraging the power of sound and some neat physics, Echo Null is able to discern your movements and gestures, creating a wide range of applications for all devices with a speaker and a microphone.</p>
       </div>
       <div className="home__apps">
         {!running
