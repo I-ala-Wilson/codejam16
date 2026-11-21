@@ -213,20 +213,28 @@ const scratchingHand = make3D(() => {
     }
     // the desk sits at elbow height; the left forearm lies across it in front of the body
     const lSh = at('LeftArm'), rSh = at('RightArm'), mid = lSh.clone().add(rSh).multiplyScalar(0.5)
-    const deskY = mid.y - 0.36
-    // only the arms: cut away everything behind a plane just in front of the chest, so the torso and head vanish
-    body.clippingPlanes = [new THREE.Plane(new V3(0, 0, 1), -(mid.z + 0.2))]
+    const deskY = mid.y - 0.25 // elbow height, so the forearms lie flat with natural elbows
+    // Remove only the torso and head: clip the block |x| < 0.135 (between the shoulders) behind z = chest front.
+    // clipIntersection clips a point only when it is inside ALL three planes, so the arms (outside the block) stay whole.
+    body.clippingPlanes = [
+      new THREE.Plane(new V3(0, 0, 1), -(mid.z + 0.15)),
+      new THREE.Plane(new V3(1, 0, 0), -(mid.x + 0.135)),
+      new THREE.Plane(new V3(-1, 0, 0), mid.x - 0.135),
+    ]
+    body.clipIntersection = true
     desk.position.set(mid.x, deskY - 0.03, mid.z + 0.45)
-    const wl = new V3(mid.x + (rSh.x - lSh.x) * 0.1, deskY + 0.03, mid.z + 0.52)
+    const wl = new V3(mid.x + (rSh.x - lSh.x) * 0.2, deskY + 0.03, mid.z + 0.4)
     g = { bone, q0, L: arm('Left'), R: arm('Right'), wl, el: new V3() }
-    pose('Left', g.L, wl, new V3(Math.sign(lSh.x - mid.x), -1, -0.3), new V3(Math.sign(rSh.x - lSh.x), 0, 0.15).normalize(), new V3(0, -1, 0), 0.25)
+    // left forearm flat across the desk, palm down, elbow out to his left side
+    pose('Left', g.L, wl, new V3(Math.sign(lSh.x - mid.x), -0.5, 0.5), new V3(Math.sign(rSh.x - lSh.x), 0, 0.12).normalize(), new V3(0, -1, 0), 0.2)
     root.updateMatrixWorld(true)
     g.el.copy(at('LeftForeArm'))
-    lap.position.set(mid.x + (lSh.x - mid.x) * 2.4, deskY, mid.z + 0.3); lap.rotation.y = Math.sign(lSh.x - mid.x) * 0.5
-    // camera: tight on the forearms, from the front and a little to the right and above
-    const f = wl.clone().lerp(g.el, 0.5)
-    const sideL = Math.sign(lSh.x - mid.x)
-    camera.position.copy(f).add(new V3(-sideL * 0.15, 0.62, 0.78)); camera.lookAt(f.x, f.y, f.z + 0.03)
+    lap.position.set(mid.x + (lSh.x - mid.x) * 2.8, deskY, mid.z + 0.62); lap.rotation.y = Math.PI - Math.sign(lSh.x - mid.x) * 0.45 // facing him
+    // camera: high, in front and to his right, looking down at both forearms
+    const f = wl.clone().lerp(g.el, 0.45)
+    const sideR = Math.sign(rSh.x - mid.x)
+    // in front of him and to his right, above the desk, looking down at both forearms
+    camera.position.set(f.x + sideR * 0.42, f.y + 0.8, f.z + 0.95); camera.lookAt(f.x - sideR * 0.03, f.y, f.z + 0.04)
   }, undefined, (e) => console.warn('guy.glb failed to load for the Habit scene', e))
 
   return {
@@ -238,7 +246,7 @@ const scratchingHand = make3D(() => {
       target.addScaledVector(along.clone().normalize(), Math.sin(t * 25) * 0.025 * (1 - pause)).add(new V3(0, 0.045 + 0.08 * pause, 0))
       scratch.position.copy(target)
       const rSide = Math.sign(g.bone('RightArm').getWorldPosition(new V3()).x - g.wl.x) || -1
-      pose('Right', g.R, target.clone().add(new V3(0, 0.07, 0.02)), new V3(rSide, -1, 0), new V3(0, -1, 0.25).normalize(), new V3(-rSide, 0, 0.2).normalize(), 0.75 - 0.4 * pause)
+      pose('Right', g.R, target.clone().add(new V3(rSide * 0.08, 0.045, -0.01)), new V3(rSide, -0.6, 0.3), new V3(-rSide, -0.25, 0.08).normalize(), new V3(0, -1, 0), 0.85 - 0.45 * pause)
     },
   }
 }, () => {}, (g2, at, t) => {
