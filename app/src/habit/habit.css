@@ -1,0 +1,19 @@
+/* ECHØ Habit page and nudge bar (STYLE.md: charcoal, VT323, off-white, dotted rules, inversion, no colour) */
+.hb-warn { font-size: 24px; border: 1px dotted var(--ink); padding: 10px 14px; margin: 0 0 32px; }
+
+.hb-nums { display: flex; gap: 72px; margin: 0 0 44px; flex-wrap: wrap; }
+.hb-big { font: 400 96px/.9 var(--pixel); color: var(--ink-strong); }
+.hb-label { font-size: 22px; letter-spacing: .04em; margin-top: 6px; }
+
+.hb-section { border-top: 1px dotted var(--ink); padding-top: 20px; margin-bottom: 40px; }
+.hb-section h2 { font: 400 32px var(--pixel); margin: 0 0 18px; color: var(--ink-strong); }
+
+.hb-week { display: flex; gap: 12px; flex-wrap: wrap; }
+.hb-day { width: 84px; height: 84px; border: 1px dotted var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.hb-day__n { font-size: 40px; line-height: 1; }
+.hb-day__name { font-size: 18px; letter-spacing: .06em; text-transform: uppercase; }
+.hb-day--today { background: var(--ink); color: var(--bg); border-style: solid; }
+
+/* Gentle full-width bar along the bottom, first nudge each hour, 2 s */
+.hb-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 899; font: 400 24px/1 var(--pixel); letter-spacing: .04em; text-align: center; color: var(--ink); background: var(--bg); border-top: 1px dotted var(--ink); padding: 14px 16px 16px; opacity: 0; transition: opacity 500ms; pointer-events: none; }
+.hb-bar--on { opacity: 1; }

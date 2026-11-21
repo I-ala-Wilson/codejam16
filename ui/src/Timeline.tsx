@@ -11,12 +11,12 @@ const BAYER = [
   [63, 31, 55, 23, 61, 29, 53, 21],
 ]
 const PX = 3 // one dither pixel = 3 CSS px (STYLE.md)
-const BAR = 3 // dither pixels per bar
 const GAP = 1
 
-// One bar per minute (0..1, newest last). Each bar fades from solid at its top to sparse at
+// One bar per value (0..1, newest last); barWidth is in dither pixels (default 3, use more for few bars). Each bar fades from solid at its top to sparse at
 // the base, then is Bayer-dithered to 1-bit off-white on charcoal.
-export function Timeline({ values, marks, height = 120 }: { values: number[]; marks?: { i: number; label: string }[]; height?: number }) {
+export function Timeline({ values, marks, height = 120, barWidth = 3 }: { values: number[]; marks?: { i: number; label: string }[]; height?: number; barWidth?: number }) {
+  const BAR = Math.max(1, Math.round(barWidth))
   const ref = useRef<HTMLCanvasElement>(null)
   const cols = Math.max(1, values.length) * (BAR + GAP)
   const rows = Math.max(8, Math.round(height / PX))
@@ -40,7 +40,7 @@ export function Timeline({ values, marks, height = 120 }: { values: number[]; ma
       }
     }
     ctx.putImageData(img, 0, 0)
-  }, [values, cols, rows])
+  }, [values, cols, rows, BAR])
 
   return (
     <div className="echo-timeline" style={{ width: cols * PX }}>

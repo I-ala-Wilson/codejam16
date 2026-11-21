@@ -1,47 +1,106 @@
-import { useEffect, useState } from 'react'
-import { habitOn, setHabitOn, snooze, snoozedUntil, today } from './store.ts'
+import { useEffect, useRef, useState } from 'react'
+import { Timeline } from '@ui/index.ts'
+import { engine } from '../engine.ts'
+import { ensureSonar } from '../sonar.ts'
+import { habitOn, hourCounts, lastWeek, longestCalm, setHabitOn, snooze, snoozedUntil, today } from './store.ts'
+import './habit.css'
 
-// ECHØ Habit: turn the watcher on, see today's nudges by hour and the time since the last one.
+// ECHØ Habit: turn the watcher on (after a 10 s still-hands calibration), then see today's nudges by hour,
+// the longest calm stretch, and the last 7 days.
+const CALIBRATE_S = 10
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+const span = (ms: number) => {
+  const m = Math.floor(ms / 60000)
+  return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`
+}
+
 export default function HabitPage() {
   const [, tick] = useState(0)
+  const [count, setCount] = useState(0) // seconds left in calibration, 0 = not calibrating
+  const [failed, setFailed] = useState(false)
+  const cancelled = useRef(false)
   useEffect(() => {
     const f = () => tick((n) => n + 1)
     window.addEventListener('echo-habit', f); const id = setInterval(f, 1000)
-    return () => { window.removeEventListener('echo-habit', f); clearInterval(id) }
+    return () => { window.removeEventListener('echo-habit', f); clearInterval(id); cancelled.current = true }
   }, [])
+
+  const turnOn = async () => {
+    setFailed(false); cancelled.current = false; setCount(CALIBRATE_S)
+    const id = setInterval(() => setCount((c) => Math.max(1, c - 1)), 1000)
+    let ok = await ensureSonar()
+    if (ok) { try { await engine.calibrate(CALIBRATE_S * 1000) } catch { ok = false } }
+    clearInterval(id); setCount(0)
+    if (!ok) { setFailed(true); return }
+    if (!cancelled.current) setHabitOn(true)
+  }
+
   const on = habitOn()
   const events = today()
-  const last = events[events.length - 1]
-  const since = last ? Math.floor((Date.now() - last) / 60000) : null
-  const snoozeLeft = Math.max(0, Math.ceil((snoozedUntil() - Date.now()) / 60000))
-  const hours = Array.from({ length: 24 }, (_, h) => events.filter((t) => new Date(t).getHours() === h).length)
+  const hours = hourCounts()
   const max = Math.max(1, ...hours)
   const nowH = new Date().getHours()
+  const week = lastWeek()
+  const snoozeLeft = Math.max(0, Math.ceil((snoozedUntil() - Date.now()) / 60000))
+  const calm = longestCalm()
+
+  if (count > 0) {
+    return (
+      <div className="lk lk--invert">
+        <div className="lk__center">
+          <div className="lk__eyebrow">ECHØ HABIT · CALIBRATING</div>
+          <div className="lk__huge">{count}</div>
+          <div className="lk__sub">Keep your hands still.</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="lk">
       <div className="lk__panel">
         <div className="lk__eyebrow">ECHØ HABIT</div>
-        <div className="lk__state">{on ? 'Hands off.' : 'Habit mode off'}</div>
+        <div className="lk__state">{on ? 'Watching.' : 'Habit mode off'}</div>
         <div className="lk__chips">
           <span className={on ? 'on' : ''}>{on ? 'watching' : 'not watching'}</span>
           {snoozeLeft > 0 && <span className="on">snoozed {snoozeLeft} min</span>}
         </div>
-        <p className="lk__how">Leave this on while you work. When the sonar hears scratching or nail-biting it plays a soft chime and shows a tiny note in the corner. Double tap right after a nudge to snooze it for 10 minutes.</p>
-        <div className="habit__nums">
-          <div><div className="habit__big">{events.length}</div><div>nudges today</div></div>
-          <div><div className="habit__big">{since === null ? '-' : since < 60 ? `${since}m` : `${Math.floor(since / 60)}h`}</div><div>since the last one</div></div>
+        <p className="lk__how">
+          Leave this on while you work. When the sonar hears scratching or nail-biting it plays a soft chime and shows a
+          small note in the corner. Double tap right after a nudge to snooze it for 10 minutes.
+        </p>
+        {failed && <p className="hb-warn">The sonar did not start. Allow the microphone and try again.</p>}
+
+        <div className="hb-nums">
+          <div><div className="hb-big">{events.length}</div><div className="hb-label">nudges today</div></div>
+          <div><div className="hb-big">{calm ? span(calm) : '-'}</div><div className="hb-label">longest calm stretch today</div></div>
         </div>
-        <div className="habit__hours">
-          {hours.map((n, h) => (
-            <div key={h} className={`habit__bar${h === nowH ? ' now' : ''}`} title={`${h}:00 · ${n}`}>
-              <i style={{ height: `${(n / max) * 100}%` }} />
-              <span>{h % 6 === 0 ? `${h}h` : ''}</span>
-            </div>
-          ))}
-        </div>
+
+        <section className="hb-section">
+          <h2>Today by hour</h2>
+          <Timeline
+            values={hours.map((n) => n / max)}
+            marks={[0, 6, 12, 18].filter((h) => h !== nowH).map((h) => ({ i: h, label: `${h}h` })).concat({ i: nowH, label: 'now' })}
+            height={96}
+            barWidth={12}
+          />
+        </section>
+
+        <section className="hb-section">
+          <h2>Last 7 days</h2>
+          <div className="hb-week">
+            {week.map((d, i) => (
+              <div key={d.day.getTime()} className={`hb-day${i === 6 ? ' hb-day--today' : ''}`}>
+                <span className="hb-day__n">{d.count}</span>
+                <span className="hb-day__name">{i === 6 ? 'today' : DAYS[d.day.getDay()]}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <div className="lk__row lk__row--left">
-          <button className="lk__btn lk__btn--primary" onClick={() => setHabitOn(!on)}>{on ? 'Turn off' : 'Turn on'}</button>
+          <button className="lk__btn lk__btn--primary" onClick={() => (on ? setHabitOn(false) : turnOn())}>{on ? 'Turn off' : 'Turn on'}</button>
           {on && <button className="lk__btn" onClick={() => snooze(10 * 60 * 1000)}>Snooze 10 min</button>}
         </div>
       </div>
