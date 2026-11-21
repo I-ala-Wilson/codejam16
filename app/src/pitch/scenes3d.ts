@@ -126,7 +126,7 @@ export const privacyTile3D = make3D(() => {
   }
 }, (g) => {
   noSign(g, DW / 2, 150, 118)
-  label(g, 'NOT ALLOWED IN BATHROOMS', DW / 2, 300)
+  label(g, 'NOT ALLOWED IN PRIVATE SPACES', DW / 2, 300)
 })
 
 export const darkTile3D = make3D(() => {
