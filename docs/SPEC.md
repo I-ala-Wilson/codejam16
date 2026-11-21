@@ -1,4 +1,4 @@
-SPEC_VERSION: 5
+SPEC_VERSION: 6
 
 # SPEC: Echo (sonar gesture engine, three apps)
 
@@ -45,9 +45,8 @@ See `docs/BRIEF.md`.
   5. measured accuracy/range report;
   6. style pass.
 - **Moonshot:**
-  1. ASL signs (HELP/YES/NO/MORE/THANK YOU);
-  2. two-tone swipe L/R;
-  3. breathing.
+  1. two-tone swipe L/R.
+- **Cut (v6):** ASL signs (Yahya's call, out of scope); breathing (pre-registered test failed twice, see ml/experiments/RESULTS.md).
 - **Cut:**
   - mobile/iPad app;
   - real OS lock;
@@ -104,7 +103,7 @@ See `contracts/`:
 |---|---|---|
 | Room test (humans) | Fri 21:30 | tone + push/pull checked on all 4 laptops in the hall; demo laptop chosen |
 | M1 skeleton | Fri 23:30 | live waterfall in the app; Record page saves a session; a test event reaches the dashboard; extension loads and blocks a site |
-| Recording session (humans) | Fri 23:45 | each person: every gesture ×20 (ASL ×10 if time) |
+| Recording session (humans) | Fri 23:45 | each person: every gesture ×20 |
 | QA M1 | Fri 23:50 | QA pass |
 | Sleep | 00:00–08:00 | everyone |
 | M2 Floor | Sat 12:00 | every Must item demos end to end |

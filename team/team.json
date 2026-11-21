@@ -30,7 +30,7 @@
       "agent": "claude",
       "plan": "Claude Max 20x",
       "budget": "high",
-      "role": "sonar engine (DSP + rules), ML on GPU, ASL experiments; rescue lane",
+      "role": "sonar engine (DSP + rules), ML on GPU; rescue lane",
       "owns": [
         "engine/*",
         "ml/*",

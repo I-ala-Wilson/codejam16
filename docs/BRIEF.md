@@ -37,7 +37,7 @@ Working name **"Echo"**; the team renames it in the BRIEF review.
    - the "patient" waves for help and the caregiver dashboard on a phone lights up within 1 s;
    - an inactivity alert and a restlessness timeline.
 4. **Habit (~30 s):** fake scratching; a nudge chime fires and the event is logged. The undo gesture snoozes it.
-5. **Honesty slide (~30 s):** measured range, accuracy, where it beats a camera and where it doesn't, compression limits and information capacity. ASL preview if the Moonshot lands.
+5. **Honesty slide (~30 s):** measured range, accuracy, where it beats a camera and where it doesn't, compression limits and information capacity.
 
 ## Ambition ladder
 - **Floor, by Sat 12:00:**
@@ -54,7 +54,6 @@ Working name **"Echo"**; the team renames it in the BRIEF review.
   - measured accuracy and range numbers;
   - visual style pass.
 - **Moonshot:**
-  - 3–5 ASL signs (HELP, YES, NO, MORE, THANK YOU) with honest accuracy;
   - two-tone left/right;
   - breathing sensing.
 - **Fallback:** demo in the quiet judging room. Plus: tonight we record real sessions, which become training/test data and evidence for the honesty slide.
@@ -84,7 +83,7 @@ Constraints:
 
 ## Tonight (first actions after kickoff)
 1. **Room test, first hour (EJ + everyone, human task):** run the engine's tone and push/pull check on all 4 laptops in the hall. Pick the demo laptop; record range and noise.
-2. **Data recording session (all 4, before midnight):** each person does every gesture 20× and, if possible, the ASL signs 10×.
+2. **Data recording session (all 4, before midnight):** each person does every gesture 20×.
 3. **M1 skeleton by 23:30:** every folder runs, the app shows a live waterfall, and the dashboard receives a test event.
 
 ## Milestones (Montreal)
