@@ -288,6 +288,21 @@ new files. `gesture.json` differs only in the window count (73208 to 79550); cla
 Honest reading: the held-out numbers are the same as before within noise (0.412 vs 0.421), so this is not an accuracy gain
 on the people we already had. What it adds is a second laptop model (Dell Inspiron 15 3520) in the training set.
 
+## Retrain with EJ's two extra UNDO takes: candidate REFUSED by rule (b), shipped model stays (13:25)
+Candidate: final model trained on all 177 takes (EJ's UNDO 20 cm and 50 cm, 40 cues, pushed 506a88f, are in; Yahya's two live
+takes from 13:14 are not). Rule (a), leave-one-person-out, baseline recipe, seeds 0 and 1 (`ml/experiments/retrain_ej_undo/`):
+macro recall 0.391 and 0.390 (needs 0.39, borderline pass), false alarms 2.32 and 2.25 per minute (needs 2.6, pass). Stranger
+recall per class: PUSH 0.50, PULL 0.43, WAVE 0.42, OPEN_CLOSE 0.36, UNDO 0.47, Habit 0.16; five-gesture mean 0.436. The extra
+UNDO takes did NOT raise UNDO for unseen people (0.47, was 0.48). Rule (b), `ml/compare_models.py` against the shipped morning
+model on Ian's unseen takes (`data/pilot`): PUSH 5 vs 7 of 28 FAIL, WAVE 2 vs 4 of 12 FAIL, Habit 0 vs 2 of 14 FAIL, OPEN_CLOSE
+0 vs 0 ok, UNDO 12 vs 6 of 13 ok, stray UNDO in WAVE takes 0 vs 0. Verdict: a candidate that loses PUSH, WAVE and Habit
+for the presenter is not shipped, whatever it gains elsewhere; nothing changes in `ml/models` or the app. What this means
+for EJ's UNDO on his MacBook Air: 40 extra cues from his own laptop are in the training data of every future model but do not
+help unseen people, and the only way to give his laptop a better UNDO without hurting Ian's is a per-laptop model, which we
+do not have. The Dell, MBP and Katana people are not helped by it either.
+Note: the first Dell retrain scored 0.412 and this one 0.390 with more data (Michael's second Dell battery and EJ's UNDO
+takes added); the difference is about one seed-noise unit (0.02), so no conclusion is drawn from it.
+
 ## Bad data result: removing the six suspect takes does NOT help; nothing removed (13:10)
 Leave-one-person-out, baseline recipe, seeds 0 and 1, current data, GPU (`ml/experiments/baddata/`). A trains on every take;
 B leaves the six suspect PULL takes out of TRAINING only; both are scored on the identical held-out set without those six takes.
