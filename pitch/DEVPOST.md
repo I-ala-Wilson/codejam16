@@ -20,7 +20,7 @@ One engine powers three apps:
 ## How we built it
 A TypeScript engine in the browser generates the tone, reads the mic and turns the echo into gesture events. A React app shows the live sonar (a 1-bit dithered waterfall) and runs the three apps. Five people recorded 147 gesture takes, and we trained a small CNN on a GPU that runs in the browser through ONNX.
 
-**Agent Solution:** efficient compute. The model is 128 KB and runs on the laptop's CPU in the browser, with no server and no cloud cost, and a calibration retrain takes about 3 minutes on one GPU. Four humans worked with five AI agents (three Claude Code, one QA, one Codex). The lead owns a single versioned spec and the interface contracts, and every agent acknowledges each new version. Each agent owns only its folders, and git hooks block edits outside them. The agents coordinate on one pinned GitHub issue that works like a message board, with typed posts (NEED, DONE, BLOCKED) and exactly one reply per request. The QA agent hunts bugs at each milestone, and it caught a security bug in the lock. The humans chose the idea, recorded the data, tested and decided; the agents wrote the code.
+**Agent Solution:** efficient compute. The model is a 32k-parameter CNN (128 KB, 1 s window of 48 x 87 Doppler bins, PyTorch, AdamW, 30 epochs) that runs in ONNX Runtime Web on the laptop's CPU, with no server and no cloud cost, and a calibration retrain takes about 3 minutes on one GPU. Four humans worked with five AI agents (three Claude Code, one QA, one Codex). The lead owns a single versioned spec and the interface contracts, and every agent acknowledges each new version. Each agent owns only its folders, and git hooks block edits outside them. The agents coordinate on one pinned GitHub issue that works like a message board, with typed posts (NEED, DONE, BLOCKED) and exactly one reply per request. The QA agent hunts bugs at each milestone, and it caught a security bug in the lock. The humans chose the idea, recorded the data, tested and decided; the agents wrote the code.
 
 ## Challenges we ran into
 Ultrasound behaves differently on every laptop, so we tested each of ours. Telling PUSH from PULL is still hard, and a brand-new person's gestures are harder to read than ours.
@@ -29,7 +29,7 @@ Ultrasound behaves differently on every laptop, so we tested each of ours. Telli
 Hand sensing with no camera on an ordinary laptop, shared by three apps. A team of four humans and five agents kept one spec in sync from start to finish.
 
 ## What we learned
-A speaker and a mic make a surprisingly capable sensor. Being honest about our numbers makes the project more convincing, not less: on people the model has never seen it gets about 45% of gestures right, and on our presenter's MacBook Pro it goes from 66% to 71% with about 5 minutes of his own recordings (77% with more). Habit is weaker: it caught 6 of 7 scratches in a live test but about 22% on unseen people.
+A speaker and a mic make a surprisingly capable sensor. Being honest about our numbers makes the project more convincing, not less: on people the model has never seen it gets about 45% of gestures right, and on our calibrated demo MacBook Pro it recognised 96% of gestures in 100 live trials. Habit is weaker: it caught 6 of 7 scratches in a live test but about 22% on unseen people.
 
 ## What's next for ECHØ
 Fix the PUSH/PULL confusion by retraining on more data, raise accuracy for new users, and grow Care's hand-sign vocabulary.

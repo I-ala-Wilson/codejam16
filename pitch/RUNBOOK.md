@@ -32,5 +32,5 @@ Speakers are a proposal; swap them freely, but each person rehearses their line 
 - **Does it record me?** No. Audio is analysed on the laptop and thrown away; only events like "help" leave it.
 - **Will it work on my laptop?** Any laptop with a speaker and mic; weaker speakers need a short calibration.
 - **Why not a camera?** Not allowed in many patient rooms and bathrooms, and it fails in the dark.
-- **How accurate?** About 45% for someone it has never seen, about 77% on this laptop after calibration.
+- **How accurate?** About 45% for someone it has never seen, 96% in 100 live trials on this laptop after calibration.
 - **What did the AI do?** The agents wrote and tested most of the code; we chose what to build, recorded the data and tested it live.

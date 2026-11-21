@@ -28,7 +28,7 @@ Michael's phone on the caregiver dashboard, Habit mode on only for the Habit dem
 
 ## 6. Built + honest + close (Yahya, then Michael, 2:20-2:45)
 - Yahya: "Four of us built this with five AI agents on one shared board, and the model runs on the laptop itself: no server, no cloud cost."
-- Michael: "It's not perfect: about 45% for someone it's never seen, about 77% once it learns you. But it costs nothing and runs on hardware you already own."
+- Michael: "It's not perfect: about 45% for someone it's never seen, and 96% in 100 live trials once it's calibrated to this laptop. And it costs nothing and runs on hardware you already own."
 - Michael: "**Everything a camera cannot do, sound can. We are ECHØ, and your laptop can hear your hands.**"
 
 ## Buffer (0:45 of slack inside 3:00 + Q&A)

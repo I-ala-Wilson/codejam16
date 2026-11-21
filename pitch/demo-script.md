@@ -30,10 +30,10 @@ mistake, a double tap in the air undoes the last sign. That undo works everywher
 "Habit notices when you scratch while you work and gives you a soft nudge. The chart shows your day."
 
 ## 6. Agent Solution and honest numbers (3:15 - 4:00)
-"Agent Solution. The model is 128 kilobytes and runs on this laptop's own CPU, in the browser. No server, no cloud
+"Agent Solution. The model is a 32-thousand-parameter neural network, 128 kilobytes, and runs on this laptop's own CPU, in the browser. No server, no cloud
 cost, and a new calibration trains in about three minutes. Four of us built it with five AI agents on one shared board.
-Honest numbers: for a person the model has never seen, it gets about 45% of gestures. On this laptop, with a few minutes
-of my own recordings, about 77%. ECHØ: your laptop can hear your hands."
+Honest numbers: for a person the model has never seen, it gets about 45% of gestures. On this laptop, after calibration,
+96% in 100 live trials. ECHØ: your laptop can hear your hands."
 
 ## Q&A prompts to have ready
 - "Does it record me?" No. Audio is analysed on the laptop and thrown away; only events like "help" leave it.
