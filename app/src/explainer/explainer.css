@@ -18,7 +18,6 @@
 .ex__formula { font-size: 30px; color: var(--ink-strong); margin: 8px 0 2px; }
 .ex__spec { display: block; width: 100%; height: 72px; margin-top: 12px; }
 .ex__axis { display: flex; justify-content: space-between; font-size: 17px; margin-top: 2px; }
-.ex__keys { position: absolute; right: 28px; bottom: 22px; padding: 8px 12px; background: rgba(11, 11, 12, .82); border: 1px dotted var(--ink); text-align: right; font-size: 18px; line-height: 1.3; letter-spacing: .03em; }
 
 /* embedded on Home: words live in a left column, the scene is drawn to the right of it */
 .ex--embedded .ex__caption { left: 56px; top: 56px; width: 420px; }
@@ -28,4 +27,4 @@
 .ex__intro h2 { font: 400 34px/1.05 var(--pixel); margin: 10px 0 18px; color: var(--ink-strong); }
 .ex__intro hr { border: 0; border-top: 1px dotted var(--ink); width: 120px; margin: 0 0 22px; }
 .ex--embedded .ex__readout { left: 56px; }
-.ex--embedded .ex__keys { font-size: 16px; }
+.ex--embedded 

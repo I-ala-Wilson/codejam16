@@ -49,7 +49,6 @@ export default function Explainer({ embedded = false, children }: { embedded?: b
   const echoEl = useRef<HTMLSpanElement>(null)
   const spec = useRef<HTMLCanvasElement>(null)
   const [gesture, setGesture] = useState(0)
-  const [flags, setFlags] = useState({ paused: false, orbit: true, dither: true })
 
   useEffect(() => {
     let shown = -1
@@ -71,10 +70,10 @@ export default function Explainer({ embedded = false, children }: { embedded?: b
     if (!embedded) (document.activeElement as HTMLElement | null)?.blur()
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey) return
-      if (e.key >= '1' && e.key <= '4') c.jump(Number(e.key))
-      else if (e.key === (embedded ? 'p' : ' ')) { e.preventDefault(); const paused = c.togglePause(); setFlags((f) => ({ ...f, paused })) }
-      else if (e.key === 'c') { const orbit = c.toggleOrbit(); setFlags((f) => ({ ...f, orbit })) }
-      else if (e.key === 'd') { const dither = c.toggleDither(); setFlags((f) => ({ ...f, dither })) }
+      if (e.key >= '1' && e.key <= '5') c.jump(Number(e.key))
+      else if (e.key === (embedded ? 'p' : ' ')) { e.preventDefault(); c.togglePause() }
+      else if (e.key === 'c') c.toggleOrbit()
+      else if (e.key === 'd') c.toggleDither()
     }
     window.addEventListener('keydown', onKey)
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('resize', fit); c.dispose() }
@@ -99,11 +98,6 @@ export default function Explainer({ embedded = false, children }: { embedded?: b
         <div className="ex__row ex__small"><span>echo</span><span ref={echoEl} /></div>
         <canvas ref={spec} className="ex__spec" />
         <div className="ex__axis"><span>-{SPAN} Hz</span><span>20 kHz</span><span>+{SPAN} Hz</span></div>
-      </div>
-      <div className="ex__keys">
-        <div>1 push · 2 pull · 3 wave · 4 open/close</div>
-        <div>{embedded ? 'p' : 'space'} {flags.paused ? 'play' : 'pause'} · c orbit {flags.orbit ? 'on' : 'off'} · d dither {flags.dither ? 'on' : 'off'}</div>
-        <div>sound drawn ~1000× slower · f0 = 20 kHz · c = 343 m/s</div>
       </div>
     </div>
   )

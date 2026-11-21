@@ -19,6 +19,7 @@ export const GESTURES = [
   { name: 'PULL', sub: 'hand away · echo stretched · pitch down', dur: 4 },
   { name: 'WAVE', sub: 'side to side · pitch wobbles up, down, up', dur: 4 },
   { name: 'OPEN / CLOSE', sub: 'fingers fold and spread · small shifts both ways', dur: 4 },
+  { name: 'UNDO', sub: 'double tap toward the screen · two quick blips', dur: 3 },
 ] as const
 
 export type Frame = { gesture: number; v: number; df: number }
@@ -59,9 +60,9 @@ void main() {
   float d = length(vP);
   float ang = abs(atan(vP.x, vP.y));
   float mask = 1.0 - smoothstep(uHalf * 0.55, uHalf, ang);
-  if (uDash > 0.0) mask *= step(0.42, fract(atan(vP.x, vP.y) * uDash));
-  float x = (d - uR) / 0.0035;
-  float band = exp(-x * x) + 0.22 * exp(-x * x / 16.0);
+  if (uDash > 0.0) mask *= step(0.5, fract(atan(vP.x, vP.y) * uDash));
+  float x = (d - uR) / 0.0012; // a thin crisp line, one or two dither pixels wide
+  float band = exp(-x * x);
   float a = uAlpha * band * mask;
   if (a < 0.004) discard;
   gl_FragColor = vec4(uColor, a);
@@ -112,19 +113,23 @@ function solveElbow(a: THREE.Vector3, t: THREE.Vector3, l1: number, l2: number, 
   return out.copy(a).addScaledVector(d, l1 * cosA).addScaledVector(perp, l1 * sinA)
 }
 
-// Turn a bone so its rest-space axes a and b (orthonormal) point along world directions da and db; db is made
-// perpendicular to da first. Every Xbot bone rests with an identity rotation, so rest space is the model's own frame.
+// Turn a bone so the world directions a and b it had in the rest pose (orthonormal) point along da and db instead;
+// db is made perpendicular to da first. q0 is the bone's world rotation in the rest pose, so any rig's bind works.
 const mRest = new THREE.Matrix4(), mWant = new THREE.Matrix4(), qWant = new THREE.Quaternion(), qPar = new THREE.Quaternion()
 const ob = new V(), oc = new V(), oa = new V()
-function orient(bone: THREE.Object3D, a: THREE.Vector3, b: THREE.Vector3, da: THREE.Vector3, db: THREE.Vector3) {
+function setWorld(bone: THREE.Object3D, q0: THREE.Quaternion, d: THREE.Quaternion) {
+  qWant.copy(d).multiply(q0)
+  bone.parent!.getWorldQuaternion(qPar)
+  bone.quaternion.copy(qPar.invert().multiply(qWant))
+  bone.updateMatrixWorld(true)
+}
+const qD = new THREE.Quaternion()
+function orient(bone: THREE.Object3D, q0: THREE.Quaternion, a: THREE.Vector3, b: THREE.Vector3, da: THREE.Vector3, db: THREE.Vector3) {
   oa.copy(da).normalize()
   ob.copy(db).addScaledVector(oa, -db.dot(oa)).normalize()
   mWant.makeBasis(oa, ob, oc.crossVectors(oa, ob))
   mRest.makeBasis(a, b, new V().crossVectors(a, b)).transpose()
-  qWant.setFromRotationMatrix(mWant.multiply(mRest))
-  bone.parent!.getWorldQuaternion(qPar)
-  bone.quaternion.copy(qPar.invert().multiply(qWant))
-  bone.updateMatrixWorld(true)
+  setWorld(bone, q0, qD.setFromRotationMatrix(mWant.multiply(mRest)))
 }
 
 type Wave = { mesh: THREE.Mesh; mat: THREE.ShaderMaterial; on: boolean; t0: number; c: THREE.Vector3; hit: boolean; hitR: number; k: number }
@@ -309,15 +314,17 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     }
   }
 
-  // Rigged person: the Xbot mannequin (Mixamo skeleton), seated once on load; the right arm is solved every frame
-  type Rig = { bone: (n: string) => THREE.Bone; l1: number; l2: number }
+  // Rigged person: a Ready Player Me young man (three.js example, Mixamo bone names), seated once on load; the right arm is solved every frame
+  type Arm = { up: THREE.Vector3; fore: THREE.Vector3; hand: THREE.Vector3; bend: THREE.Vector3; palm: THREE.Vector3; across: THREE.Vector3 }
+  type Rig = { bone: (n: string) => THREE.Bone; q0: (n: string) => THREE.Quaternion; l1: number; l2: number; arm: Record<'Left' | 'Right', Arm>; curl: { b: THREE.Bone; q: THREE.Quaternion; axis: THREE.Vector3; k: number; spread: THREE.Vector3; ks: number }[] }
   let rig: Rig | null = null
   let disposed = false
-  const HIP = new V(0, 0.55, 0.62)
-  const ALONG_R = new V(-1, 0, 0), ALONG_L = new V(1, 0, 0), DOWN = new V(0, -1, 0), UP = new V(0, 1, 0)
-  const pA = new V(), pE = new V(), pB = new V(), dU = new V(), dF = new V(), bend = new V()
+  const SEAT_Y = 0.52, HIP_Z = 0.62
+  const FWD = new V(0, 0, -1)
+  const ortho = (v: THREE.Vector3, along: THREE.Vector3) => v.clone().addScaledVector(along, -v.dot(along)).normalize()
+  const pA = new V(), pE = new V(), pB = new V(), dU = new V(), dF = new V(), bend = new V(), acr = new V()
   const solveArm = (r: Rig, side: 'Left' | 'Right', w: THREE.Vector3, pole: THREE.Vector3, finger: THREE.Vector3, palmN: THREE.Vector3) => {
-    const along = side === 'Right' ? ALONG_R : ALONG_L
+    const a = r.arm[side]
     const arm = r.bone(side + 'Arm'), fore = r.bone(side + 'ForeArm')
     arm.getWorldPosition(pA)
     solveElbow(pA, w, r.l1, r.l2, pole, pE)
@@ -325,47 +332,146 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     dF.subVectors(w, pE).normalize()
     bend.crossVectors(dU, dF)
     if (bend.lengthSq() < 1e-6) bend.crossVectors(dU, pole)
-    orient(arm, along, side === 'Right' ? UP : DOWN, dU, bend)
+    orient(arm, r.q0(side + 'Arm'), a.up, a.bend, dU, bend)
     fore.getWorldPosition(pB)
-    orient(fore, along, DOWN, dF.subVectors(w, pB), palmN)
-    orient(r.bone(side + 'Hand'), along, DOWN, finger, palmN)
+    // Roll the forearm by the thumb-side axis, which stays across the wrist hinge, so the hand only bends on it
+    // (rolling by the palm normal flips when the forearm points at the laptop and pinches the wrist)
+    acr.crossVectors(finger, palmN).multiplyScalar(side === 'Right' ? 1 : -1)
+    orient(fore, r.q0(side + 'ForeArm'), a.fore, ortho(a.across, a.fore), dF.subVectors(w, pB), acr)
+    orient(r.bone(side + 'Hand'), r.q0(side + 'Hand'), a.hand, ortho(a.palm, a.hand), finger, palmN)
   }
-  new GLTFLoader().load('/models/person/xbot.glb', (gltf) => {
+  // Lowest point of the skinned surface, for putting his feet on the floor
+  const minY = (root: THREE.Object3D) => {
+    let y = Infinity
+    const v = new V()
+    root.traverse((o) => {
+      const m = o as THREE.SkinnedMesh
+      if (!m.isSkinnedMesh) return
+      const pos = m.geometry.attributes.position
+      for (let i = 0; i < pos.count; i += 3) { m.getVertexPosition(i, v); v.applyMatrix4(m.matrixWorld); if (v.y < y) y = v.y }
+    })
+    return y
+  }
+  // The bow tie, lapel flower and vest buttons are small separate pieces inside the shirt mesh: find its connected
+  // pieces (welding seams by position) and drop the small ones on the chest, so the torso reads as one smooth surface
+  const dropTrim = (g: THREE.BufferGeometry) => {
+    const pos = g.attributes.position, idx = g.index
+    if (!idx) return
+    const n = pos.count, par = Array.from({ length: n }, (_, i) => i)
+    const find = (a: number) => { while (par[a] !== a) a = par[a] = par[par[a]]; return a }
+    const join = (a: number, b: number) => { par[find(a)] = find(b) }
+    for (let t = 0; t < idx.count; t += 3) { join(idx.getX(t), idx.getX(t + 1)); join(idx.getX(t + 1), idx.getX(t + 2)) }
+    const seen = new Map<string, number>()
+    for (let i = 0; i < n; i++) {
+      const k = `${pos.getX(i).toFixed(4)},${pos.getY(i).toFixed(4)},${pos.getZ(i).toFixed(4)}`
+      const o = seen.get(k)
+      if (o === undefined) seen.set(k, i); else join(i, o)
+    }
+    const box = new Map<number, { n: number; b: THREE.Box3 }>()
+    const v = new V()
+    for (let i = 0; i < n; i++) {
+      const r = find(i)
+      if (!box.has(r)) box.set(r, { n: 0, b: new THREE.Box3() })
+      const c = box.get(r)!
+      c.n++
+      c.b.expandByPoint(v.fromBufferAttribute(pos, i))
+    }
+    const drop = new Set<number>()
+    for (const [r, c] of box) {
+      const m = c.b.getCenter(v)
+      if (c.n <= 230 && c.b.max.y - c.b.min.y < 0.12 && Math.abs(m.x) < 0.25 && m.y > 1.1 && m.y < 1.6 && m.z > 0.05) drop.add(r)
+    }
+    const keep: number[] = []
+    for (let t = 0; t < idx.count; t += 3) {
+      const a = idx.getX(t)
+      if (!drop.has(find(a))) keep.push(a, idx.getX(t + 1), idx.getX(t + 2))
+    }
+    g.setIndex(keep)
+  }
+  new GLTFLoader().load('/models/person/guy.glb', (gltf) => {
     const root = gltf.scene
     if (disposed) { root.traverse(free); return }
     try {
       const bones = new Map<string, THREE.Bone>()
-      const body = new THREE.MeshLambertMaterial({ color: 0xb8b8b6 }), joints = new THREE.MeshLambertMaterial({ color: 0x7a7a78 })
       const old = new Set<THREE.Material>()
+      const bodyMat = new THREE.MeshLambertMaterial({ color: 0xcfcfcd }) // one smooth grey: a sculpted shape, no face or clothes detail
       root.traverse((o) => {
         if ((o as THREE.Bone).isBone) bones.set(o.name.replace(/^mixamorig:?/, ''), o as THREE.Bone)
         const m = o as THREE.SkinnedMesh
+        if (m.isMesh && /^(EyeLeft|EyeRight|Wolf3D_Teeth|Wolf3D_Beard|Wolf3D_Headwear)$/.test(m.name)) m.visible = false // no face, just the shape
         if (m.isMesh) {
-          old.add(m.material as THREE.Material)
-          m.material = /joint/i.test((m.material as THREE.Material).name) ? joints : body
+          const was = m.material as THREE.MeshStandardMaterial
+          old.add(was)
+          m.material = bodyMat
           m.frustumCulled = false
+          if (m.name === 'Wolf3D_Outfit_Top') dropTrim(m.geometry)
         }
       })
-      for (const mt of old) { (mt as THREE.MeshStandardMaterial).map?.dispose(); mt.dispose() }
-      const bone = (n: string) => { const b = bones.get(n); if (!b) throw new Error('xbot: missing bone ' + n); return b }
-      root.rotation.y = Math.PI // the model faces +z; turn him to the laptop
-      for (const [s, k] of [['Left', 1], ['Right', -1]] as const) {
-        bone(s + 'UpLeg').rotation.set(-Math.PI / 2 - 0.04, 0, k * 0.06)
-        bone(s + 'Leg').rotation.set(Math.PI / 2 + 0.04 - 0.38, 0, -k * 0.06)
-        bone(s + 'Foot').rotation.x = 0.38
+      for (const mt of old) {
+        const s = mt as THREE.MeshStandardMaterial
+        for (const t of [s.map, s.normalMap, s.roughnessMap, s.metalnessMap, s.aoMap, s.emissiveMap]) t?.dispose()
+        mt.dispose()
       }
-      bone('Spine').rotation.x = 0.09
-      bone('Spine1').rotation.x = 0.09
-      bone('Neck').rotation.x = 0.06
-      bone('Head').rotation.x = 0.2
+      const bone = (n: string) => { const b = bones.get(n); if (!b) throw new Error('guy.glb: missing bone ' + n); return b }
+      const at = (n: string) => bone(n).getWorldPosition(new V())
       scene.add(root)
       root.updateMatrixWorld(true)
-      root.position.add(HIP.clone().sub(bone('Hips').getWorldPosition(new V())))
+      // Turn him so his toes point at the laptop
+      const toe = at('RightToeBase').sub(at('RightFoot')).setY(0).normalize()
+      root.rotation.y = Math.atan2(toe.x, toe.z) - Math.atan2(FWD.x, FWD.z)
       root.updateMatrixWorld(true)
-      const at = (n: string) => bone(n).getWorldPosition(new V())
-      const r: Rig = { bone, l1: at('RightArm').distanceTo(at('RightForeArm')), l2: at('RightForeArm').distanceTo(at('RightHand')) }
-      const lw = new V(-0.25, 0.775, 0.18)
-      solveArm(r, 'Left', lw, new V(-0.8, -0.6, 0.4), new V(0.1, 0, -1).normalize(), DOWN)
+      root.position.add(new V(0, SEAT_Y, HIP_Z).sub(at('RightUpLeg').setX(0)))
+      root.updateMatrixWorld(true)
+
+      const rest = new Map<string, THREE.Quaternion>()
+      for (const [n, b] of bones) rest.set(n, b.getWorldQuaternion(new THREE.Quaternion()))
+      const q0 = (n: string) => rest.get(n)!
+      const dir = (a: string, b: string) => at(b).sub(at(a)).normalize()
+      const ankleH = at('RightFoot').y - minY(root)
+      const armRest = (s: 'Left' | 'Right'): Arm => {
+        const up = dir(s + 'Arm', s + 'ForeArm'), hand = dir(s + 'Hand', s + 'HandMiddle1')
+        const across = at(s + 'HandIndex1').sub(at(s + 'HandPinky1'))
+        const palm = new V().crossVectors(hand, across).multiplyScalar(s === 'Right' ? -1 : 1).normalize()
+        across.copy(new V().crossVectors(hand, palm).multiplyScalar(s === 'Right' ? 1 : -1).normalize())
+        return { up, fore: dir(s + 'ForeArm', s + 'Hand'), hand, bend: ortho(new V().crossVectors(up, FWD), up), palm, across }
+      }
+      const arms = { Left: armRest('Left'), Right: armRest('Right') }
+      const r: Rig = { bone, q0, l1: at('RightArm').distanceTo(at('RightForeArm')), l2: at('RightForeArm').distanceTo(at('RightHand')), arm: arms, curl: [] }
+
+      // Seated: lean forward a little, head down to the screen, thighs on the seat, shins down to the floor
+      const X = new V(1, 0, 0)
+      const rx = (a: number) => new THREE.Quaternion().setFromAxisAngle(X, a)
+      setWorld(bone('Spine'), q0('Spine'), rx(-0.08))
+      setWorld(bone('Spine1'), q0('Spine1'), rx(-0.16))
+      setWorld(bone('Neck'), q0('Neck'), rx(-0.2))
+      setWorld(bone('Head'), q0('Head'), rx(-0.42))
+      for (const [s, k] of [['Left', -1], ['Right', 1]] as const) {
+        const thighA = dir(s + 'UpLeg', s + 'Leg'), shinA = dir(s + 'Leg', s + 'Foot')
+        orient(bone(s + 'UpLeg'), q0(s + 'UpLeg'), thighA, ortho(X, thighA), new V(k * 0.06, 0.05, -1).normalize(), X)
+        const knee = at(s + 'Leg'), len = knee.distanceTo(bone(s + 'Foot').getWorldPosition(new V()))
+        const dy = Math.min(len, knee.y - ankleH)
+        orient(bone(s + 'Leg'), q0(s + 'Leg'), shinA, ortho(X, shinA), new V(k * 0.02, -dy, -Math.sqrt(Math.max(0, len * len - dy * dy))).normalize(), X)
+        setWorld(bone(s + 'Foot'), q0(s + 'Foot'), new THREE.Quaternion())
+      }
+      root.updateMatrixWorld(true)
+
+      // Finger joints curl about the axis that swings them into the palm
+      const palmR = arms.Right.palm
+      for (const [f, ks] of [['Index', [1.1, 1.6, 1.2]], ['Middle', [1.1, 1.6, 1.2]], ['Ring', [1.1, 1.6, 1.2]], ['Pinky', [1.1, 1.6, 1.2]], ['Thumb', [0.4, 0.6, 0.6]]] as const) {
+        for (let i = 0; i < 3; i++) {
+          const n = 'RightHand' + f + (i + 1)
+          const along = dir(n, 'RightHand' + f + (i + 2))
+          const inv = q0(n).clone().invert()
+          const axis = new V().crossVectors(along, palmR).normalize().applyQuaternion(inv)
+          // Knuckles also fan out, away from the middle finger (the thumb away from the index)
+          const ref = f === 'Thumb' ? 'RightHandIndex1' : 'RightHandMiddle1'
+          const fan = i === 0 && f !== 'Middle' ? new V().crossVectors(along, ortho(at(n).sub(at(ref)), along)).normalize().applyQuaternion(inv) : new V(1, 0, 0)
+          const ks2 = i === 0 ? ({ Index: 0.1, Middle: 0, Ring: 0.08, Pinky: 0.2, Thumb: 0.35 } as const)[f] : 0
+          r.curl.push({ b: bone(n), q: bone(n).quaternion.clone(), axis, k: ks[i], spread: fan, ks: ks2 })
+        }
+      }
+
+      solveArm(r, 'Left', new V(-0.24, 0.775, 0.2), new V(-0.8, -0.6, 0.4), new V(0.1, 0, -1).normalize(), new V(0, -1, 0))
       rig = r
       scene.remove(person)
       person.traverse(free)
@@ -378,7 +484,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       rig = null
       console.warn(e)
     }
-  }, undefined, (e) => console.warn('xbot failed to load; keeping the simple figure', e))
+  }, undefined, (e) => console.warn('guy.glb failed to load; keeping the simple figure', e))
 
   // Wavefront pool
   const quad = new THREE.PlaneGeometry(2, 2)
@@ -395,7 +501,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     return { mesh, mat, on: false, t0: 0, c: new V(), hit: false, hitR: 0, k: 0 }
   }
   const outs: Wave[] = Array.from({ length: 24 }, () => makeWave(OUT_HALF))
-  const refs: Wave[] = Array.from({ length: 64 }, () => makeWave(REF_HALF, 9)) // echoes are dashed
+  const refs: Wave[] = Array.from({ length: 64 }, () => makeWave(REF_HALF, 16)) // echoes are dashed
   const take = (pool: Wave[]) => pool.find((w) => !w.on) ?? null
   const inkV = srgb(INK)
   const dimRef = srgb(0x9a9a98), brightRef = srgb(0xffffff)
@@ -429,17 +535,22 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   const FAR = new V(0.07, 0.93, 0.25), NEAR = new V(0.07, 0.93, 0.08)
   const pose = (g: number, u: number, out: THREE.Vector3) => {
     out.copy(FAR)
-    let curl = 0.12, tilt = 0
+    let curl = 0.12, tilt = 0, spread = 0
     if (g === 0) { out.y += 0.0015 * Math.sin(u * 2.1); out.z += 0.001 * Math.sin(u * 1.3) }
-    else if (g === 1) out.z = THREE.MathUtils.lerp(FAR.z, NEAR.z, ss((u - 0.5) / 2.2))
-    else if (g === 2) out.z = THREE.MathUtils.lerp(NEAR.z, FAR.z, ss((u - 0.5) / 2.2))
+    else if (g === 1) { out.z = THREE.MathUtils.lerp(FAR.z, NEAR.z, ss((u - 0.5) / 2.2)); curl = 0; spread = 1 }
+    else if (g === 2) { out.z = THREE.MathUtils.lerp(NEAR.z, FAR.z, ss((u - 0.5) / 2.2)); curl = 0; spread = 1 }
     else if (g === 3) {
       const env = ss(u / 0.4) * ss((4 - u) / 0.4), ph = (2 * Math.PI * u) / 1.3
       out.x += 0.085 * Math.sin(ph) * env
       out.z -= 0.045 * Math.sin(ph) * env
       tilt = -0.35 * Math.cos(ph) * env
-    } else curl = 0.12 + 0.88 * (0.5 - 0.5 * Math.cos((2 * Math.PI * u) / 2))
-    return { curl, tilt }
+    } else if (g === 4) curl = 0.12 + 0.88 * (0.5 - 0.5 * Math.cos((2 * Math.PI * u) / 2))
+    else {
+      // UNDO: two quick pokes at the screen with an open hand, 0.18 s each, 0.25 s apart, then a pause
+      curl = 0; spread = 1
+      for (const t0 of [0.6, 1.03]) if (u > t0 && u < t0 + 0.18) out.z -= 0.045 * Math.sin((Math.PI * (u - t0)) / 0.18)
+    }
+    return { curl, tilt, spread }
   }
 
   let gi = 0, gu = 0, simT = 0, camT = 0
@@ -448,30 +559,23 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   let blendT = 1
   const blendFrom = new V()
   const Hn = new V(), Hp = new V(), Ht = new V(), wrist = new V(), elbow = new V()
-  let curl = 0.12, curlPrev = 0.12, tilt = 0
+  let curl = 0.12, curlPrev = 0.12, tilt = 0, spread = 0
   let vSm = 0, prevAvg = -1
   let nextEmit = 0
 
-  const Hgoal = new V(), qTilt = new THREE.Quaternion(), eTilt = new THREE.Euler(), fDir = new V(), pN = new V(), mid = new V()
+  const Hgoal = new V(), qTilt = new THREE.Quaternion(), qC = new THREE.Quaternion(), eTilt = new THREE.Euler(), fDir = new V(), pN = new V(), mid = new V()
   const placeHand = () => {
     const p = pose(gi, gu, Ht)
     if (blendT < 1) Hgoal.lerpVectors(blendFrom, Ht, ss(blendT)); else Hgoal.copy(Ht)
-    curl = p.curl; tilt = p.tilt
+    curl = p.curl; tilt = p.tilt; spread = p.spread
     if (rig) {
       // Palm to the laptop, fingers up, rolled by the wave tilt; the echo then reflects off the real palm
       wrist.copy(Hgoal).add(new V(0, -0.055, 0.012))
-      qTilt.setFromEuler(eTilt.set(-0.15, 0, tilt))
+      qTilt.setFromEuler(eTilt.set(-0.45, 0, tilt))
       fDir.set(0, 1, 0).applyQuaternion(qTilt)
       pN.set(0, 0, -1).applyQuaternion(qTilt)
       solveArm(rig, 'Right', wrist, new V(0.45, -1, 0.35), fDir, pN)
-      for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) {
-        rig.bone('RightHand' + f + '1').rotation.z = curl * 1.1
-        rig.bone('RightHand' + f + '2').rotation.z = curl * 1.6
-        rig.bone('RightHand' + f + '3').rotation.z = curl * 1.2
-      }
-      rig.bone('RightHandThumb1').rotation.set(0, -curl * 0.5, curl * 0.3)
-      rig.bone('RightHandThumb2').rotation.z = curl * 0.6
-      rig.bone('RightHandThumb3').rotation.z = curl * 0.6
+      for (const c of rig.curl) c.b.quaternion.copy(c.q).multiply(qC.setFromAxisAngle(c.axis, curl * c.k)).multiply(qC.setFromAxisAngle(c.spread, spread * c.ks))
       const h = rig.bone('RightHand')
       h.updateMatrixWorld(true)
       h.getWorldPosition(Hn)
@@ -530,7 +634,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     for (const w of outs) {
       if (!w.on) { w.mesh.visible = false; continue }
       const r = CV * (simT - w.t0)
-      let a = 0.75 * ss(r / 0.03)
+      let a = ss(r / 0.03) * Math.pow(1 - Math.min(1, r / 1.5), 1.3) // full ink, fading with distance
       if (w.hit) a *= clamp01(1 - (r - w.hitR) / 0.03)
       if (a <= 0 || r > 1.5) { w.on = false; w.mesh.visible = false; continue }
       w.mesh.visible = true
@@ -555,7 +659,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       w.mat.uniforms.uR.value = r
       const k = 0.5 + 0.5 * w.k
       w.mat.uniforms.uColor.value.lerpVectors(dimRef, brightRef, k)
-      w.mat.uniforms.uAlpha.value = (0.45 + 0.55 * k) * ss(r / 0.02) * clamp01((dist - r) / 0.04)
+      w.mat.uniforms.uAlpha.value = 0.85 * (0.45 + 0.55 * k) * (1 - 0.5 * r / dist) * ss(r / 0.02) * clamp01((dist - r) / 0.04)
     }
   }
 
