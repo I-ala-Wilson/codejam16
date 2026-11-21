@@ -89,8 +89,12 @@ export default function DitherFlower() {
     const img = new Image()
     img.src = '/art/flower-ref.png'
 
+    let visible = true
+    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting })
+    io.observe(c)
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw)
+      if (!visible) return
       if (now - last < 1000 / (document.hidden ? 8 : 24)) return
       last = now
       const W = Math.max(1, c.clientWidth), H = Math.max(1, c.clientHeight)
@@ -122,8 +126,8 @@ export default function DitherFlower() {
       ctx.putImageData(frame!, 0, 0)
     }
     raf = requestAnimationFrame(draw)
-    return () => cancelAnimationFrame(raf)
+    return () => { cancelAnimationFrame(raf); io.disconnect() }
   }, [])
 
-  return <canvas ref={canvas} style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', display: 'block', background: '#1e1f21', imageRendering: 'pixelated' }} />
+  return <canvas ref={canvas} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', background: '#1e1f21', imageRendering: 'pixelated' }} />
 }

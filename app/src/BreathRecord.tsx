@@ -17,6 +17,7 @@ const SECONDS = 60
 
 export default function BreathRecord() {
   const [person, setPerson] = useState(localStorage.getItem('echo.person') ?? '')
+  const [laptop, setLaptop] = useState(localStorage.getItem('echo.laptop') ?? '')
   const [running, setRunning] = useState(engine.health().running)
   const [take, setTake] = useState<(typeof TAKES)[number] | null>(null)
   const [t, setT] = useState(0)
@@ -28,8 +29,8 @@ export default function BreathRecord() {
 
   const run = async (k: (typeof TAKES)[number]) => {
     setError('')
-    localStorage.setItem('echo.person', person)
-    try { engine.startRecording({ person: person.trim().toLowerCase(), gesture: 'FREE', laptop: 'ian-mbp', note: `breath ${k.id}, paced ${k.rate} bpm, laptop 30-40 cm from chest, screen angled at torso` }) }
+    localStorage.setItem('echo.person', person); localStorage.setItem('echo.laptop', laptop)
+    try { engine.startRecording({ person: person.trim().toLowerCase(), gesture: 'FREE', laptop: laptop.trim().toLowerCase().replace(/\s+/g, '-'), note: `breath ${k.id}, paced ${k.rate} bpm, laptop 30-40 cm from chest, screen angled at torso` }) }
     catch (e) { setError(String(e)); return }
     setTake(k)
     const t0 = performance.now()
@@ -78,12 +79,12 @@ export default function BreathRecord() {
         ) : (
           <>
             <h1 className="lk__title">Breathing takes</h1>
-            <p className="lk__sub">Laptop 30-40 cm from your chest, screen tilted to face your torso, volume 100%, sit still, hands in your lap. 60 s each.</p>
-            <p><input value={person} onChange={(e) => setPerson(e.target.value)} placeholder="your name" className="lk__input" style={{ font: '400 24px var(--pixel)', background: 'transparent', color: 'var(--ink)', border: '1px dotted var(--ink)', padding: '6px 10px' }} /></p>
+            <p className="lk__sub">Laptop 30-40 cm from your chest, screen tilted to face your torso, volume 100%, sit still, hands in your lap. Close every other ECHØ tab and anything else playing sound, and do not touch the volume during a take. 60 s each.</p>
+            <p><input value={person} onChange={(e) => setPerson(e.target.value)} placeholder="your name" className="lk__input" style={{ font: '400 24px var(--pixel)', background: 'transparent', color: 'var(--ink)', border: '1px dotted var(--ink)', padding: '6px 10px' }} /> <input value={laptop} onChange={(e) => setLaptop(e.target.value)} placeholder="laptop, e.g. macbook-air-m2" style={{ font: '400 24px var(--pixel)', background: 'transparent', color: 'var(--ink)', border: '1px dotted var(--ink)', padding: '6px 10px', marginLeft: 10 }} /></p>
             {!running && <div className="lk__row"><button className="lk__btn lk__btn--primary" onClick={() => ensureSonar().then(setRunning)}>Start sonar</button></div>}
             <div className="lk__row" style={{ flexWrap: 'wrap', maxWidth: 900 }}>
               {TAKES.map((k) => (
-                <button key={k.id} className={`lk__btn${done.includes(k.id) ? '' : ' lk__btn--primary'}`} disabled={!running || !person.trim()} onClick={() => run(k)}>
+                <button key={k.id} className={`lk__btn${done.includes(k.id) ? '' : ' lk__btn--primary'}`} disabled={!running || !person.trim() || !laptop.trim()} onClick={() => run(k)}>
                   {done.includes(k.id) ? `${k.id} done` : k.id}
                 </button>
               ))}

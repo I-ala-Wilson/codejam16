@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import DitherFlower from './art/DitherFlower.tsx'
+import Explainer from './explainer/Explainer.tsx'
 import { engine } from './engine.ts'
 
 // Landing screen: Ian's flower as a full-screen ordered dither, the headline top-left, the apps bottom-left. Style per docs/STYLE.md.
@@ -12,6 +13,7 @@ export default function Home({ go }: { go: (page: string) => void }) {
   }
   return (
     <div className="home">
+      <section className="home__hero">
       <DitherFlower />
       <div className="home__text">
         <div className="home__mark">{'ECHØ'}</div>
@@ -27,6 +29,12 @@ export default function Home({ go }: { go: (page: string) => void }) {
         <button className="dot-btn" onClick={() => go('habit-app')}>Habit</button>
         {error && <span className="mono-label">{error}</span>}
       </div>
+      <div className="home__more">scroll · how it works</div>
+      </section>
+      <section className="home__how">
+        <div className="home__howhead"><div className="lk__eyebrow">HOW IT WORKS</div><h2>Sound in, echo out, physics in between.</h2></div>
+        <Explainer embedded />
+      </section>
     </div>
   )
 }

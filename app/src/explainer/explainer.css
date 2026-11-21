@@ -1,4 +1,5 @@
 .ex { position: fixed; inset: 58px 0 0 0; background: var(--bg); color: var(--ink); font-family: var(--pixel); overflow: hidden; }
+.ex--embedded { position: relative; inset: auto; height: calc(100vh - 58px); min-height: 640px; border-top: 1px dotted var(--ink); }
 .ex__gl { position: absolute; inset: 0; }
 .ex__gl canvas { image-rendering: pixelated; }
 .ex__tag { position: absolute; left: 0; top: 0; pointer-events: none; }

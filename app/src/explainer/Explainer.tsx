@@ -35,7 +35,7 @@ function drawSpectrum(cv: HTMLCanvasElement, df: number) {
 
 const fmt = (n: number, d: number) => (n >= 0 ? '+' : '-') + Math.abs(n).toFixed(d)
 
-export default function Explainer() {
+export default function Explainer({ embedded = false }: { embedded?: boolean }) {
   const root = useRef<HTMLDivElement>(null)
   const host = useRef<HTMLDivElement>(null)
   const speaker = useRef<HTMLDivElement>(null)
@@ -62,14 +62,14 @@ export default function Explainer() {
     }
     const c = createExplainer(host.current!, { onFrame, labels: { speaker: speaker.current!, mic: mic.current! } })
     const nav = document.querySelector('nav.top')
-    const fit = () => { if (nav) root.current!.style.top = `${nav.getBoundingClientRect().bottom}px` }
+    const fit = () => { if (nav && !embedded) root.current!.style.top = `${nav.getBoundingClientRect().bottom}px` }
     fit()
     window.addEventListener('resize', fit)
-    ;(document.activeElement as HTMLElement | null)?.blur()
+    if (!embedded) (document.activeElement as HTMLElement | null)?.blur()
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key >= '1' && e.key <= '4') c.jump(Number(e.key))
-      else if (e.key === ' ') { e.preventDefault(); const paused = c.togglePause(); setFlags((f) => ({ ...f, paused })) }
+      else if (e.key === (embedded ? 'p' : ' ')) { e.preventDefault(); const paused = c.togglePause(); setFlags((f) => ({ ...f, paused })) }
       else if (e.key === 'c') { const orbit = c.toggleOrbit(); setFlags((f) => ({ ...f, orbit })) }
       else if (e.key === 'd') { const dither = c.toggleDither(); setFlags((f) => ({ ...f, dither })) }
     }
@@ -79,7 +79,7 @@ export default function Explainer() {
 
   const g = GESTURES[gesture]
   return (
-    <div className="ex" ref={root}>
+    <div className={embedded ? 'ex ex--embedded' : 'ex'} ref={root}>
       <div className="ex__gl" ref={host} />
       <div className="ex__tag ex__tag--down" ref={speaker}><span>speaker · 20 kHz</span></div>
       <div className="ex__tag ex__tag--up" ref={mic}><span>mic</span></div>
@@ -98,7 +98,7 @@ export default function Explainer() {
       </div>
       <div className="ex__keys">
         <div>1 push · 2 pull · 3 wave · 4 open/close</div>
-        <div>space {flags.paused ? 'play' : 'pause'} · c orbit {flags.orbit ? 'on' : 'off'} · d dither {flags.dither ? 'on' : 'off'}</div>
+        <div>{embedded ? 'p' : 'space'} {flags.paused ? 'play' : 'pause'} · c orbit {flags.orbit ? 'on' : 'off'} · d dither {flags.dither ? 'on' : 'off'}</div>
         <div>sound drawn ~1000× slower · f0 = 20 kHz · c = 343 m/s</div>
       </div>
     </div>
