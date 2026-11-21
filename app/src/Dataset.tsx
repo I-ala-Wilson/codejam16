@@ -47,14 +47,14 @@ const takeName = (t: Take) => t.kind === 'gesture'
 
 type Phase = 'idle' | 'away' | 'leadin' | 'cue' | 'rest' | 'none' | 'saving'
 
-export default function Dataset() {
+export default function Dataset({ only }: { only: BatteryName }) {
   const [login, setLogin] = useState(localStorage.getItem('echo.login') ?? '')
   const [laptopModel, setLaptopModel] = useState(localStorage.getItem('echo.laptop') ?? '')
   const [hand, setHand] = useState<'L' | 'R'>((localStorage.getItem('echo.hand') as 'L' | 'R') ?? 'R')
   const [volumePct, setVolumePct] = useState(Number(localStorage.getItem('echo.volume') ?? 70))
   const [running, setRunning] = useState(engine.health().running)
   const [snr, setSnr] = useState(0)
-  const [battery, setBattery] = useState<BatteryName>((localStorage.getItem('echo.battery') as BatteryName) ?? 'main')
+  const battery = only
   const LIST = BATTERIES[battery]
   const [idx, setIdx] = useState(Number(localStorage.getItem(`echo.takeIdx.${battery}`) ?? 0))
   const [phase, setPhase] = useState<Phase>('idle')
@@ -76,7 +76,6 @@ export default function Dataset() {
   useEffect(() => { localStorage.setItem('echo.hand', hand) }, [hand])
   useEffect(() => { localStorage.setItem('echo.volume', String(volumePct)) }, [volumePct])
   useEffect(() => { localStorage.setItem(`echo.takeIdx.${battery}`, String(idx)) }, [idx, battery])
-  const switchBattery = (b: BatteryName) => { localStorage.setItem('echo.battery', b); setBattery(b); setIdx(Number(localStorage.getItem(`echo.takeIdx.${b}`) ?? 0)) }
 
   useEffect(() => engine.onFrame((f) => {
     frames.current += 1
@@ -164,7 +163,7 @@ export default function Dataset() {
   const busy = phase !== 'idle'
 
   return (
-    <Window title="Dataset recording (protocol)">
+    <Window title={battery === 'main' ? 'Dataset recording (main battery, 14 takes)' : 'Habit recording (add-on, 3 takes)'}>
       {!busy && (
         <>
           <Box title="1. About you (once)">
@@ -179,8 +178,6 @@ export default function Dataset() {
               <button onClick={startSonar} disabled={!ready}>Start sonar and calibrate (hands off 3 s)</button>}
           </Box>
           <Box title={`3. ${battery === 'main' ? 'Main battery' : 'Habit add-on'}: ${Math.min(idx, LIST.length)} of ${LIST.length} done`}>
-            <p>Battery: <button onClick={() => switchBattery('main')} style={{ fontWeight: battery === 'main' ? 800 : 400 }}>Main (14 takes, ~17 min)</button>{' '}
-              <button onClick={() => switchBattery('habit')} style={{ fontWeight: battery === 'habit' ? 800 : 400 }}>Habit add-on (3 takes, ~6 min)</button></p>
             <div style={{ height: 14, border: '2px solid #000', borderRadius: 4, overflow: 'hidden', marginBottom: 10 }}>
               <div style={{ width: `${(Math.min(idx, LIST.length) / LIST.length) * 100}%`, height: '100%', background: '#000' }} />
             </div>

@@ -5,7 +5,7 @@ import Lock from './Lock.tsx'
 import Gestures from './Gestures.tsx'
 import Dataset from './Dataset.tsx'
 
-const PAGES = { room: 'Room test', dataset: 'Dataset recording', gestures: 'Gesture test', record: 'Pilot record (old)', lock: 'Lock' } as const
+const PAGES = { room: 'Room test', dataset: 'Dataset recording', habit: 'Habit recording', gestures: 'Gesture test', record: 'Pilot record (old)', lock: 'Lock' } as const
 type Page = keyof typeof PAGES
 
 export default function App() {
@@ -18,7 +18,7 @@ export default function App() {
           <button key={p} onClick={() => go(p)} style={{ fontWeight: page === p ? 800 : 400 }}>{PAGES[p]}</button>
         ))}
       </nav>
-      {page === 'room' ? <RoomTest /> : page === 'gestures' ? <Gestures /> : page === 'dataset' ? <Dataset /> : page === 'record' ? <Record /> : <Lock />}
+      {page === 'room' ? <RoomTest /> : page === 'gestures' ? <Gestures /> : page === 'dataset' ? <Dataset key="main" only="main" /> : page === 'habit' ? <Dataset key="habit" only="habit" /> : page === 'record' ? <Record /> : <Lock />}
     </div>
   )
 }
