@@ -11,9 +11,8 @@ const TEAM = [
 export default function Close() {
   return (
     <section className="pz pz--close" aria-label="Closing">
-      <p className="pz__closing">Your laptop can hear your hands.</p>
       <p className="pz__team">
-        ECHØ · {TEAM.map((m, i) => <span key={m.name}>{i > 0 && ' · '}<a href={m.url} target="_blank" rel="noreferrer">{m.name}</a></span>)}
+        {TEAM.map((m, i) => <span key={m.name}>{i > 0 && ' · '}<a href={m.url} target="_blank" rel="noreferrer">{m.name}</a></span>)}
       </p>
     </section>
   )
