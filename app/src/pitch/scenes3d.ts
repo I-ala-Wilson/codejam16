@@ -354,7 +354,7 @@ export const careScene3D = make3D(() => {
   const table = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.55, 0.45), bedMat); table.position.set(-0.85, 0.28, -0.55); scene.add(table)
   const lap = laptop(); lap.scale.setScalar(0.17); lap.position.set(-0.85, 0.565, -0.55); lap.rotation.y = Math.PI * 0.62; scene.add(lap)
   const lapScreen = new THREE.Object3D(); lapScreen.position.set(0, 0.75, -0.6); lap.add(lapScreen)
-  const phone = new THREE.Group(); phone.position.set(1.0, 0.35, 0.9); scene.add(phone); phone.lookAt(camera.position)
+  const phone = new THREE.Group(); phone.position.set(1.0, -0.2, 0.9); scene.add(phone); phone.lookAt(camera.position)
   phone.add(new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.5, 0.03), new THREE.MeshBasicMaterial({ color: 0xf2f2f0 })))
   const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.23, 0.42), PHONE_GLOW); glass.position.z = 0.017; phone.add(glass)
   const handAnchor = new THREE.Object3D(); handAnchor.position.set(-0.3, MT + 0.5, -0.2); scene.add(handAnchor)
