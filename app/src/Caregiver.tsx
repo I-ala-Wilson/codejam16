@@ -10,8 +10,12 @@ export default function Caregiver() {
   const [alert, setAlert] = useState<LocalEvent | null>(null)
   useEffect(() => onLocalEvent((e) => {
     setEvents((l) => [e, ...l].slice(0, 80))
-    if (e.app === 'care' && e.kind === 'help') setAlert(e)
-    if (e.app === 'care' && e.kind === 'help_cancelled') setAlert(null)
+    if (e.app !== 'care') return
+    if (e.kind === 'help' || e.kind === 'pain') setAlert(e)
+    if (e.kind === 'cancelled' || e.kind === 'help_cancelled') {
+      const kind = e.payload.cancelled_kind ?? 'help'
+      setAlert(current => current?.device_id === e.device_id && current.kind === kind ? null : current)
+    }
   }), [])
   useEffect(() => {
     if (!alert) return
@@ -25,7 +29,7 @@ export default function Caregiver() {
       <div className="lk lk--invert" onClick={() => setAlert(null)}>
         <div className="lk__center">
           <div className="lk__eyebrow">ECHØ CAREGIVER</div>
-          <div className="lk__huge">HELP</div>
+          <div className="lk__huge">{alert.kind.toUpperCase()}</div>
           <div className="lk__sub">{alert.device_id} · {new Date(alert.at).toLocaleTimeString()}</div>
           <div className="lk__status">tap when you are on your way</div>
         </div>

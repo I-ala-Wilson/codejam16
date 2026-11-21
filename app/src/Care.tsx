@@ -7,13 +7,13 @@ import { chime, ensureSonar } from './sonar.ts'
 // within 5 s cancels a false alarm. The sonar also tracks movement: an inactivity alert after INACTIVE_S with no
 // motion, and an activity level every 10 s for the caregiver's restlessness timeline (contracts/events.md).
 
-const WAVES_FOR_HELP = 1 // the decoder already needs a sustained wave (several confirming windows) before it emits WAVE
-const HELP_WINDOW_MS = 3500
+const messages = { WAVE: 'help', OPEN_CLOSE: 'pain', PUSH: 'yes', PULL: 'no' } as const
+type Message = typeof messages[keyof typeof messages]
 const CANCEL_MS = 5000
 const INACTIVE_S = 30 // demo value; hours in real use
 const MOTION = 0.12 // activity level that counts as movement
 
-type Help = { at: number; cancelled: boolean } | null
+type Help = { kind: Message; at: number; cancelled: boolean } | null
 
 export default function Care() {
   const [running, setRunning] = useState(engine.health().running)
@@ -26,7 +26,7 @@ export default function Care() {
   const level = useRef(0)
   const peak = useRef(0)
   const gestures = useRef(0)
-  const waves = useRef<number[]>([])
+  const pendingPush = useRef<ReturnType<typeof setTimeout> | null>(null)
   const helpRef = useRef<Help>(null)
 
   useEffect(() => { ensureSonar().then(setRunning) }, [])
@@ -41,25 +41,37 @@ export default function Care() {
   }), [])
 
   // help and cancel
-  useEffect(() => engine.onGesture((g) => {
+  useEffect(() => {
+    function clearPush() {
+      if (pendingPush.current !== null) clearTimeout(pendingPush.current)
+      pendingPush.current = null
+    }
+    const stop = engine.onGesture((g) => {
     gestures.current++
     const t = Date.now()
     if (g.type !== 'HOLD') { setHeard(`heard ${g.type.replace('_', '/').toLowerCase()} ${Math.round(g.confidence * 100)}%`); setTimeout(() => setHeard(''), 1500) }
     const h = helpRef.current
-    if (g.type === 'UNDO' && h && !h.cancelled && t - h.at < CANCEL_MS) {
+    const canCancel = h && !h.cancelled && t - h.at < CANCEL_MS
+    if (canCancel && (g.type === 'UNDO' || (g.type === 'PUSH' && pendingPush.current !== null))) {
+      clearPush()
       helpRef.current = { ...h, cancelled: true }; setHelp(helpRef.current)
-      chime(false); sendEvent('care', 'help_cancelled', {}, 'UNDO')
+      chime(false); sendEvent('care', 'cancelled', { cancelled_kind: h.kind }, g.type)
       setTimeout(() => { if (helpRef.current?.cancelled) { helpRef.current = null; setHelp(null) } }, 2500)
       return
     }
-    if (g.type !== 'WAVE' || (h && !h.cancelled)) return
-    waves.current = [...waves.current.filter((w) => t - w < HELP_WINDOW_MS), t]
-    if (waves.current.length >= WAVES_FOR_HELP) {
-      waves.current = []
-      helpRef.current = { at: t, cancelled: false }; setHelp(helpRef.current)
-      chime(true, 0.12); sendEvent('care', 'help', { confidence: g.confidence }, 'WAVE')
+    if (!(g.type in messages)) return
+    const kind = messages[g.type as keyof typeof messages]
+    const publish = () => {
+      pendingPush.current = null
+      helpRef.current = { kind, at: Date.now(), cancelled: false }; setHelp(helpRef.current)
+      chime(true, 0.12); sendEvent('care', kind, { confidence: g.confidence }, g.type)
     }
-  }), [])
+    clearPush()
+    if (canCancel && g.type === 'PUSH') pendingPush.current = setTimeout(publish, Math.min(1500, CANCEL_MS - (t - h.at)))
+    else publish()
+    })
+    return () => { clearPush(); stop() }
+  }, [])
 
   // activity every 10 s, for the timeline and the caregiver
   useEffect(() => {
@@ -83,9 +95,9 @@ export default function Care() {
       <div className="lk lk--invert" onClick={() => { helpRef.current = null; setHelp(null) }}>
         <div className="lk__center">
           <div className="lk__eyebrow">ECHØ CARE</div>
-          <div className="lk__huge">{help.cancelled ? 'CANCELLED' : 'HELP IS COMING'}</div>
+          <div className="lk__huge">{help.cancelled ? 'CANCELLED' : help.kind.toUpperCase()}</div>
           <div className="lk__sub">{help.cancelled ? 'the caregiver was told it was a false alarm' : 'your caregiver has been alerted'}</div>
-          {!help.cancelled && <div className="lk__status">{left > 0 ? `double tap to cancel · ${left}` : 'tap the screen when help has arrived'}</div>}
+          {!help.cancelled && <div className="lk__status">{left > 0 ? `double tap to cancel · ${left}` : 'tap to dismiss'}</div>}
         </div>
       </div>
     )
@@ -104,7 +116,7 @@ export default function Care() {
             <div className="lk__status">
               {heard || (still >= INACTIVE_S ? `no movement for ${still}s · caregiver told` : still < 3 ? 'movement' : `resting · last moved ${still}s ago`)}
             </div>
-            <div className="lk__legend"><span><b>~~</b> wave = help</span><span><b>xx</b> double tap = cancel</span><span>activity sent every 10 s</span></div>
+            <div className="lk__legend">{Object.entries(messages).map(([gesture, kind]) => <span key={gesture}>{gesture.replace('_', '/').toLowerCase()} = {kind}</span>)}<span>double tap = cancel</span></div>
           </>}
       </div>
     </div>
@@ -127,8 +139,8 @@ function Strip({ values }: { values: number[] }) {
       const a = Math.min(1, v[Math.floor(x / 2)] * 1.6)
       for (let y = 0; y < H; y++) {
         const on = H - y <= Math.max(1, a * H) && 0.35 + 0.65 * a > BAYER4[(y & 3) * 4 + (x & 3)]
-        const i = (y * W + x) * 4, g = on ? 242 : 30
-        img.data[i] = g; img.data[i + 1] = g; img.data[i + 2] = on ? 240 : 33; img.data[i + 3] = 255
+        const i = (y * W + x) * 4, g = on ? 242 : 0
+        img.data[i] = g; img.data[i + 1] = g; img.data[i + 2] = on ? 240 : 0; img.data[i + 3] = 255
       }
     }
     ctx.putImageData(img, 0, 0)

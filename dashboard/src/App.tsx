@@ -12,15 +12,18 @@ interface EventRow {
   payload: Record<string, unknown>
 }
 
-const visibleKinds = new Set(['help', 'help_cancelled', 'inactive', 'habit_detected', 'unlock_ok'])
+const visibleKinds = new Set(['help', 'pain', 'yes', 'no', 'cancelled', 'help_cancelled', 'inactive', 'habit_detected', 'unlock_ok'])
 
 function findActiveHelp(events: EventRow[]): EventRow | null {
-  for (const event of events) {
-    if (event.app !== 'care') continue
-    if (event.kind === 'help_cancelled') return null
-    if (event.kind === 'help') return event
-  }
-  return null
+  return events.reduceRight<EventRow | null>(applyAlert, null)
+}
+
+function applyAlert(current: EventRow | null, event: EventRow): EventRow | null {
+  if (event.app !== 'care') return current
+  if (event.kind === 'help' || event.kind === 'pain') return event
+  if ((event.kind === 'cancelled' || event.kind === 'help_cancelled') &&
+      current?.device_id === event.device_id && current.kind === (event.payload.cancelled_kind ?? 'help')) return null
+  return current
 }
 
 function numericPayload(event: EventRow | undefined, key: string): number | null {
@@ -111,8 +114,7 @@ export default function App() {
             if (event.app === 'care' && event.kind === 'activity') {
               setActivityEvents((current) => [...current.slice(-59), event])
             }
-            if (event.app === 'care' && event.kind === 'help') setActiveHelp(event)
-            if (event.app === 'care' && event.kind === 'help_cancelled') setActiveHelp(null)
+            setActiveHelp(current => applyAlert(current, event))
           },
         )
         .subscribe((status) => {
@@ -170,7 +172,7 @@ export default function App() {
               {feed.map((event) => (
                 <li key={event.id} className={`event-feed__row event-feed__row--${event.kind}`}>
                   <time dateTime={event.created_at}>{new Date(event.created_at).toLocaleTimeString()}</time>
-                  <strong>{event.kind.replaceAll('_', ' ')}</strong>
+                  <strong>{event.kind === 'yes' || event.kind === 'no' ? event.kind.toUpperCase() : event.kind.replaceAll('_', ' ')}</strong>
                   <span>{event.device_id}</span>
                   <small>{event.app}{event.gesture ? ` · ${event.gesture}` : ''}</small>
                 </li>
@@ -182,7 +184,7 @@ export default function App() {
 
       {activeHelp && (
         <AlertScreen
-          title={`HELP · ${activeHelp.device_id}`}
+          title={`${activeHelp.kind.toUpperCase()} · ${activeHelp.device_id}`}
           sub={`Care alert · ${new Date(activeHelp.created_at).toLocaleTimeString()} · tap to silence`}
           onDismiss={() => setActiveHelp(null)}
         />

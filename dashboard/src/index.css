@@ -11,7 +11,7 @@
 body {
   margin: 0;
   min-width: 320px;
-  background: #1e1f21;
+  background: #000;
 }
 
 .dashboard-status {
@@ -86,10 +86,20 @@ body {
 }
 
 .event-feed__row--help,
+.event-feed__row--pain,
+.event-feed__row--cancelled,
 .event-feed__row--help_cancelled {
   background: var(--ink);
   color: var(--bg);
   padding-inline: 10px;
+}
+
+.event-feed__row--yes strong,
+.event-feed__row--no strong {
+  border: var(--rule);
+  padding: 4px 12px;
+  width: fit-content;
+  font-size: 32px;
 }
 
 @media (max-width: 600px) {
