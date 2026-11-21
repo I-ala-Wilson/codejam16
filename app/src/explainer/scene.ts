@@ -8,7 +8,7 @@ export const C = 343
 const CV = 0.3 // drawn speed of sound, scene m/s
 const EMIT = 0.25 // seconds between outgoing wavefronts
 const SPEED_SCALE = 5 // drawn hand speed -> real hand speed shown in the readout
-const PIX = 2 // CSS px per dither pixel
+const PIX = 1 // CSS px per dither pixel (finer dots read as smoother shapes)
 const OUT_HALF = 0.5 // half-angle of an outgoing wavefront arc (rad)
 const REF_HALF = 0.6
 
@@ -209,19 +209,20 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   for (const [x, z] of [[-0.19, 0.46], [0.19, 0.46], [-0.19, 0.82], [0.19, 0.82]]) box(0.03, 0.41, 0.03, chairMat, x, 0.205, z, true)
 
   // Person: low-poly capsules and spheres
-  const skin = lam(0xd8d8d8)
-  const cloth = lam(0x8e8e8e)
-  const capsule = (r: number, len: number, mat: THREE.Material, segs = 7) => {
-    const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(0.001, len - 2 * r), 2, segs), mat)
+  const smooth = (hex: number) => new THREE.MeshLambertMaterial({ color: hex })
+  const skin = smooth(0xd8d8d8)
+  const cloth = smooth(0x8e8e8e)
+  const capsule = (r: number, len: number, mat: THREE.Material, segs = 24) => {
+    const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(0.001, len - 2 * r), 8, segs), mat)
     scene.add(m)
     return m
   }
-  const torso = capsule(0.12, 0.5, cloth, 8)
+  const torso = capsule(0.12, 0.5, cloth, 32)
   torso.scale.set(1.3, 1, 0.8)
   setLimb(torso, new V(0, 0.56, 0.62), new V(0, 0.94, 0.56))
   setLimb(capsule(0.06, 0.5, cloth), new V(-0.19, 1.0, 0.54), new V(0.19, 1.0, 0.54))
   setLimb(capsule(0.04, 0.1, skin), new V(0, 1.03, 0.55), new V(0, 1.1, 0.535))
-  const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.095, 1), skin)
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.095, 40, 28), skin)
   head.position.set(0, 1.18, 0.525)
   head.scale.set(0.92, 1.08, 1)
   scene.add(head)
@@ -236,7 +237,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   const lElbow = solveElbow(lShoulder, lWrist, L1, L2, new V(-0.5, -1, 0.4), new V())
   setLimb(capsule(0.042, L1, cloth), lShoulder, lElbow)
   setLimb(capsule(0.036, L2, skin), lElbow, lWrist)
-  box(0.07, 0.022, 0.09, skin, -0.27, 0.753, 0.2)
+  { const lh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 16), skin); lh.scale.set(0.07, 0.024, 0.095); lh.position.set(-0.27, 0.755, 0.2); scene.add(lh) }
 
   // Right arm, driven every frame
   const rShoulder = new V(0.19, 1.0, 0.54)
@@ -244,10 +245,11 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   const rFore = capsule(0.036, L2, skin)
   const hand = new THREE.Group()
   scene.add(hand)
-  const palm = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.085, 0.024), skin)
+  const palm = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 16), skin)
+  palm.scale.set(0.078, 0.09, 0.026)
   hand.add(palm)
   const fingerGeo = (len: number) => {
-    const g = new THREE.CapsuleGeometry(0.0085, len - 0.017, 2, 6)
+    const g = new THREE.CapsuleGeometry(0.0085, len - 0.017, 4, 12)
     g.translate(0, len / 2, 0)
     return g
   }
