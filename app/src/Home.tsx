@@ -16,7 +16,7 @@ export default function Home({ go }: { go: (page: string) => void }) {
       <div className="home__text">
         <div className="home__mark">{'ECHO Ø'}</div>
         <h1>Your laptop can hear your hands.</h1>
-        <div className="mono-label">Echo Null · sonar, not a camera · works in the dark</div>
+        <div className="mono-label">No camera. No wearable. Just an echo.</div>
       </div>
       <div className="home__apps">
         {!running
