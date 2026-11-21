@@ -22,8 +22,10 @@ const MAX_GAP_FRAMES = 2
 const CHAIN_GAP_MS = 250
 /** In a chain only strokes at least this fraction of the strongest are gestures; weaker ones are wind-up or recoil. */
 const PRIMARY_RATIO = 0.5
-/** Two PULLs starting this close together are an UNDO. */
+/** UNDO is a double tap toward: two small pushes starting this close together (spec v4). */
 const UNDO_WINDOW_MS = 600
+/** A tap is a push smaller than this; bigger pushes are PUSH. */
+const TAP_MAX_PEAK_HZ = 90
 /** A WAVE is this many alternating strokes spanning at least this long. */
 const WAVE_MIN_STROKES = 4
 const WAVE_MIN_MS = 1000
@@ -59,6 +61,23 @@ function directionOf(shiftHz: number): 1 | -1 | 0 {
   return 0
 }
 
+const isTap = (s: Stroke): boolean => s.dir > 0 && Math.abs(s.peakShiftHz) < TAP_MAX_PEAK_HZ
+
+/**
+ * Index of the second tap when strokes[first] starts a double tap toward: another small push within UNDO_WINDOW_MS,
+ * with only small pulls (return strokes) in between. Anything bigger or any other push in between breaks it.
+ */
+function doubleTapPartner(strokes: ReadonlyArray<Stroke>, first: number): number | null {
+  if (!isTap(strokes[first])) return null
+  for (let j = first + 1; j < strokes.length; j++) {
+    const s = strokes[j]
+    if (s.startT - strokes[first].startT > UNDO_WINDOW_MS) return null
+    if (isTap(s)) return j
+    if (s.dir > 0 || Math.abs(s.peakShiftHz) >= TAP_MAX_PEAK_HZ) return null
+  }
+  return null
+}
+
 function confidenceOf(peakAbsHz: number): number {
   const fraction = (peakAbsHz - MIN_STROKE_PEAK_HZ) / (FULL_CONFIDENCE_HZ - MIN_STROKE_PEAK_HZ)
   return 0.6 + 0.4 * Math.min(1, Math.max(0, fraction))
@@ -70,7 +89,6 @@ export class GestureDetector {
   private zeroRun = 0
   private chain: Stroke[] = []
   private chainIsWave = false
-  private lastPullStartT: number | null = null
   private lastMotionT: number | null = null
   private holdArmed = false
   private pulse: Pulse | null = null
@@ -85,7 +103,6 @@ export class GestureDetector {
     this.zeroRun = 0
     this.chain = []
     this.chainIsWave = false
-    this.lastPullStartT = null
     this.lastMotionT = null
     this.holdArmed = false
     this.pulse = null
@@ -162,21 +179,17 @@ export class GestureDetector {
       return
     }
     const strongest = Math.max(...chain.map((s) => Math.abs(s.peakShiftHz)))
-    for (const stroke of chain) {
-      if (Math.abs(stroke.peakShiftHz) < PRIMARY_RATIO * strongest) continue
-      events.push(this.event(this.typeFor(stroke), stroke, Math.abs(stroke.peakShiftHz)))
+    const primaries = chain.filter((s) => Math.abs(s.peakShiftHz) >= PRIMARY_RATIO * strongest)
+    for (let i = 0; i < primaries.length; i++) {
+      const second = doubleTapPartner(primaries, i)
+      if (second !== null) {
+        events.push(this.event('UNDO', primaries[second], Math.abs(primaries[second].peakShiftHz)))
+        i = second
+        continue
+      }
+      const stroke = primaries[i]
+      events.push(this.event(stroke.dir > 0 ? 'PUSH' : 'PULL', stroke, Math.abs(stroke.peakShiftHz)))
     }
-  }
-
-  private typeFor(stroke: Stroke): GestureType {
-    if (stroke.dir > 0) return 'PUSH'
-    const last = this.lastPullStartT
-    if (last !== null && stroke.startT - last <= UNDO_WINDOW_MS) {
-      this.lastPullStartT = null
-      return 'UNDO'
-    }
-    this.lastPullStartT = stroke.startT
-    return 'PULL'
   }
 
   private event(type: GestureType, stroke: Stroke, peakAbsHz: number): GestureEvent {

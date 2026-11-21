@@ -88,9 +88,30 @@ describe('GestureDetector', () => {
     expect(types(events)).toEqual(['PUSH'])
   })
 
-  it('reports PULL then UNDO for two pulls within 600 ms, with the weak return stroke dropped', () => {
+  it('reports UNDO for a double tap toward: two small pushes within 600 ms', () => {
+    const events = run([{ still: 300 }, push(60, 140), { still: 120 }, push(60, 140), { still: 700 }])
+    expect(types(events)).toEqual(['UNDO'])
+    expect(events[0].speed).toBeGreaterThan(0)
+  })
+
+  it('still reports UNDO when a weak return stroke sits between the two taps', () => {
+    const events = run([push(70, 140), pull(40, 100), push(70, 140), { still: 700 }])
+    expect(types(events)).toEqual(['UNDO'])
+  })
+
+  it('does not call two big pushes an UNDO', () => {
+    const events = run([push(120, 200), { still: 100 }, push(120, 200), { still: 700 }])
+    expect(types(events)).toEqual(['PUSH', 'PUSH'])
+  })
+
+  it('does not call two small taps more than 600 ms apart an UNDO', () => {
+    const events = run([push(60, 140), { still: 900 }, push(60, 140), { still: 700 }])
+    expect(types(events)).toEqual(['PUSH', 'PUSH'])
+  })
+
+  it('treats two pulls within 600 ms as two PULLs, not UNDO', () => {
     const events = run([pull(120, 150), push(45, 120), pull(120, 150), { still: 600 }])
-    expect(types(events)).toEqual(['PULL', 'UNDO'])
+    expect(types(events)).toEqual(['PULL', 'PULL'])
   })
 
   it('reports two plain PULLs when they are more than 600 ms apart', () => {
