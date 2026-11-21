@@ -534,3 +534,14 @@ replay (same recall as 0.60) but it is Ian's live finding that the model's OPEN_
 ## Katana (Yahya's laptop) held-out takes, shipped calib-three (Sat 21 Nov 15:35)
 11 takes never trained on (calib-1 x6, livecheck-1 x4, the 15:25 live UNDO). Recall: WAVE 97%, PUSH 80%, PULL 43%, UNDO 30%, OPEN_CLOSE 10%;
 false alarms 3.9/min. Misses go to WAVE (PULL 5, UNDO 6) and OPEN_CLOSE goes to UNDO (7). Calibration takes of the Katana were not in calib-three.
+
+Result of the interference simulation above (rule detectors, 10 takes, mixes at -40, -30, -20, -10 dB of our own carrier):
+- (X) steady second carrier (0.5, 3, 40 Hz off): PUSH 39/40 and PULL 40/40 unchanged down to -30 dB, false alarms 41-45 against 43 (noise).
+  At -20 dB with a 40 Hz offset PUSH falls to 35/40 and WAVE 9 -> 4/40; at -10 dB PUSH 37-38/40, WAVE 9 -> 2-5/40, false alarms 49-51 (+15-19%).
+  The decision rule (more than 10 points lost, or +50% false alarms, at -30 dB or quieter) is NOT met: no effect at -30 dB or quieter.
+- (Y) a second person's gestures (PUSH take, WAVE take) mixed into idle takes at -30, -20, -10 dB: 9-12 stray events against 13 unmixed.
+  The other person's moves do not fire events on our side, even at -10 dB.
+Verdict: a second laptop does not matter at a normal distance. It only hurts when its tone arrives within about 10-20 dB of our own (laptops
+almost touching), and then it is the weak WAVE rule detector that goes first, PUSH/PULL lose at most 5-10 points. Limits: rule detectors, not
+the model; constant frequency offset, no drift during the take; a real two-laptop test was not run. The pitch rule (only the demo laptop
+runs sonar) stays.
