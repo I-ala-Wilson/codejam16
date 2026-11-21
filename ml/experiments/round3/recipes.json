@@ -1,0 +1,6 @@
+{
+  "baseline": {},
+  "coord": {"coord": true},
+  "snrnorm": {"snr_reference_db": 60.0},
+  "coord_snrnorm": {"coord": true, "snr_reference_db": 60.0}
+}

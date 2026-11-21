@@ -60,24 +60,42 @@ def recall_at_false_alarms(curve: list[SweepPoint], target: float) -> float | No
     return None
 
 
+@dataclass(frozen=True)
+class HeldOutFold:
+    """One leave-one-person-out fold after training: the held-out person's takes and the model's probabilities on them."""
+
+    person: str
+    sessions: list
+    streams: list
+    train_f1: float
+    heldout_f1: float
+    n_train: int
+
+
+def lopo_streams(sessions, epochs: int, device: str, seed: int, **train_kwargs) -> list[HeldOutFold]:
+    """Train each leave-one-person-out fold once and keep every held-out take's (probabilities, times)."""
+    folds = []
+    for person in sorted({s.person for s in sessions}):
+        train_windows = _windows([s for s in sessions if s.person != person])
+        held_out = [s for s in sessions if s.person == person]
+        result = train(train_windows, None, epochs=epochs, device=device, seed=seed, **train_kwargs)
+        windows = _windows(held_out)
+        held_f1 = macro_f1(windows.y, predict_proba(result.model, windows.x, device).argmax(axis=1), len(CLASSES))
+        streams = [stream_probs(result.model, s, device) for s in held_out]
+        folds.append(HeldOutFold(person, held_out, streams, result.train_macro_f1, held_f1, len(train_windows.y)))
+    return folds
+
+
 def sweep_recipe(sessions, recipe: dict, epochs: int, device: str, seed: int, grid=THRESHOLD_GRID) -> list[SweepPoint]:
     """Train each leave-one-person-out fold once; decode its held-out takes at every threshold in the grid."""
     wanted_epochs = int(recipe.get("epochs", epochs))
     kwargs = {k: v for k, v in recipe.items() if k != "epochs"}
-    held = []
-    for person in sorted({s.person for s in sessions}):
-        train_windows = _windows([s for s in sessions if s.person != person])
-        held_out = [s for s in sessions if s.person == person]
-        result = train(train_windows, None, epochs=wanted_epochs, device=device, seed=seed, **kwargs)
-        windows = _windows(held_out)
-        held_f1 = macro_f1(windows.y, predict_proba(result.model, windows.x, device).argmax(axis=1), len(CLASSES))
-        streams = [stream_probs(result.model, s, device) for s in held_out]
-        held.append((person, held_out, streams, result.train_macro_f1, held_f1, len(train_windows.y)))
+    held = lopo_streams(sessions, wanted_epochs, device, seed, **kwargs)
     curve = []
     for threshold in grid:
         folds = [
-            FoldReport(person, evaluate_takes(None, held_out, device, thresholds_for(threshold), streams), n, train_f1, held_f1)
-            for person, held_out, streams, train_f1, held_f1, n in held
+            FoldReport(f.person, evaluate_takes(None, f.sessions, device, thresholds_for(threshold), f.streams), f.n_train, f.train_f1, f.heldout_f1)
+            for f in held
         ]
         score = score_run("sweep", seed, folds)
         curve.append(SweepPoint(threshold, score.macro_recall, score.false_alarms_per_minute, score.fold_recall))

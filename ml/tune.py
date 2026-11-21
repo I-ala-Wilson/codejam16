@@ -18,6 +18,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from dataset import set_snr_reference
 from run import FoldReport, device_problem, load_corpus, lopo_reports, pooled_recall, usable_sessions
 from train import pick_device
 
@@ -82,7 +83,7 @@ def _mean_by_person(runs: list[RunScore]) -> dict[str, float]:
     return {p: statistics.fmean(r.fold_recall[p] for r in runs) for p in people}
 
 
-def decide(baseline: list[RunScore], candidate: list[RunScore]) -> Verdict:
+def decide(baseline: list[RunScore], candidate: list[RunScore], fa_slack: float = FA_SLACK_PER_MIN) -> Verdict:
     """Accept a recipe only if it is better than the baseline by more than luck can explain (see the module docstring)."""
     if len(baseline) < 2:
         raise ValueError("measuring the seed noise needs at least two baseline seeds")
@@ -94,6 +95,11 @@ def decide(baseline: list[RunScore], candidate: list[RunScore]) -> Verdict:
     reasons: list[str] = []
     if gain <= margin:
         reasons.append(f"gain {gain:+.3f} does not clear the margin {margin:.3f} ({NOISE_MULT:g} x seed noise {noise:.3f}, floor {MIN_GAIN})")
+    baseline_by_seed = {r.seed: r for r in baseline}
+    for run in sorted(candidate, key=lambda r: r.seed):
+        paired = baseline_by_seed.get(run.seed)
+        if paired is not None and run.macro_recall <= paired.macro_recall:
+            reasons.append(f"seed {run.seed}: macro recall {run.macro_recall:.3f} is not above the baseline's {paired.macro_recall:.3f}")
     base_people, cand_people = _mean_by_person(baseline), _mean_by_person(candidate)
     shared = sorted(set(base_people) & set(cand_people))
     better = [p for p in shared if cand_people[p] > base_people[p]]
@@ -102,7 +108,7 @@ def decide(baseline: list[RunScore], candidate: list[RunScore]) -> Verdict:
         reasons.append(f"better for only {len(better)} of {len(shared)} people (needs {need}): {better}")
     base_fa = [r.false_alarms_per_minute for r in baseline if r.false_alarms_per_minute is not None]
     cand_fa = [r.false_alarms_per_minute for r in candidate if r.false_alarms_per_minute is not None]
-    if base_fa and cand_fa and statistics.fmean(cand_fa) > statistics.fmean(base_fa) + FA_SLACK_PER_MIN:
+    if base_fa and cand_fa and statistics.fmean(cand_fa) > statistics.fmean(base_fa) + fa_slack:
         reasons.append(f"more false alarms per minute: {statistics.fmean(cand_fa):.2f} vs {statistics.fmean(base_fa):.2f}")
     base_gap, cand_gap = statistics.fmean(r.gap for r in baseline), statistics.fmean(r.gap for r in candidate)
     if cand_gap > base_gap + GAP_SLACK:
@@ -130,18 +136,23 @@ def run_recipe(sessions, name: str, recipe: dict, seeds: list[int], epochs: int,
         if saved["recipe"] == recipe and saved["epochs"] == wanted_epochs and [r.seed for r in runs] == seeds:
             sys.stdout.write(f"{name}: reusing {path}\n")
             return runs
-    kwargs = {k: v for k, v in recipe.items() if k != "epochs"}
+    kwargs = {k: v for k, v in recipe.items() if k not in ("epochs", "snr_reference_db")}
+    snr_reference = recipe.get("snr_reference_db")
     runs = []
-    for seed in seeds:
-        started = time.time()
-        folds = lopo_reports(sessions, wanted_epochs, device, seed, **kwargs)
-        runs.append(score_run(name, seed, folds))
-        r = runs[-1]
-        sys.stdout.write(
-            f"{name} seed {seed}: macro recall {r.macro_recall:.3f}, false alarms/min {r.false_alarms_per_minute}, "
-            f"train F1 {r.train_f1:.3f}, held-out F1 {r.heldout_f1:.3f} ({time.time() - started:.0f} s)\n"
-        )
-        sys.stdout.flush()
+    set_snr_reference(snr_reference)  # input scaling is a property of the data, not of train(); it applies to this recipe only
+    try:
+        for seed in seeds:
+            started = time.time()
+            folds = lopo_reports(sessions, wanted_epochs, device, seed, **kwargs)
+            runs.append(score_run(name, seed, folds))
+            r = runs[-1]
+            sys.stdout.write(
+                f"{name} seed {seed}: macro recall {r.macro_recall:.3f}, false alarms/min {r.false_alarms_per_minute}, "
+                f"train F1 {r.train_f1:.3f}, held-out F1 {r.heldout_f1:.3f} ({time.time() - started:.0f} s)\n"
+            )
+            sys.stdout.flush()
+    finally:
+        set_snr_reference(None)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps({"name": name, "recipe": recipe, "epochs": wanted_epochs, "runs": [_run_dict(r) for r in runs]}, indent=2) + "\n"
@@ -149,12 +160,12 @@ def run_recipe(sessions, name: str, recipe: dict, seeds: list[int], epochs: int,
     return runs
 
 
-def render_summary(results: dict[str, list[RunScore]]) -> str:
+def render_summary(results: dict[str, list[RunScore]], fa_slack: float = FA_SLACK_PER_MIN) -> str:
     lines = [
         "# Tuning summary (leave-one-person-out)",
         "",
         f"Accepted only if: gain over the baseline > max({NOISE_MULT:g} x seed noise, {MIN_GAIN}), better for {PEOPLE_SHARE:.0%} of people,",
-        f"false alarms/min no more than {FA_SLACK_PER_MIN} per minute above the baseline, train-to-held-out gap no more than {GAP_SLACK} wider.",
+        f"false alarms/min no more than {fa_slack} per minute above the baseline, train-to-held-out gap no more than {GAP_SLACK} wider.",
         "",
         "| recipe | seeds | macro recall | false alarms/min | train F1 | held-out F1 | gap | verdict |",
         "|---|---|---|---|---|---|---|---|",
@@ -166,7 +177,7 @@ def render_summary(results: dict[str, list[RunScore]]) -> str:
         if name == BASELINE or base is None or len(base) < 2:
             verdict = "baseline" if name == BASELINE else "needs 2 baseline seeds"
         else:
-            v = decide(base, runs)
+            v = decide(base, runs, fa_slack)
             verdict = f"ACCEPT ({v.gain:+.3f})" if v.accepted else "refuse: " + "; ".join(v.reasons)
         lines.append(
             f"| {name} | {len(runs)} | {statistics.fmean(r.macro_recall for r in runs):.3f} | {fa} |"
@@ -185,6 +196,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--out", type=Path, default=Path(__file__).parent / "experiments")
     parser.add_argument("--device", default=pick_device())
     parser.add_argument("--allow-cpu", action="store_true")
+    parser.add_argument("--fa-slack", type=float, default=FA_SLACK_PER_MIN, help="extra false alarms per minute a recipe may have")
     args = parser.parse_args(argv)
     problem = device_problem(args.device, args.allow_cpu)
     if problem:
@@ -199,7 +211,7 @@ def main(argv: list[str]) -> int:
     for name, recipe in json.loads(args.recipes.read_text()).items():
         run_recipe(sessions, name, recipe, args.seeds, args.epochs, args.device, args.out)
     results = {path.stem: _load_runs(path)[1] for path in sorted((args.out / RESULTS_DIR).glob("*.json"))}
-    (args.out / "SUMMARY.md").write_text(render_summary(results))
+    (args.out / "SUMMARY.md").write_text(render_summary(results, args.fa_slack))
     sys.stdout.write((args.out / "SUMMARY.md").read_text())
     return 0
 

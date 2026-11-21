@@ -114,6 +114,14 @@ _SPECTROGRAMS: dict[int, tuple[Session, np.ndarray]] = {}
 _WINDOWS: dict[int, tuple[Session, Windows]] = {}
 
 
+def set_snr_reference(db: float | None) -> None:
+    """Turn the per-take SNR scaling of take_excess on (the reference level in dB) or off (None). The cached windows were
+    built with the old setting, so they are dropped; the spectrograms do not depend on it."""
+    global SNR_REFERENCE_DB
+    SNR_REFERENCE_DB = db
+    _WINDOWS.clear()
+
+
 def spectrogram_of(session: Session) -> np.ndarray:
     """spectrogram_db of the take, computed once."""
     entry = _SPECTROGRAMS.get(id(session))

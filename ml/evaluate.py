@@ -5,6 +5,7 @@ The decoder here is the reference for the engine's classifier post-processing; k
 """
 
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
@@ -99,9 +100,11 @@ def evaluate_takes(
     device: str,
     thresholds: dict[str, float] = DEFAULT_THRESHOLDS,
     streams: list[tuple[np.ndarray, np.ndarray]] | None = None,
+    rewrite: Callable[[Session, list[Event]], list[Event]] | None = None,
 ) -> EvalReport:
     """Score takes with the streaming decoder. `streams` (one (probs, times) per session, from stream_probs) lets a
-    threshold sweep decode the same model outputs many times without running the model again."""
+    threshold sweep decode the same model outputs many times without running the model again. `rewrite` may change the
+    decoded events of a take (for example relabel them) before they are scored."""
     reps: Counter[str] = Counter()
     hits: Counter[str] = Counter()
     confusion: dict[str, Counter[str]] = {}
@@ -110,6 +113,8 @@ def evaluate_takes(
     for i, session in enumerate(sessions):
         probs, times = streams[i] if streams is not None else stream_probs(model, session, device)
         events = decode_events(probs, times, thresholds)
+        if rewrite is not None:
+            events = rewrite(session, events)
         if session.meta.get("takeKind") == "none":
             none_events += len(events)
             none_seconds += float(times[-1] - times[0]) if len(times) > 1 else 0.0

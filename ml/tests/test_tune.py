@@ -6,7 +6,9 @@ import pytest
 from evaluate import EvalReport
 from run import FoldReport, load_corpus
 from synth import make_take, write_take
-from tune import FA_SLACK_PER_MIN, GAP_SLACK, RunScore, decide, main, score_run
+import dataset
+from run import load_corpus, usable_sessions
+from tune import FA_SLACK_PER_MIN, GAP_SLACK, RunScore, decide, main, run_recipe, score_run
 
 PEOPLE = ["a", "b", "c", "d", "e"]
 
@@ -52,6 +54,17 @@ class TestDecide:
     def test_more_false_alarms_are_refused_even_with_better_recall(self):
         verdict = decide(BASELINE, [flat(0.80, fa=0.5 + FA_SLACK_PER_MIN + 0.5)])
         assert not verdict.accepted and any("false alarm" in r for r in verdict.reasons)
+
+    def test_the_false_alarm_slack_can_be_set_to_zero(self):
+        verdict = decide(BASELINE, [flat(0.80, fa=0.5 + 0.1)], fa_slack=0.0)
+        assert not verdict.accepted and any("false alarm" in r for r in verdict.reasons)
+        assert decide(BASELINE, [flat(0.80, fa=0.5 + 0.1)]).accepted  # the default slack of 0.25 lets the same run through
+
+    def test_a_candidate_must_beat_the_baseline_on_every_seed_it_shares(self):
+        baseline = [flat(0.70, seed=0), flat(0.71, seed=1)]
+        mixed = [flat(0.80, seed=0), flat(0.705, seed=1)]  # the mean is far ahead, but seed 1 is below the baseline's seed 1
+        verdict = decide(baseline, mixed)
+        assert not verdict.accepted and any("seed 1" in r for r in verdict.reasons)
 
     def test_a_wider_train_to_heldout_gap_is_refused_even_with_better_recall(self):
         verdict = decide(BASELINE, [flat(0.80, train_f1=0.99, heldout_f1=0.80)])  # gap 0.19 vs the baseline's 0.10
@@ -117,3 +130,34 @@ def test_the_cli_runs_recipes_and_writes_one_result_file_each(tmp_path: Path):
     assert {"fold_recall", "class_recall", "train_f1", "heldout_f1"} <= set(saved["runs"][0])
     assert (out / "SUMMARY.md").exists() and "tight" in (out / "SUMMARY.md").read_text()
     assert load_corpus(root)  # the corpus is untouched
+
+
+def _tiny_sessions(tmp_path: Path):
+    root = tmp_path / "rec"
+    for person, seed in [("ana", 10), ("bo", 20), ("cy", 30)]:
+        for i, g in enumerate(["PUSH", "PULL"]):
+            write_take(make_take(g, person=person, n_cues=4, seed=seed + i), root / person)
+        write_take(make_take("NONE", person=person, seed=seed + 99), root / person)
+    return usable_sessions(load_corpus(root))
+
+
+def test_an_snr_reference_in_a_recipe_applies_to_that_recipe_only(tmp_path: Path):
+    sessions = _tiny_sessions(tmp_path)
+    seen = []
+    real = dataset.take_excess
+
+    def spying(session, spec):
+        seen.append(dataset.SNR_REFERENCE_DB)
+        return real(session, spec)
+
+    import evaluate
+
+    original = evaluate.take_excess
+    dataset.take_excess = spying
+    evaluate.take_excess = spying
+    try:
+        run_recipe(sessions, "norm", {"snr_reference_db": 60.0}, [0], 1, "cpu", tmp_path / "o")
+    finally:
+        dataset.take_excess, evaluate.take_excess = real, original
+    assert 60.0 in seen  # the reference was in force while that recipe trained and was scored
+    assert dataset.SNR_REFERENCE_DB is None  # and it is switched off again afterwards

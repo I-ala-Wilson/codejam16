@@ -101,6 +101,15 @@ class TestStreaming:
         streams = [stream_probs(trained, t, pick_device()) for t in takes]
         assert evaluate_takes(None, takes, "cpu", streams=streams) == evaluate_takes(trained, takes, pick_device())
 
+    def test_a_rewrite_hook_changes_the_events_before_they_are_scored(self, trained):
+        takes = [make_take("PUSH", person="cy", n_cues=4, seed=85)]
+        streams = [stream_probs(trained, t, pick_device()) for t in takes]
+        plain = evaluate_takes(None, takes, "cpu", streams=streams)
+        relabelled = evaluate_takes(None, takes, "cpu", streams=streams, rewrite=lambda session, events: [Event("PULL", e.t_s) for e in events])
+        silenced = evaluate_takes(None, takes, "cpu", streams=streams, rewrite=lambda session, events: [])
+        assert plain.recall["PUSH"] > 0.5 and relabelled.recall["PUSH"] == 0.0 and silenced.recall["PUSH"] == 0.0
+        assert relabelled.confusion["PUSH"].get("PULL", 0) > 0
+
     def test_held_out_synthetic_takes_are_recalled_and_a_none_take_stays_quiet(self, trained):
         takes = [make_take(g, person="cy", n_cues=6, seed=60 + i) for i, g in enumerate(["PUSH", "PULL", "WAVE", "UNDO"])]
         takes.append(make_take("NONE", person="cy", seed=70))

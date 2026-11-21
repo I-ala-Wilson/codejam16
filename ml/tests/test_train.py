@@ -102,6 +102,19 @@ class TestDataset:
         assert spectrogram_of(take) is first
         assert np.array_equal(first, spectrogram_db(take.samples, take.sample_rate, take.tone_hz))
 
+    def test_an_snr_reference_rescales_the_windows_and_switching_it_off_restores_them(self):
+        import dataset as ds
+
+        take = make_take("PUSH", person="snr", n_cues=3, seed=23)
+        plain = windows_of(take)
+        try:
+            ds.set_snr_reference(60.0)
+            scaled = windows_of(take)  # not the cached plain ones
+            assert scaled is not plain and not np.array_equal(scaled.x, plain.x)
+        finally:
+            ds.set_snr_reference(None)
+        assert np.array_equal(windows_of(take).x, plain.x)
+
     def test_a_takes_windows_are_cached_and_equal_to_building_them_directly(self):
         take = make_take("WAVE", person="cache", seed=22)
         cached = windows_of(take)
@@ -119,6 +132,42 @@ class TestModel:
         model = GestureCNN()
         assert model(torch.zeros(5, 1, 48, 87)).shape == (5, len(CLASSES))
         assert 20_000 < count_parameters(model) < 100_000
+
+
+class TestCoordinateChannel:
+    def test_a_coordinate_channel_gives_the_first_layer_a_second_input_without_changing_the_interface(self):
+        plain, coord = GestureCNN(), GestureCNN(coord=True)
+        assert plain.features[0][0].in_channels == 1 and coord.features[0][0].in_channels == 2
+        x = torch.rand(4, 1, 48, 87)
+        assert coord(x).shape == plain(x).shape == (4, len(CLASSES))
+
+    def test_a_model_with_the_channel_can_tell_energy_above_the_carrier_from_energy_below_it(self):
+        # same energy, mirrored in frequency: a translation-invariant head cannot separate these, a position-aware one can
+        torch.manual_seed(0)
+        above = torch.zeros(256, 1, 48, 87)
+        above[:, :, 10:30, 55:70] = 0.8
+        below = torch.zeros(256, 1, 48, 87)
+        below[:, :, 10:30, 17:32] = 0.8
+        x, y = torch.cat([above, below]), torch.cat([torch.zeros(256), torch.ones(256)]).long()
+        model = GestureCNN(n_classes=2, coord=True)
+        opt = torch.optim.Adam(model.parameters(), lr=3e-3)
+        for _ in range(60):
+            opt.zero_grad()
+            torch.nn.functional.cross_entropy(model(x), y).backward()
+            opt.step()
+        model.eval()
+        assert (model(x).argmax(dim=1) == y).float().mean() > 0.95
+
+    def test_the_exported_onnx_still_takes_one_channel(self, tmp_path: Path):
+        onnx = pytest.importorskip("onnx")
+        path = tmp_path / "gesture.onnx"
+        export_onnx(GestureCNN(coord=True), path)
+        shape = [d.dim_value for d in onnx.load(str(path)).graph.input[0].type.tensor_type.shape.dim]
+        assert shape[1:] == [1, 48, 87]
+
+    def test_training_accepts_the_setting(self, corpus: dict[str, Windows]):
+        result = train(corpus["ana"], None, epochs=1, device="cpu", seed=0, coord=True)
+        assert result.model.coord is True
 
 
 class TestRegularisationKnobs:

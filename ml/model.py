@@ -16,9 +16,15 @@ def _block(c_in: int, c_out: int) -> nn.Sequential:
 class GestureCNN(nn.Module):
     """Input (batch, 1, 48, 87) of dB over the floor divided by 60; output (batch, n_classes) logits."""
 
-    def __init__(self, n_classes: int = 7, width: int = 16, dropout: float = 0.2) -> None:
+    def __init__(self, n_classes: int = 7, width: int = 16, dropout: float = 0.2, coord: bool = False, bins: int = 87) -> None:
         super().__init__()
-        self.features = nn.Sequential(_block(1, width), _block(width, 2 * width), _block(2 * width, 4 * width))
+        self.coord = coord
+        if coord:
+            # The head pools over the whole frequency axis, which hides which side of the carrier the energy is on (the
+            # only difference between PUSH and PULL). A constant channel holding each bin's relative offset puts it back,
+            # inside the model, so the ONNX input stays (batch, 1, 48, bins).
+            self.register_buffer("offset", torch.linspace(-1.0, 1.0, bins).view(1, 1, 1, bins), persistent=False)
+        self.features = nn.Sequential(_block(2 if coord else 1, width), _block(width, 2 * width), _block(2 * width, 4 * width))
         self.head = nn.Sequential(
             nn.Linear(8 * width, 64),
             nn.ReLU(inplace=True),
@@ -27,6 +33,8 @@ class GestureCNN(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.coord:
+            x = torch.cat([x, self.offset.expand(x.shape[0], 1, x.shape[2], x.shape[3])], dim=1)
         f = self.features(x)
         pooled = torch.cat([f.mean(dim=(2, 3)), f.amax(dim=(2, 3))], dim=1)
         return self.head(pooled)

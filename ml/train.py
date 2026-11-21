@@ -126,6 +126,7 @@ def train(
     aug_strength: float = 1.0,
     gain_db: float = GAIN_DB,
     none_weight: float = NONE_WEIGHT,
+    coord: bool = False,
 ) -> TrainResult:
     """Class-balanced training with augmentation. With a validation set the best epoch by macro F1 is kept."""
     if len(train_set.y) == 0:
@@ -134,7 +135,7 @@ def train(
     # The CNN is tiny, so the GPU is starved if batches are indexed, augmented and copied from the CPU: hold the whole
     # dataset (about 1 GB) on the device once and draw every random number there too.
     generator = torch.Generator(device=device).manual_seed(seed)
-    model = GestureCNN(n_classes=len(CLASSES), width=width, dropout=dropout).to(device)
+    model = GestureCNN(n_classes=len(CLASSES), width=width, dropout=dropout, coord=coord).to(device)
     x, y = to_input(train_set.x).to(device), torch.from_numpy(train_set.y).to(device)
     weights = class_weights(y, none_weight)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
