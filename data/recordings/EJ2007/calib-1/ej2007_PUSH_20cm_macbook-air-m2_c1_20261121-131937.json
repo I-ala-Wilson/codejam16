@@ -1,0 +1,143 @@
+{
+  "person": "EJ2007",
+  "gesture": "PUSH",
+  "laptop": "macbook-air-m2",
+  "note": "calib-1: PUSH at 20 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 216384,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 288768,
+      "end": 360768,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 433152,
+      "end": 505152,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 576512,
+      "end": 648512,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 720896,
+      "end": 792896,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 865280,
+      "end": 937280,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 1009664,
+      "end": 1081664,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 1154048,
+      "end": 1226048,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 1298432,
+      "end": 1370432,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 1441792,
+      "end": 1513792,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 1586176,
+      "end": 1658176,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 1730560,
+      "end": 1802560,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 1874944,
+      "end": 1946944,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 2018304,
+      "end": 2090304,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 2162688,
+      "end": 2234688,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 2307072,
+      "end": 2379072,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 2451456,
+      "end": 2523456,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 2595840,
+      "end": 2667840,
+      "label": "PUSH",
+      "speed": "brisk"
+    },
+    {
+      "start": 2740224,
+      "end": 2812224,
+      "label": "PUSH",
+      "speed": "natural"
+    },
+    {
+      "start": 2883584,
+      "end": 2955584,
+      "label": "PUSH",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T13:19:37-05:00",
+  "takeKind": "gesture",
+  "battery": "calib",
+  "distanceCm": 20,
+  "cueWindowMs": 1500,
+  "periodMs": 3000,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "R",
+  "volumePct": 70,
+  "laptopModel": "MacBook Air M2",
+  "protocol": "ml/PROTOCOL.md"
+}
