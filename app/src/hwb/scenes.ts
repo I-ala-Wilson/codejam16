@@ -236,62 +236,86 @@ export const model: Scene = {
 }
 
 // ---------- 3. The agents ----------
-// Each person drives their own AI agent; every agent reads the same spec and posts to one shared board.
-const TEAM = [
-  { human: 'IAN', agent: 'CLAUDE', role: 'lead: app, lock, extension', y: 52 },
-  { human: 'YAHYA', agent: 'CLAUDE', role: 'model training + sonar engine', y: 104 },
-  { human: 'YAHYA', agent: 'CLAUDE', role: 'tester: finds and reports bugs', y: 156 },
-  { human: 'EJ', agent: 'CLAUDE', role: 'design + pitch', y: 208 },
-  { human: 'MICHAEL', agent: 'CODEX', role: 'caregiver dashboard + backend', y: 260 },
+// Five AI agents, each driven by one of us, never talk to each other directly: every message goes through one shared
+// board (a GitHub issue). Labelled messages travel sender -> board -> recipient, and the board keeps a running log.
+type AgentNode = { key: string; agent: string; role: string; who: string; x: number; y: number }
+const NODES: AgentNode[] = [
+  { key: 'lead', agent: 'CLAUDE', role: 'lead: app + lock', who: 'IAN', x: 96, y: 62 },
+  { key: 'ml', agent: 'CLAUDE', role: 'model + engine', who: 'YAHYA', x: 544, y: 62 },
+  { key: 'qa', agent: 'CLAUDE', role: 'tester', who: 'YAHYA', x: 96, y: 236 },
+  { key: 'ui', agent: 'CLAUDE', role: 'design + pitch', who: 'EJ', x: 544, y: 236 },
+  { key: 'dash', agent: 'CODEX', role: 'dashboard', who: 'MICHAEL', x: 320, y: 270 },
 ]
-const COL = { human: 92, agent: 232, board: 560 }
-const BRD = { x: 520, y0: 34, y1: 278, w: 92 }
+const HUB = { x: 320, y: 128, w: 150, h: 92 }
+const node = (k: string) => NODES.find((n) => n.key === k)!
+const MSGS: { from: string; to: string[]; text: string }[] = [
+  { from: 'qa', to: ['lead'], text: 'BUG FOUND' },
+  { from: 'lead', to: ['ml', 'qa', 'ui', 'dash'], text: 'SPEC v5' },
+  { from: 'ml', to: ['lead'], text: 'NEW MODEL' },
+  { from: 'lead', to: ['ui'], text: 'TASK' },
+  { from: 'dash', to: ['lead'], text: 'DONE' },
+  { from: 'ui', to: ['qa'], text: 'PLEASE TEST' },
+]
+const STEP = 2.6 // seconds per message
+const hubEdge = (n: AgentNode) => {
+  const dx = n.x - HUB.x, dy = n.y - HUB.y
+  const k = Math.min((HUB.w / 2) / Math.abs(dx || 1e-6), (HUB.h / 2) / Math.abs(dy || 1e-6))
+  return { x: HUB.x + dx * k, y: HUB.y + dy * k }
+}
+const nodeEdge = (n: AgentNode) => {
+  const dx = HUB.x - n.x, dy = HUB.y - n.y, l = Math.hypot(dx, dy)
+  return { x: n.x + (dx / l) * 20, y: n.y + (dy / l) * 20 }
+}
+// where the current message is: 0..0.42 sender -> hub, 0.42..0.58 at the hub, 0.58..1 hub -> recipients
+const msgAt = (t: number) => {
+  const k = Math.floor(t / STEP), u = (t / STEP) % 1
+  return { m: MSGS[k % MSGS.length], u, k }
+}
 
 export const agents: Scene = {
   draw(g, t) {
-    g.lineWidth = 1.4
-    for (let i = 0; i < TEAM.length; i++) {
-      const r = TEAM[i]
-      // human -> their agent: a short solid line
-      const hy = r.human === 'YAHYA' ? 130 : r.y
-      g.strokeStyle = gray(0.9); g.setLineDash([])
-      g.beginPath(); g.moveTo(COL.human + 18, hy); g.lineTo(COL.agent - 16, r.y); g.stroke()
-      // agent -> shared board: dotted, with a message travelling in and a reply travelling back
-      const x0 = COL.agent + 206, x1 = BRD.x - BRD.w / 2 // starts after the agent's label
-      g.strokeStyle = gray(0.7); g.setLineDash([2, 5])
-      g.beginPath(); g.moveTo(x0, r.y); g.lineTo(x1, r.y); g.stroke(); g.setLineDash([])
-      const P = 3.6 + (i % 3) * 0.7, u = ((t + i * 1.13) / P) % 1
-      const at = (p: number) => { g.fillStyle = gray(1); g.fillRect(x0 + (x1 - x0) * p - 3, r.y - 3, 6, 6) }
-      if (u < 0.45) at(smooth(u / 0.45))
-      else if (u > 0.55 && u < 0.95) at(1 - smooth((u - 0.55) / 0.4))
-      // agent chip: a small rounded square with a soft fill
-      g.fillStyle = gray(0.5); g.strokeStyle = gray(1); g.lineWidth = 1.6
-      g.beginPath(); g.roundRect(COL.agent - 14, r.y - 14, 28, 28, 5); g.fill(); g.stroke()
+    const { m, u } = msgAt(t)
+    for (const n of NODES) {
+      const a = nodeEdge(n), b = hubEdge(n)
+      const live = n.key === m.from ? u < 0.45 : m.to.includes(n.key) ? u > 0.55 : false
+      g.strokeStyle = gray(live ? 1 : 0.55); g.lineWidth = live ? 2 : 1.2; g.setLineDash(live ? [] : [2, 5])
+      g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); g.setLineDash([])
+      const lit = live ? 0.9 : 0.45
+      g.fillStyle = gray(lit); g.strokeStyle = gray(1); g.lineWidth = 1.6
+      g.beginPath(); g.roundRect(n.x - 18, n.y - 18, 36, 36, 6); g.fill(); g.stroke()
     }
-    // people: one round avatar each (Yahya's spans his two agents)
-    for (const [y] of [[52], [130], [208], [260]]) {
-      g.fillStyle = gray(0.3); g.strokeStyle = gray(1); g.lineWidth = 1.6
-      g.beginPath(); g.arc(COL.human, y, 16, 0, TAU); g.fill(); g.stroke()
-      g.fillStyle = gray(1)
-      g.beginPath(); g.arc(COL.human, y - 4, 4.5, 0, TAU); g.fill()
-      g.beginPath(); g.arc(COL.human, y + 11, 8.5, Math.PI, TAU); g.fill()
-    }
-    // the shared board: a tall panel the dots post into
-    g.fillStyle = gray(1); g.fillRect(BRD.x - BRD.w / 2, BRD.y0, BRD.w, BRD.y1 - BRD.y0)
+    // the board itself pulses when a message lands
+    const land = u > 0.4 && u < 0.6 ? 1 - Math.abs(u - 0.5) * 10 : 0
+    g.fillStyle = gray(0); g.strokeStyle = gray(1); g.lineWidth = 2 + 3 * land
+    g.beginPath(); g.rect(HUB.x - HUB.w / 2, HUB.y - HUB.h / 2, HUB.w, HUB.h); g.fill(); g.stroke()
   },
-  overlay(g) {
-    for (const [name, y] of [['IAN', 52], ['YAHYA', 130], ['EJ', 208], ['MICHAEL', 260]] as const) label(g, name, COL.human - 24, y, 17, 'right')
-    for (const r of TEAM) {
-      label(g, r.agent, COL.agent + 22, r.y - 7, 16)
-      label(g, r.role, COL.agent + 22, r.y + 9, 13)
+  overlay(g, t) {
+    const { m, u, k } = msgAt(t)
+    for (const n of NODES) {
+      const right = n.x > HUB.x + 40, center = Math.abs(n.x - HUB.x) < 40
+      const x = center ? n.x + 26 : right ? n.x - 26 : n.x + 26
+      const al: CanvasTextAlign = center ? 'left' : right ? 'right' : 'left'
+      const yy = center ? n.y : n.y
+      label(g, n.agent, x, yy - 9, 16, al)
+      label(g, `${n.role} · ${n.who}`, x, yy + 8, 13, al)
     }
-    g.fillStyle = BG; g.textAlign = 'center'; g.textBaseline = 'middle'
-    g.font = '22px VT323, monospace'; g.fillText('SHARED', BRD.x, 130); g.fillText('BOARD', BRD.x, 150)
-    g.font = '13px VT323, monospace'
-    for (const [k, txt] of ['spec', 'tasks', 'status', 'bugs'].entries()) g.fillText(txt, BRD.x, 186 + k * 16)
-    label(g, 'PEOPLE', COL.human, 304, 15, 'center')
-    label(g, 'THEIR AI AGENTS', COL.agent + 50, 304, 15, 'center')
-    label(g, 'ONE GITHUB ISSUE', BRD.x, 304, 15, 'center')
+    // board header + running log of the last three messages
+    label(g, 'SHARED BOARD', HUB.x, HUB.y - 34, 17, 'center')
+    label(g, 'one GitHub issue', HUB.x, HUB.y - 19, 12, 'center')
+    const shown = u >= 0.5 ? k : k - 1
+    for (let r = 0; r < 3; r++) {
+      const idx = shown - r
+      if (idx < 0) continue
+      const mm = MSGS[((idx % MSGS.length) + MSGS.length) % MSGS.length]
+      const to = mm.to.length > 1 ? 'ALL' : node(mm.to[0]).who
+      label(g, `${node(mm.from).who} > ${mm.text} > ${to}`, HUB.x, HUB.y + 6 + r * 15, 13, 'center')
+    }
+    // the travelling message tag
+    const from = node(m.from)
+    const tagAt = (a: { x: number; y: number }, b: { x: number; y: number }, p: number) => tag(g, m.text, a.x + (b.x - a.x) * p, a.y + (b.y - a.y) * p, 13)
+    if (u < 0.42) tagAt(nodeEdge(from), hubEdge(from), 0.22 + 0.78 * smooth(u / 0.42)) // starts clear of the sender's label
+    else if (u > 0.58) for (const key of m.to) { const n = node(key); tagAt(hubEdge(n), nodeEdge(n), 0.78 * smooth((u - 0.58) / 0.42)) }
+    label(g, 'Agents never talk directly: every task, bug and update goes through the board.', 320, 308, 13, 'center')
   },
 }
 

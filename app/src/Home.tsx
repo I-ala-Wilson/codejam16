@@ -32,9 +32,7 @@ export default function Home({ go }: { go: (page: string) => void }) {
       </div>
       </section>
       <section className="home__how">
-        <Explainer embedded>
-          <div className="ex__intro"><div className="lk__eyebrow">HOW IT WORKS</div><h2>Sound in, echo out, physics in between.</h2><hr /></div>
-        </Explainer>
+        <Explainer embedded />
       </section>
       <section>
         <HowWeBuilt />
