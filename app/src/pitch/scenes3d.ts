@@ -540,17 +540,17 @@ export const careScene3D = make3D(() => {
   }
 })
 
-// ---------- Lock: over the shoulder; the laptop shows Chrome's "can't be reached" page; PUSH PULL PULL PUSH unlocks ----------
-// Timeline (s): locked 0-1.5, hand rises 1.5-2.3, four signs 1.4 s each 2.3-7.9 (a dot after each), cross-fade to the
-// unlocked site 7.9-8.7, hand lowers 8.7-9.5, hold until 12. Clicking the scene restarts the loop (replayLock).
-const LOCK_T = 12
-const LOCK_SIGNS = ['PUSH', 'PULL', 'PULL', 'PUSH'] as const
-const SIGN0 = 2.3, SIGN_LEN = 1.4
+// ---------- Lock: over the shoulder; the laptop shows Chrome's "can't be reached" page; PUSH then WAVE unlocks ----------
+// Timeline (s): locked 0-1.5, hand rises 1.5-2.3, PUSH 2.3-3.7, WAVE 3.7-5.7 (a dot after each), cross-fade to the
+// unlocked site 5.7-6.5, hand lowers 6.5-7.3, hold until 10. Clicking the scene restarts the loop (replayLock).
+const LOCK_T = 10
+const LOCK_SIGNS = [{ kind: 'PUSH', start: 2.3, len: 1.4 }, { kind: 'WAVE', start: 3.7, len: 2.0 }] as const
+const lockSign = (u: number) => { const i = LOCK_SIGNS.findIndex((x) => u >= x.start && u < x.start + x.len); return i < 0 ? null : { i, p: (u - LOCK_SIGNS[i].start) / LOCK_SIGNS[i].len, kind: LOCK_SIGNS[i].kind } }
 let lockNow = 0, lockStart = 0
 export function replayLock() { lockStart = lockNow }
 const lockAt = () => ((lockNow - lockStart) % LOCK_T + LOCK_T) % LOCK_T
-const lockDots = (u: number) => Math.max(0, Math.min(4, Math.floor((u - SIGN0 - SIGN_LEN * 0.55) / SIGN_LEN) + 1))
-const lockOpen = (u: number) => Math.max(0, Math.min(1, (u - 7.9) / 0.8))
+const lockDots = (u: number) => LOCK_SIGNS.filter((x) => u >= x.start + x.len * 0.6).length
+const lockOpen = (u: number) => Math.max(0, Math.min(1, (u - 5.7) / 0.8))
 
 // The laptop screen: drawn like extension/veil.js (Chrome's net-error page), large type so it survives the dither.
 function drawLockScreen(c: HTMLCanvasElement, dots: number, open: number) {
@@ -657,14 +657,12 @@ export const lockScene3D = make3D(() => {
       // hand in front of the screen; a sign moves it 15 cm toward (PUSH) or away from (PULL) the screen and back
       const mid = new V3(sm.x + r.side * 0.04, sm.y + 0.02, sm.z - 0.32)
       const restW = new V3(r.rSh.x - r.side * 0.02, r.deskY + 0.06, sm.z - 0.42)
-      const up = ease((u - 1.5) / 0.8) * (1 - ease((u - 8.7) / 0.8))
-      let dz = 0
-      const i = Math.floor((u - SIGN0) / SIGN_LEN)
-      if (i >= 0 && i < 4) {
-        const p = (u - SIGN0 - i * SIGN_LEN) / SIGN_LEN
-        dz = (LOCK_SIGNS[i] === 'PUSH' ? 0.15 : -0.15) * Math.sin(Math.min(1, p / 0.85) * Math.PI)
-      }
-      w.copy(mid).add(new V3(0, 0, dz)).lerp(restW, 1 - up)
+      const up = ease((u - 1.5) / 0.8) * (1 - ease((u - 6.5) / 0.8))
+      let dz = 0, dx = 0
+      const sg = lockSign(u)
+      if (sg && sg.kind === 'PUSH') dz = 0.15 * Math.sin(Math.min(1, sg.p / 0.85) * Math.PI) // 15 cm toward the screen and back
+      if (sg && sg.kind === 'WAVE') dx = 0.09 * Math.sin(sg.p * Math.PI * 2 * 2.5) * Math.sin(sg.p * Math.PI) // side to side, 2.5 sweeps
+      w.copy(mid).add(new V3(dx, 0, dz)).lerp(restW, 1 - up)
       const sh = r.bone('RightArm').getWorldPosition(new V3())
       const pole = new V3(r.side, -1, -0.3)
       ikElbow(sh, w, r.l1, r.l2, pole, pE)
@@ -684,9 +682,9 @@ export const lockScene3D = make3D(() => {
   if (lockOpen(u) > 0.5) { const [x, y] = at('screenTop'); chip(g, 'UNLOCKED', x, y - 22) }
 }, (g, at) => {
   // a thin flower arc pulses from the hand to the laptop as each sign lands
-  const u = lockAt(), i = Math.floor((u - SIGN0) / SIGN_LEN)
-  if (i < 0 || i > 3) return
-  const p = (u - SIGN0 - i * SIGN_LEN) / SIGN_LEN
+  const sg = lockSign(lockAt())
+  if (!sg) return
+  const p = sg.p
   if (p < 0.35 || p > 0.95) return
   const q = (p - 0.35) / 0.6
   const [hx, hy] = at('hand'), [sx, sy] = at('screenMid')

@@ -16,7 +16,7 @@ export default function LockChapter({ go }: { go: (page: string) => void }) {
           <button className="pz__btn" onClick={() => go('lock')}>Open live demo</button>
         </div>
         <div className="pz__frame pz__replay" onClick={replayLock} title="click to replay">
-          <DitherCanvas scene={lockScene3D} label="Over a person's shoulder: the laptop shows This site can't be reached; their hand pushes and pulls four times, a dot appears after each sign, and the screen opens to the video site." />
+          <DitherCanvas scene={lockScene3D} label="Over a person's shoulder: the laptop shows This site can't be reached; their hand pushes once and waves once, a dot appears after each sign, and the screen opens to the video site." />
         </div>
       </div>
     </section>
