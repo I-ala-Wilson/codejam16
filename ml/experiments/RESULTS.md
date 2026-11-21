@@ -185,3 +185,14 @@ numbers:
   does not count for or against the GO/NO-GO counts below.
 - If, after the gate, fewer than 4 paced takes from fewer than 2 people remain, the verdict is INSUFFICIENT DATA (not NO-GO)
   and more takes are asked for. The 75% rules above are otherwise unchanged and apply to the takes that pass the gate.
+
+Clarifications of the breathing rule, written before any breathing rate was computed (they fix how the code reads the text above):
+- INSUFFICIENT DATA applies when EITHER there are fewer than 4 usable paced takes OR they come from fewer than 2 people.
+- The "not flagged in the first 10 s" check uses the first 10 s of the cropped signal.
+- "Flag within 10 s of the labelled start of the hold" means a flag whose window centre lies in [start, start + 10 s]; a flag before the hold does not count.
+- The crop to the stable stretch can include up to about 2 s after a tone change, because the last stable 5 s window straddles it. Accepted.
+- A level step that splits a take exactly 50/50 rejects it, because the median falls between the two levels.
+Measured when the gate was first applied (levels only, no rate): Ian's 10 bpm take is cropped to 20-60 s, his 15 and 20 bpm
+takes are rejected (the tone level swings 8.8 dB and 19.8 dB), his hold take is cropped to 16-60 s (the tone drops by about
+15-20 dB at 15 s and is then steady, still 67-88 dB above the noise in a 5 s window), and Yahya's 10 bpm take is cropped to
+0-49 s. So, as of now, 2 usable paced takes from 2 people: INSUFFICIENT DATA until more takes arrive.

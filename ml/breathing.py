@@ -40,10 +40,31 @@ STATIC_WINDOW_S = 20.0
 #: The FFT is zero-padded to at least this many times the window length, so the peak is read finer than 1 bin.
 ZERO_PAD_FACTOR = 16
 #: Demodulation frequencies tried around the nominal tone: the speaker and mic clocks can disagree by a few Hz at 20 kHz.
-#: Every offset stays inside LOWPASS_HZ, so one demodulation serves all of them.
-BIN_OFFSETS_HZ = tuple(0.5 * k for k in range(-6, 7))
-#: The GO rule's tolerance, drawn as a band around the paced rate on the plots only.
-PLOT_TOLERANCE_BPM = 2.0
+#: The step is this fine because the leakage can be many times the echo: an offset error of only 0.02 Hz leaves it
+#: rotating inside the breathing band and wrecks the estimate (measured on synthetic takes). Every offset stays inside
+#: LOWPASS_HZ, so one demodulation serves all of them.
+BIN_STEP_HZ = 0.01
+BIN_RANGE_HZ = 3.0
+BIN_OFFSETS_HZ = tuple(k * BIN_STEP_HZ for k in range(-round(BIN_RANGE_HZ / BIN_STEP_HZ), round(BIN_RANGE_HZ / BIN_STEP_HZ) + 1))
+#: Tone-level quality gate (RESULTS.md, "data-quality gate"): the tone's level is measured in 5 s windows stepped by 1 s;
+#: a window is stable within 3 dB of the take's median; a take is kept only if a stable run lasts at least 30 s.
+TONE_WINDOW_S = 5.0
+TONE_STEP_S = 1.0
+TONE_MAX_DEV_DB = 3.0
+TONE_MIN_SPAN_S = 30.0
+#: The tone is looked for this far either side of its nominal frequency (the same range the bin search covers).
+TONE_SEARCH_HZ = BIN_RANGE_HZ
+TONE_FLOOR = 1e-12  # amplitude (full scale = 1) below which a silent window is reported as -240 dB, not minus infinity
+#: The GO/NO-GO rule (RESULTS.md): within 2 bpm of the paced rate on 75% of the paced takes, from 2 people or more.
+GO_TOLERANCE_BPM = 2.0
+PASS_SHARE = 0.75
+MIN_PEOPLE = 2
+#: Fewer paced takes than this after the gate and the verdict is INSUFFICIENT DATA, not NO-GO.
+MIN_PACED_TAKES = 4
+#: Apnea check: the flag comes within this long after the labelled start of the hold and not in this long at the take's
+#: start, and at most this share of the breathing windows may be flagged.
+APNEA_ONSET_S = 10.0
+APNEA_MAX_FALSE_SHARE = 0.20
 DEFAULT_OUT = Path(__file__).parent / "experiments" / "breathing"
 
 
@@ -134,9 +155,9 @@ def pick_best_bin(baseband: np.ndarray, rate_hz: float, offsets_hz: tuple[float,
     """The offset whose band-passed phase holds the most energy.
 
     A wrong offset leaves the leakage rotating, so the phase is a ramp that the band-pass removes and only a small ripple
-    of breathing is left; the right one leaves the leakage constant. The choice looks at the signal alone: there is no
-    argument through which a paced rate could reach it. (Rotating the IQ plane would change nothing, the phase is
-    invariant to it, so only frequency offsets are tried.)"""
+    of breathing is left; the right one leaves the leakage constant and the whole echo swing shows. The choice looks at
+    the signal alone: there is no argument through which a paced rate could reach it. (Rotating the IQ plane would change
+    nothing, the phase is invariant to it, so only frequency offsets are tried.)"""
     candidates = [_signal_at_offset(baseband, rate_hz, offset) for offset in offsets_hz]
     return max(candidates, key=lambda choice: float(np.sum(choice.signal**2)))
 
@@ -157,6 +178,53 @@ def apnea_flags(signal: np.ndarray, rate_hz: float, window_s: float = APNEA_WIND
     if strength.size == 0:
         return centres, []
     return centres, [bool(flag) for flag in strength < APNEA_RATIO * np.median(strength)]
+
+
+def tone_level_db(
+    samples: np.ndarray, sample_rate: float, tone_hz: float, window_s: float = TONE_WINDOW_S, step_s: float = TONE_STEP_S
+) -> tuple[np.ndarray, np.ndarray]:
+    """(window centres in seconds, tone level in dB re full scale) of the raw mic spectrum, one value per window.
+
+    The level is the largest spectral magnitude within TONE_SEARCH_HZ of the tone, scaled so a full-scale sine reads 0 dB.
+    A tone that moves in level (another app taking the audio device, a device switch) says nothing about breathing."""
+    length = int(round(window_s * sample_rate))
+    step = int(round(step_s * sample_rate))
+    taper = np.hanning(length)
+    near = np.abs(np.fft.rfftfreq(length, 1.0 / sample_rate) - tone_hz) <= TONE_SEARCH_HZ
+    starts = range(0, len(samples) - length + 1, step)
+    peaks = np.array([np.abs(np.fft.rfft(samples[s : s + length] * taper)[near]).max() for s in starts])
+    levels = 20.0 * np.log10(np.maximum(2.0 * peaks / taper.sum(), TONE_FLOOR))
+    return np.array([(s + length / 2) / sample_rate for s in starts]), levels
+
+
+def _longest_stable_span(
+    times: np.ndarray, levels_db: np.ndarray, max_dev_db: float, window_s: float
+) -> tuple[float, float] | None:
+    """The span in seconds covered by the longest run of consecutive windows within max_dev_db of the median level."""
+    if len(levels_db) == 0:
+        return None
+    stable = np.abs(np.asarray(levels_db) - np.median(levels_db)) <= max_dev_db
+    best, run_start = None, None
+    for i, is_stable in enumerate([*stable, False]):
+        if is_stable and run_start is None:
+            run_start = i
+        elif not is_stable and run_start is not None:
+            best = (run_start, i - 1) if best is None or i - run_start > best[1] - best[0] + 1 else best
+            run_start = None
+    return None if best is None else (float(times[best[0]] - window_s / 2), float(times[best[1]] + window_s / 2))
+
+
+def stable_span(
+    times: np.ndarray,
+    levels_db: np.ndarray,
+    max_dev_db: float = TONE_MAX_DEV_DB,
+    min_span_s: float = TONE_MIN_SPAN_S,
+    window_s: float = TONE_WINDOW_S,
+) -> tuple[float, float] | None:
+    """(start, end) in seconds of the longest stretch whose tone level stays within max_dev_db of the take's median, or
+    None when that stretch is shorter than min_span_s (the take is then rejected)."""
+    span = _longest_stable_span(np.asarray(times), np.asarray(levels_db), max_dev_db, window_s)
+    return span if span is not None and span[1] - span[0] >= min_span_s else None
 
 
 def _is_number(value: Any) -> bool:
@@ -217,26 +285,55 @@ def _read_mono(wav_path: Path, expected_rate: int) -> tuple[np.ndarray, int]:
     return audio[:, 0], int(sample_rate)
 
 
+def _rejection_reason(times: np.ndarray, levels_db: np.ndarray) -> str:
+    span = _longest_stable_span(times, levels_db, TONE_MAX_DEV_DB, TONE_WINDOW_S)
+    longest = 0.0 if span is None else span[1] - span[0]
+    return (
+        f"tone level not stable: the longest stretch within {TONE_MAX_DEV_DB:g} dB of the median lasts {longest:.0f} s, "
+        f"{TONE_MIN_SPAN_S:g} s needed (level range {levels_db.min():.0f} to {levels_db.max():.0f} dB)"
+        if len(levels_db)
+        else f"recording shorter than one {TONE_WINDOW_S:g} s tone window"
+    )
+
+
 def analyze_take(wav_path: Path, json_path: Path) -> dict[str, Any]:
-    """Everything the experiment reports for one take.
+    """Everything the experiment reports for one take, or a rejection when its tone level is not stable.
+
+    The quality gate comes first: the audio is cropped to the longest stretch whose tone level is stable, and a take with
+    no such stretch of TONE_MIN_SPAN_S is returned as {"rejected": True, "reason": ...} with no rate and no apnea result.
+    Times in the result (rate windows, apnea windows, hold) are seconds from the start of the whole take.
 
     paced_bpm, inhale_starts_s and the hold window are read only to be reported next to the estimate (and to leave hold
     windows out of the median); the demodulation bin and the rates are computed without them."""
     meta = json.loads(json_path.read_text())
     samples, sample_rate = _read_mono(wav_path, int(meta["sampleRate"]))
-    choice = extract_signal(samples, sample_rate, float(meta["toneHz"]))
+    tone_hz = float(meta["toneHz"])
+    times, levels = tone_level_db(samples, sample_rate, tone_hz)
+    span = stable_span(times, levels)
+    gate = {
+        "take": json_path.stem,
+        "person": str(meta.get("person", "")).lower(),
+        "tone_level_range_db": [float(levels.min()), float(levels.max())] if len(levels) else None,
+    }
+    if span is None:
+        return {**gate, "rejected": True, "reason": _rejection_reason(times, levels)}
+    origin = span[0]
+    choice = extract_signal(samples[int(round(span[0] * sample_rate)) : int(round(span[1] * sample_rate))], sample_rate, tone_hz)
     hold = read_hold_window(meta)
     windows = [
-        {"start_s": start, "bpm": bpm, "used_in_median": hold is None or not (start < hold[1] and start + RATE_WINDOW_S > hold[0])}
+        {"start_s": origin + start, "bpm": bpm, "used_in_median": hold is None or not (origin + start < hold[1] and origin + start + RATE_WINDOW_S > hold[0])}
         for start, bpm in estimate_rate(choice.signal, OUT_RATE_HZ)
     ]
     kept = [w["bpm"] for w in windows if w["used_in_median"]]
     median_bpm = float(np.median(kept)) if kept else None
     paced = meta.get("paced_bpm")
-    times, flags = apnea_flags(choice.signal, OUT_RATE_HZ)
+    apnea_times, flags = apnea_flags(choice.signal, OUT_RATE_HZ)
+    apnea_times = [origin + t for t in apnea_times]
     return {
-        "take": json_path.stem,
-        "tone_hz": float(meta["toneHz"]),
+        **gate,
+        "rejected": False,
+        "tone_hz": tone_hz,
+        "tone_span_s": [span[0], span[1]],
         "chosen_offset_hz": choice.offset_hz,
         "windows": windows,
         "median_bpm": median_bpm,
@@ -244,10 +341,47 @@ def analyze_take(wav_path: Path, json_path: Path) -> dict[str, Any]:
         "error_bpm": median_bpm - paced if median_bpm is not None and _is_number(paced) else None,
         "counted_bpm": _counted_bpm(list(meta.get("inhale_starts_s", []))),
         "hold_window_s": list(hold) if hold else None,
-        "apnea": {"times_s": times, "flags": flags, "first_flag_s": next((t for t, f in zip(times, flags) if f), None)},
+        "apnea": {"times_s": apnea_times, "flags": flags, "first_flag_s": next((t for t, f in zip(apnea_times, flags) if f), None)},
         "signal": choice.signal,
         "rate_hz": OUT_RATE_HZ,
+        "signal_origin_s": origin,
     }
+
+
+def _apnea_check_passes(result: dict[str, Any]) -> bool:
+    """The pre-registered apnea check for one breath-hold take: flag raised within APNEA_ONSET_S after the labelled start
+    of the hold, none in the first APNEA_ONSET_S of the analysed signal, and at most APNEA_MAX_FALSE_SHARE of the
+    breathing windows (those not overlapping the hold) flagged."""
+    hold_start, hold_end = result["hold_window_s"]
+    times = np.asarray(result["apnea"]["times_s"], dtype=float)
+    flags = np.asarray(result["apnea"]["flags"], dtype=bool)
+    origin = result["tone_span_s"][0] if "tone_span_s" in result else 0.0
+    raised = flags & (times >= hold_start) & (times <= hold_start + APNEA_ONSET_S)
+    too_early = flags & (times < origin + APNEA_ONSET_S)
+    breathing = (times + APNEA_WINDOW_S / 2 <= hold_start) | (times - APNEA_WINDOW_S / 2 >= hold_end)
+    false_share = float(flags[breathing].mean()) if breathing.any() else 0.0
+    return bool(raised.any() and not too_early.any() and false_share <= APNEA_MAX_FALSE_SHARE)
+
+
+def verdict(results: list[dict[str, Any]]) -> str:
+    """GO, PARTIAL GO, NO-GO or INSUFFICIENT DATA by the rule pre-registered in ml/experiments/RESULTS.md.
+
+    Rejected takes never count. With fewer than MIN_PACED_TAKES paced takes, or paced takes from fewer than MIN_PEOPLE
+    people, nothing can be concluded. Otherwise GO needs PASS_SHARE of the paced takes within GO_TOLERANCE_BPM; failing
+    that, PARTIAL GO needs PASS_SHARE of the breath-hold takes, from at least MIN_PEOPLE people, to pass the apnea check.
+    (The 'fewer than 4 takes from fewer than 2 people' of the rule is read as either shortfall being enough.)"""
+    usable = [r for r in results if not r.get("rejected")]
+    paced = [r for r in usable if _is_number(r.get("paced_bpm"))]
+    if len(paced) < MIN_PACED_TAKES or len({r["person"] for r in paced}) < MIN_PEOPLE:
+        return "INSUFFICIENT DATA"
+    within = sum(1 for r in paced if r.get("error_bpm") is not None and abs(r["error_bpm"]) <= GO_TOLERANCE_BPM)
+    if within >= PASS_SHARE * len(paced):
+        return "GO"
+    holds = [r for r in usable if r.get("hold_window_s")]
+    passed = sum(1 for r in holds if _apnea_check_passes(r))
+    if holds and len({r["person"] for r in holds}) >= MIN_PEOPLE and passed >= PASS_SHARE * len(holds):
+        return "PARTIAL GO"
+    return "NO-GO"
 
 
 def plot_take(result: dict[str, Any], path: Path) -> None:
@@ -259,14 +393,14 @@ def plot_take(result: dict[str, Any], path: Path) -> None:
 
     signal = result["signal"]
     figure, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
-    axes[0].plot(np.arange(len(signal)) / result["rate_hz"], signal, linewidth=0.8)
+    axes[0].plot(result["signal_origin_s"] + np.arange(len(signal)) / result["rate_hz"], signal, linewidth=0.8)
     axes[0].set_ylabel("band-passed phase (rad)")
     centres = [w["start_s"] + RATE_WINDOW_S / 2 for w in result["windows"]]
     axes[1].plot(centres, [w["bpm"] for w in result["windows"]], "o-", label="estimate (30 s windows)")
     if _is_number(result["paced_bpm"]):
         paced = result["paced_bpm"]
         axes[1].axhline(paced, color="tab:green", label="paced")
-        axes[1].axhspan(paced - PLOT_TOLERANCE_BPM, paced + PLOT_TOLERANCE_BPM, color="tab:green", alpha=0.15)
+        axes[1].axhspan(paced - GO_TOLERANCE_BPM, paced + GO_TOLERANCE_BPM, color="tab:green", alpha=0.15)
     axes[1].set_ylabel("breaths per minute")
     axes[1].legend(loc="upper right")
     axes[2].fill_between(result["apnea"]["times_s"], [int(f) for f in result["apnea"]["flags"]], step="mid", color="tab:red")
@@ -287,16 +421,24 @@ def _cell(value: float | None) -> str:
 
 
 def summary_table(rows: list[dict[str, Any]]) -> str:
+    """The per-take table, then the takes the tone-level gate rejected with their reasons, then the verdict."""
+    accepted = [r for r in rows if not r["rejected"]]
     lines = [
-        "| take | paced bpm | median bpm | error | counted bpm | bin offset Hz | hold s | first apnea flag s |",
-        "|---|---|---|---|---|---|---|---|",
+        f"Verdict: {verdict(rows)}",
+        "",
+        "| take | paced bpm | median bpm | error | counted bpm | bin offset Hz | hold s | first apnea flag s | tone span s |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
-    for r in rows:
+    for r in accepted:
         hold = "-" if r["hold_window_s"] is None else f"{r['hold_window_s'][0]:.0f}-{r['hold_window_s'][1]:.0f}"
         lines.append(
             f"| {r['take']} | {_cell(r['paced_bpm'])} | {_cell(r['median_bpm'])} | {_cell(r['error_bpm'])} | "
-            f"{_cell(r['counted_bpm'])} | {r['chosen_offset_hz']:+.1f} | {hold} | {_cell(r['apnea']['first_flag_s'])} |"
+            f"{_cell(r['counted_bpm'])} | {r['chosen_offset_hz']:+.2f} | {hold} | {_cell(r['apnea']['first_flag_s'])} | "
+            f"{r['tone_span_s'][0]:.0f}-{r['tone_span_s'][1]:.0f} |"
         )
+    rejected = [r for r in rows if r["rejected"]]
+    if rejected:
+        lines += ["", "Rejected takes (not counted):", ""] + [f"- {r['take']}: {r['reason']}" for r in rejected]
     return "\n".join(lines) + "\n"
 
 
@@ -312,12 +454,13 @@ def main(argv: list[str]) -> int:
         return 1
     args.out.mkdir(parents=True, exist_ok=True)
     results = [analyze_take(p.with_suffix(".wav"), p) for p in json_paths]
-    rows = [{k: v for k, v in r.items() if k not in ("signal", "rate_hz")} for r in results]
+    rows = [{k: v for k, v in r.items() if k not in ("signal", "rate_hz", "signal_origin_s")} for r in results]
     (args.out / "summary.json").write_text(json.dumps(rows, indent=2))
     (args.out / "summary.md").write_text(summary_table(rows))
+    print(f"{len(results)} takes, {sum(r['rejected'] for r in results)} rejected by the tone-level gate: {verdict(results)}")
     if not args.no_plots:
         try:
-            for result in results:
+            for result in (r for r in results if not r["rejected"]):
                 plot_take(result, args.out / f"{result['take']}.png")
         except ImportError as error:
             print(f"plots need matplotlib ({error}); the summary was written, rerun with --no-plots to skip", file=sys.stderr)
