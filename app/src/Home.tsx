@@ -19,7 +19,7 @@ export default function Home({ go }: { go: (page: string) => void }) {
       <div className="home__text">
         <div className="home__mark">{'ECHØ'}</div>
         <h1>Your laptop can hear your hands.<br />Right now.</h1>
-        <p className="home__lede">By leveraging the power of sound and some neat physics, ECHØ is able to discern your movements and gestures, creating a wide range of applications for all devices with a speaker and a microphone.</p>
+        <p className="home__lede">By leveraging the power of sound and some neat physics, ECHØ is able to discern your movements and gestures from the noise of the room you're in, creating a wide range of applications for all devices with a speaker and a microphone.</p>
       </div>
       <div className="home__apps">
         <span className="mono-label">{running ? 'sonar on · move your hand' : 'starting sonar…'}</span>
