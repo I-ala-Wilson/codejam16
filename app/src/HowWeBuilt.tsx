@@ -35,8 +35,6 @@ export default function HowWeBuilt() {
   const [open, setOpen] = useState(0)
   return (
     <section className="hwb">
-      <div className="lk__eyebrow">HOW WE BUILT IT</div>
-      <h2 className="hwb__title">Four of us built this over the weekend, with AI coding agents writing and testing most of the code.</h2>
       <div className="hwb__grid">
         {PANELS.map((p, i) => (
           <figure key={p.title} className="hwb__panel">
