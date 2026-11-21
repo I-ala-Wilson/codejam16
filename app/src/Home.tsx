@@ -49,7 +49,6 @@ export default function Home({ go }: { go: (page: string) => void }) {
       <section className="home__how">
         <Explainer embedded />
       </section>
-      <section><Apps /></section>
       <section><CareChapter go={go} /></section>
       <section><LockChapter go={go} /></section>
       <section><HabitChapter go={go} /></section>
@@ -57,6 +56,7 @@ export default function Home({ go }: { go: (page: string) => void }) {
         <HowWeBuilt />
       </section>
       <section><Results /></section>
+      <section><Apps /></section>
       <section><Close /></section>
     </div>
   )
