@@ -224,10 +224,14 @@ export interface ClassifierRuntimeOptions {
 }
 
 /** Feeds frames to the model without ever blocking the audio callback: inference is queued, and dropped when behind. */
+/** Debug tap for the Gesture test page: every model evaluation's class probabilities (after logitBias), in class order. */
+export const probeListeners = new Set<(probs: number[], names: ReadonlyArray<string>, tMs: number) => void>()
+
 export class ClassifierRuntime {
   private readonly runner: ModelRunner
   private readonly decoder: EventDecoder
   private readonly bias: number[]
+  private readonly names: ReadonlyArray<string>
   private readonly onEvent: (event: ClassifierEvent) => void
   private readonly onError: (error: unknown) => void
   private readonly window = new FrameWindow()
@@ -237,6 +241,7 @@ export class ClassifierRuntime {
   constructor(opts: ClassifierRuntimeOptions) {
     this.runner = opts.runner
     this.decoder = new EventDecoder(opts.decoder)
+    this.names = opts.decoder.classes
     this.bias = opts.decoder.classes.map((name) => opts.decoder.logitBias?.[name] ?? 0)
     this.onEvent = opts.onEvent
     this.onError = opts.onError
@@ -250,7 +255,9 @@ export class ClassifierRuntime {
     this.chain = this.chain
       .then(() => this.runner.run(window))
       .then((logits) => {
-        const event = this.decoder.push(softmax(Array.from(logits, (l, i) => l + (this.bias[i] ?? 0))), tMs)
+        const probs = softmax(Array.from(logits, (l, i) => l + (this.bias[i] ?? 0)))
+        probeListeners.forEach((l) => l(probs, this.names, tMs))
+        const event = this.decoder.push(probs, tMs)
         if (event) this.onEvent(event)
       })
       .catch((error: unknown) => this.onError(error))
