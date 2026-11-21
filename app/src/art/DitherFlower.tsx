@@ -8,7 +8,9 @@ import { engine } from '../engine.ts'
 
 const REF_W = 1920, REF_H = 1080
 const STEM_X = 952, STEM_Y = 1080
-const HEAD_X = 955, HEAD_Y = 520 // centre of the bloom in the reference, where the pulses start
+const HEAD_X = 955, HEAD_Y = 520 // centre of the bloom in the reference
+const ARC_LIFE = 1.4 // s a petal sound wave lives
+const ARC_REACH = 74 // reference px it travels before it fades
 const SHIFT_X = 0.16 // flower sits right of centre, clear of the headline
 const BLUR = 2 // px radius of each of the two box-blur passes, just enough to dissolve the digit shapes
 const GAIN = 1.25 // dither density tracks the reference's own ink coverage, so the tone matches it
@@ -67,7 +69,21 @@ function buildField(img: HTMLImageElement, W: number, H: number) {
     if (x < left) left = x
     if (x > right) right = x
   }
-  return { W, H, v: a, s, ox, oy, top, bottom, left, right }
+  // points on the outer edge of the petals, found by marching out from the bloom centre at 72 angles
+  const cx = ox + HEAD_X * s, cy = oy + HEAD_Y * s
+  const edges: { x: number; y: number; nx: number; ny: number }[] = []
+  for (let k = 0; k < 72; k++) {
+    const th = (k / 72) * Math.PI * 2, nx = Math.cos(th), ny = Math.sin(th)
+    if (ny > 0.55) continue // skip straight down: that is the stem
+    let last = -1
+    for (let r = 0; r < 700 * s; r++) {
+      const x = Math.round(cx + nx * r), y = Math.round(cy + ny * r)
+      if (x < 0 || y < 0 || x >= W || y >= H) break
+      if (a[y * W + x] > 0.16) last = r
+    }
+    if (last > 40 * s) edges.push({ x: cx + nx * last, y: cy + ny * last, nx, ny })
+  }
+  return { W, H, v: a, s, ox, oy, top, bottom, left, right, edges }
 }
 
 export default function DitherFlower() {
@@ -87,6 +103,9 @@ export default function DitherFlower() {
     let field: ReturnType<typeof buildField> | null = null
     let frame: ImageData | null = null
     let raf = 0, last = 0
+    let lastT = 0, lastA = 0
+    const phase: number[] = []
+    const arcs: { x: number; y: number; nx: number; ny: number; t0: number; v: number }[] = []
     const img = new Image()
     img.src = '/art/flower-ref.png'
 
@@ -113,32 +132,53 @@ export default function DitherFlower() {
       const stemX = f.ox + STEM_X * f.s, stemY = f.oy + STEM_Y * f.s, height = 840 * f.s
       const A = (14 * Math.sin(t * 2 * Math.PI / 6) + 3.5 * Math.sin(t * 2 * Math.PI / 2.3 + 1.1)) * f.s
       const pad = Math.ceil(18 * f.s) + 2
-      // Sonar pulses: solid rings travel out from the bloom like the 20 kHz ping, and a dashed echo ring travels back
-      // in, the same language as the How it works explainer. Hand motion makes them brighter.
-      const hx = f.ox + HEAD_X * f.s + A * 0.85, hy = f.oy + HEAD_Y * f.s
-      const RMAX = 520 * f.s, P = 3.6, WID = 3.2 * f.s + 1.2
-      const boost = 1 + 1.6 * Math.min(1, toward + away)
-      const outR = [0, 1, 2].map((k) => (((t + (k * P) / 3) % P) / P) * RMAX)
-      const inPh = ((t + P * 0.5) % P) / P, inR = RMAX * (1 - inPh)
-      const x0 = Math.max(0, Math.min(f.left - pad, Math.floor(hx - RMAX))), x1 = Math.min(W - 1, Math.max(f.right + pad, Math.ceil(hx + RMAX)))
-      const y0 = Math.max(0, Math.min(f.top, Math.floor(hy - RMAX))), y1 = Math.min(H - 1, Math.max(f.bottom, Math.ceil(hy + RMAX)))
+      // Little sound waves peel off the outer petal edges as the flower moves: each edge emits short arcs along its
+      // outward normal, more often (and packed tighter, like Doppler) the faster that edge moves outward. Hand
+      // motion seen by the sonar makes every edge sing a little.
+      const dt = Math.min(0.1, Math.max(0.001, t - lastT)); lastT = t
+      const vA = (A - lastA) / dt; lastA = A
+      const hand = Math.min(1, toward + away)
+      for (let i = 0; i < f.edges.length; i++) {
+        const ep = f.edges[i]
+        const lift = Math.max(0, (stemY - ep.y) / height) ** 1.6
+        const vn = vA * lift * ep.nx // outward speed of this edge, px/s
+        phase[i] = (phase[i] ?? Math.random()) + dt * (Math.max(0, vn) * 0.16 + hand * 1.6 + 0.12)
+        if (phase[i] >= 1) { phase[i] -= 1; arcs.push({ x: ep.x + Math.round(A * lift), y: ep.y, nx: ep.nx, ny: ep.ny, t0: t, v: Math.max(0, vn) }) }
+      }
+      while (arcs.length && t - arcs[0].t0 > ARC_LIFE) arcs.shift()
+      if (arcs.length > 220) arcs.splice(0, arcs.length - 220)
+      // repaint a margin wide enough to wipe last frame's arcs too
+      const m = Math.ceil(ARC_REACH * f.s + 14)
+      const x0 = Math.max(0, f.left - pad - m), x1 = Math.min(W - 1, f.right + pad + m)
+      const y0 = Math.max(0, f.top - m), y1 = Math.min(H - 1, f.bottom)
       for (let y = y0; y <= y1; y++) {
         const shift = Math.round(A * Math.max(0, (stemY - y) / height) ** 1.6)
         const row = y * W, b = (y & 7) * 8
-        const dy = y - hy
         for (let x = x0; x <= x1; x++) {
           const sx = x - shift
-          let g = y >= f.top && y <= f.bottom && sx >= 0 && sx < W ? f.v[row + sx] : 0
+          let g = y >= f.top && sx >= 0 && sx < W ? f.v[row + sx] : 0
           if (g > 0) g += 0.25 * (sx < stemX ? toward : away) * g
-          if (g < 0.5) {
-            const dx = x - hx, d = Math.sqrt(dx * dx + dy * dy)
-            let ring = 0
-            for (const r of outR) { const q = (d - r) / WID; if (q > -3 && q < 3) ring = Math.max(ring, 0.34 * (1 - r / RMAX) ** 1.4 * Math.exp(-q * q)) }
-            const qi = (d - inR) / WID
-            if (qi > -3 && qi < 3 && ((Math.atan2(dy, dx) * 14) / Math.PI + 40) % 2 < 1.1) ring = Math.max(ring, 0.3 * Math.sin(Math.PI * inPh) * Math.exp(-qi * qi))
-            if (ring > 0) g = Math.max(g, Math.min(0.9, ring * boost))
-          }
           px[row + x] = g > BAYER[b + (x & 7)] ? INK : BG
+        }
+      }
+      const reach = ARC_REACH * f.s + 8
+      for (const a of arcs) {
+        const age = (t - a.t0) / ARC_LIFE, r = 5 + age * reach
+        const bright = 1.1 * (1 - age) ** 1.1
+        const half = 0.5, w = 1.6
+        const bx0 = Math.max(0, Math.floor(a.x - r - 2)), bx1 = Math.min(W - 1, Math.ceil(a.x + r + 2))
+        const by0 = Math.max(0, Math.floor(a.y - r - 2)), by1 = Math.min(H - 1, Math.ceil(a.y + r + 2))
+        for (let y = by0; y <= by1; y++) {
+          const dy = y - a.y, row = y * W, b = (y & 7) * 8
+          for (let x = bx0; x <= bx1; x++) {
+            const dx = x - a.x, d = Math.sqrt(dx * dx + dy * dy)
+            const q = (d - r) / w
+            if (q < -2 || q > 2 || d < 1) continue
+            const cos = (dx * a.nx + dy * a.ny) / d
+            if (cos < Math.cos(half)) continue
+            const g = bright * Math.exp(-q * q)
+            if (g > BAYER[b + (x & 7)]) px[row + x] = INK
+          }
         }
       }
       ctx.putImageData(frame!, 0, 0)
