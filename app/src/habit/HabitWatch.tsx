@@ -64,7 +64,7 @@ export default function HabitWatch() {
     if (g.type !== 'REPETITIVE' || t < snoozedUntil()) return
     if (t - lastInput.current < INPUT_QUIET_MS || t - lastNudge.current < COOLDOWN_MS) return
     lastNudge.current = t
-    logHabit(t); chime(true, 0.05)
+    logHabit(t); chime(true, 0.02)
     show(`hands · ${today().length} today`)
     if (firstNudgeThisHour()) {
       setBar(true); clearTimeout(hideBar.current); hideBar.current = window.setTimeout(() => setBar(false), BAR_MS)
