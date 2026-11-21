@@ -335,7 +335,8 @@ export const careScene3D = make3D(() => {
   const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(-2, 4, 3); scene.add(key)
   const rim = new THREE.DirectionalLight(0xffffff, 0.45); rim.position.set(3, 2, -3); scene.add(rim)
   const camera = new THREE.PerspectiveCamera(27, DW / DH, 0.05, 50)
-  camera.position.set(-2.55, 1.85, 2.75); camera.lookAt(-0.25, 0.68, 0.05)
+  { const tgt = new THREE.Vector3(-0.25, 0.68, 0.05), from = new THREE.Vector3(-2.55, 1.85, 2.75)
+    camera.position.copy(tgt).addScaledVector(from.sub(tgt), 1.05); camera.lookAt(0.3, 0.3, 0.3) }
 
   // bed along +z (head at -z), low contrast: dark frame, mid-grey mattress, soft rounded pillows and blanket
   const bedMat = SOFT(0x2c2c2c), sheet = SOFT(0x444444), soft = SOFT(0x555555)
@@ -354,7 +355,11 @@ export const careScene3D = make3D(() => {
   const table = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.55, 0.45), bedMat); table.position.set(-0.85, 0.28, -0.55); scene.add(table)
   const lap = laptop(); lap.scale.setScalar(0.17); lap.position.set(-0.85, 0.565, -0.55); lap.rotation.y = Math.PI * 0.62; scene.add(lap)
   const lapScreen = new THREE.Object3D(); lapScreen.position.set(0, 0.75, -0.6); lap.add(lapScreen)
-  const phone = new THREE.Group(); phone.position.set(1.25, 0.05, 0.75); scene.add(phone); phone.lookAt(camera.position)
+  const phone = new THREE.Group(); scene.add(phone)
+  // pinned to the bottom-right of the frame, well clear of the bed: a point on screen, pushed out to the bed's depth
+  camera.updateMatrixWorld(true)
+  const toScreen = new THREE.Vector3(0.84, -0.8, 0.5).unproject(camera).sub(camera.position).normalize()
+  phone.position.copy(camera.position).addScaledVector(toScreen, camera.position.distanceTo(new THREE.Vector3(-0.25, 0.68, 0.05)) * 0.9); phone.lookAt(camera.position)
   phone.add(new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.5, 0.03), new THREE.MeshBasicMaterial({ color: 0xf2f2f0 })))
   const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.23, 0.42), PHONE_GLOW); glass.position.z = 0.017; phone.add(glass)
   const handAnchor = new THREE.Object3D(); handAnchor.position.set(-0.3, MT + 0.5, -0.2); scene.add(handAnchor)
