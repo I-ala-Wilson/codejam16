@@ -8,20 +8,20 @@
   "toneDbfs": -36,
   "reps": [
     {
-      "start": 144384,
-      "end": 216384,
+      "start": 143360,
+      "end": 215360,
       "label": "PULL",
       "speed": "natural"
     },
     {
-      "start": 288768,
-      "end": 360768,
+      "start": 287744,
+      "end": 359744,
       "label": "PULL",
       "speed": "brisk"
     },
     {
-      "start": 433152,
-      "end": 505152,
+      "start": 432128,
+      "end": 504128,
       "label": "PULL",
       "speed": "natural"
     },
@@ -38,14 +38,14 @@
       "speed": "natural"
     },
     {
-      "start": 865280,
-      "end": 937280,
+      "start": 864256,
+      "end": 936256,
       "label": "PULL",
       "speed": "brisk"
     },
     {
-      "start": 1009664,
-      "end": 1081664,
+      "start": 1008640,
+      "end": 1080640,
       "label": "PULL",
       "speed": "natural"
     },
@@ -62,20 +62,20 @@
       "speed": "natural"
     },
     {
-      "start": 1441792,
-      "end": 1513792,
+      "start": 1440768,
+      "end": 1512768,
       "label": "PULL",
       "speed": "brisk"
     },
     {
-      "start": 1586176,
-      "end": 1658176,
+      "start": 1585152,
+      "end": 1657152,
       "label": "PULL",
       "speed": "natural"
     },
     {
-      "start": 1730560,
-      "end": 1802560,
+      "start": 1729536,
+      "end": 1801536,
       "label": "PULL",
       "speed": "brisk"
     },
@@ -92,14 +92,14 @@
       "speed": "brisk"
     },
     {
-      "start": 2162688,
-      "end": 2234688,
+      "start": 2161664,
+      "end": 2233664,
       "label": "PULL",
       "speed": "natural"
     },
     {
-      "start": 2307072,
-      "end": 2379072,
+      "start": 2306048,
+      "end": 2378048,
       "label": "PULL",
       "speed": "brisk"
     },
@@ -116,19 +116,19 @@
       "speed": "brisk"
     },
     {
-      "start": 2739200,
-      "end": 2811200,
+      "start": 2738176,
+      "end": 2810176,
       "label": "PULL",
       "speed": "natural"
     },
     {
-      "start": 2883584,
-      "end": 2955584,
+      "start": 2882560,
+      "end": 2954560,
       "label": "PULL",
       "speed": "brisk"
     }
   ],
-  "createdAt": "2026-11-20T23:06:03-05:00",
+  "createdAt": "2026-11-20T23:33:45-05:00",
   "takeKind": "gesture",
   "distanceCm": 50,
   "cueWindowMs": 1500,
