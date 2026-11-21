@@ -1,0 +1,23 @@
+{
+  "person": "EJ2007",
+  "gesture": "NONE",
+  "laptop": "macbook-air-m2",
+  "note": "NONE (a)",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [],
+  "createdAt": "2026-11-20T23:57:10-05:00",
+  "takeKind": "none",
+  "battery": "main",
+  "distanceCm": null,
+  "noneKind": "a",
+  "cueWindowMs": null,
+  "periodMs": null,
+  "leadInMs": 3000,
+  "leadInMotion": false,
+  "hand": "L",
+  "volumePct": 70,
+  "laptopModel": "MacBook Air M2",
+  "protocol": "ml/PROTOCOL.md"
+}
