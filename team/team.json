@@ -33,7 +33,9 @@
       "role": "sonar engine (DSP + rules), ML on GPU, ASL experiments; rescue lane",
       "owns": [
         "engine/*",
-        "ml/*"
+        "ml/*",
+        "app/src/breath/*",
+        "app/src/BreathRecord.tsx"
       ],
       "machine": "Linux"
     },
@@ -46,7 +48,8 @@
       "role": "shared UI components + styles, Devpost/slides/video, recording sessions",
       "owns": [
         "ui/*",
-        "pitch/*"
+        "pitch/*",
+        "app/src/habit/*"
       ],
       "machine": "MacBook Air"
     },
@@ -59,7 +62,10 @@
       "role": "Supabase backend + caregiver/parent dashboard",
       "owns": [
         "backend/*",
-        "dashboard/*"
+        "dashboard/*",
+        "app/src/Care.tsx",
+        "app/src/Caregiver.tsx",
+        "app/src/care/*"
       ],
       "machine": "Dell Windows (WSL), Intel i5"
     }

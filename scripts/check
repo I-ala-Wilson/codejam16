@@ -20,9 +20,9 @@ if [[ ${#errs[@]} -eq 0 ]]; then
     unowned="$(jq -r '[.members[] | select(.owns | length == 0) | .login] | join(", ")' team/team.json)"
     [[ -n "$unowned" ]] && warns+=("SPEC v$spec but no folders assigned to: $unowned")
   fi
-  # overlapping globs between different owners (prefix before the first *)
+  # the same glob owned twice (nested lanes are fine: owner_of picks the most specific glob)
   ov="$(jq -r '[.members[] | .login as $l | .owns[] | {l: $l, p: (split("*")[0])}] + [(.qa // {owns: []}) | .login as $l | .owns[]? | {l: ($l + "/qa"), p: (split("*")[0])}]
-    | . as $all | [ $all[] as $a | $all[] as $b | select($a.l < $b.l and (($a.p | startswith($b.p)) or ($b.p | startswith($a.p)))) | "\($a.l) \($a.p)* vs \($b.l) \($b.p)*" ] | unique | .[]' team/team.json)"
+    | . as $all | [ $all[] as $a | $all[] as $b | select($a.l < $b.l and $a.p == $b.p) | "\($a.l) \($a.p)* vs \($b.l) \($b.p)*" ] | unique | .[]' team/team.json)"
   [[ -n "$ov" ]] && while read -r o; do errs+=("overlapping ownership: $o"); done <<< "$ov"
   shared_hit="$(jq -r '[.shared[] | split("*")[0]] as $s | .members[] | .login as $l | .owns[] | split("*")[0] as $p | select([$s[] | . as $x | select(($x | startswith($p)) or ($p | startswith($x)))] | length > 0) | "\($l) owns \($p)* inside a shared path"' team/team.json)"
   [[ -n "$shared_hit" ]] && while read -r o; do errs+=("$o"); done <<< "$shared_hit"

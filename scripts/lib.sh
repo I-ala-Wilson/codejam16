@@ -44,10 +44,13 @@ owner_of() {
     # shellcheck disable=SC2053
     [[ -n "$glob" && "$path" == $glob ]] && { echo "$(jq -r '.qa.login' "$TEAM")/qa"; return; }
   done < <(jq -r '.qa.owns[]? // empty' "$TEAM")
+  # the most specific (longest) matching glob wins, so a member can own a sub-folder inside another lane
+  local best="" bestlen=-1
   while IFS=$'\t' read -r login glob; do
     # shellcheck disable=SC2053
-    [[ "$path" == $glob ]] && { echo "$login"; return; }
+    if [[ "$path" == $glob ]] && (( ${#glob} > bestlen )); then best="$login"; bestlen=${#glob}; fi
   done < <(jq -r '.members[] | .login as $l | .owns[] | "\($l)\t\(.)"' "$TEAM")
+  [[ -n "$best" ]] && { echo "$best"; return; }
   while read -r glob; do
     # shellcheck disable=SC2053
     [[ "$path" == $glob ]] && { lead; return; }
