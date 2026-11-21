@@ -1,0 +1,70 @@
+{
+  "person": "ej2007",
+  "gesture": "FREE",
+  "laptop": "macbook-air-m2",
+  "note": "breath 15bpm, paced 15 bpm, laptop 30-40 cm from chest, screen angled at torso",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 184320,
+      "end": 187392,
+      "label": "FREE"
+    },
+    {
+      "start": 492544,
+      "end": 494592,
+      "label": "FREE"
+    },
+    {
+      "start": 506880,
+      "end": 519168,
+      "label": "FREE"
+    },
+    {
+      "start": 959488,
+      "end": 974848,
+      "label": "FREE"
+    },
+    {
+      "start": 1934336,
+      "end": 1936384,
+      "label": "FREE"
+    },
+    {
+      "start": 2524160,
+      "end": 2529280,
+      "label": "FREE"
+    },
+    {
+      "start": 2572288,
+      "end": 2578432,
+      "label": "FREE"
+    }
+  ],
+  "createdAt": "2026-11-21T10:45:09-05:00",
+  "breath": {
+    "take": "15bpm",
+    "paced_bpm": 15,
+    "hold": null,
+    "inhale_starts_s": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      20,
+      24,
+      28,
+      32,
+      36,
+      40,
+      44,
+      48,
+      52,
+      56,
+      60
+    ]
+  }
+}

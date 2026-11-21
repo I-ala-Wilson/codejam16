@@ -1,0 +1,32 @@
+{
+  "person": "ej2007",
+  "gesture": "FREE",
+  "laptop": "macbook-air-m2",
+  "note": "breath hold, paced 15 bpm, laptop 30-40 cm from chest, screen angled at torso",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [],
+  "createdAt": "2026-11-21T10:49:16-05:00",
+  "breath": {
+    "take": "hold",
+    "paced_bpm": 15,
+    "hold": [
+      20,
+      40
+    ],
+    "inhale_starts_s": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      40,
+      44,
+      48,
+      52,
+      56,
+      60
+    ]
+  }
+}
