@@ -468,13 +468,13 @@ export const careScene3D = make3D(() => {
   const since = u >= 4.8 && u < 5.9 ? u - 4.8 : u >= 10.4 ? u - 10.4 : -1
   if (since >= 0) {
     const fade = Math.max(0, 1 - since / 1.1)
-    const halo = g.createRadialGradient(px, py, 4, px, py, 70)
-    halo.addColorStop(0, `rgba(255,255,255,${(0.55 * fade).toFixed(3)})`); halo.addColorStop(1, 'rgba(255,255,255,0)')
-    g.fillStyle = halo; g.beginPath(); g.arc(px, py, 70, 0, Math.PI * 2); g.fill()
-    for (let i = 0; i < 14; i++) {
-      const a = (i / 14) * Math.PI * 2 + i * 0.7, r = 18 + since * (60 + (i % 4) * 14)
-      g.fillStyle = `rgba(255,255,255,${(0.95 * fade).toFixed(3)})`
-      g.beginPath(); g.arc(px + Math.cos(a) * r, py + Math.sin(a) * r * 0.8 - since * 18, 1.8 + (i % 3) * 0.6, 0, Math.PI * 2); g.fill()
+    const halo = g.createRadialGradient(px, py, 4, px, py, 46)
+    halo.addColorStop(0, `rgba(255,255,255,${(0.25 * fade).toFixed(3)})`); halo.addColorStop(1, 'rgba(255,255,255,0)')
+    g.fillStyle = halo; g.beginPath(); g.arc(px, py, 46, 0, Math.PI * 2); g.fill()
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + i * 0.7, r = 16 + since * (30 + (i % 3) * 8)
+      g.fillStyle = `rgba(255,255,255,${(0.6 * fade).toFixed(3)})`
+      g.beginPath(); g.arc(px + Math.cos(a) * r, py + Math.sin(a) * r * 0.8 - since * 10, 1.2, 0, Math.PI * 2); g.fill()
     }
   }
   // faint, thin arcs from the moving hand to the laptop while a gesture is under way
