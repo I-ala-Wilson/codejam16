@@ -1,0 +1,45 @@
+{
+  "person": "ian",
+  "gesture": "FREE",
+  "laptop": "macbook-pro",
+  "note": "breath 20bpm, paced 20 bpm, laptop 30-40 cm from chest, screen angled at torso",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 0,
+      "end": 2879488,
+      "label": "FREE"
+    }
+  ],
+  "createdAt": "2026-11-21T12:41:33-05:00",
+  "breath": {
+    "take": "20bpm",
+    "paced_bpm": 20,
+    "hold": null,
+    "inhale_starts_s": [
+      0,
+      3,
+      6,
+      9,
+      12,
+      15,
+      18,
+      21,
+      24,
+      27,
+      30,
+      33,
+      36,
+      39,
+      42,
+      45,
+      48,
+      51,
+      54,
+      57,
+      60
+    ]
+  }
+}
