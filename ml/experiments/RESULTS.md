@@ -98,3 +98,34 @@ test on the other hand's session (both directions averaged). Table: `calibration
 - Recommendation: do not build in-app fine-tuning (onnxruntime-web cannot train). The cheap version needs no new code:
   record about 5 cues per gesture on the demo laptop right before the demo with the existing Dataset recording tab, add
   the takes to `data/recordings`, run `ml/run.py final data/recordings` (about 3 minutes on the GPU) and ship the model.
+
+## Round 3 (Sat 21 Nov, morning): cross-laptop strength and PUSH vs PULL. PRE-REGISTERED before any run
+Ian's DIRECT 7061667243. Written and pushed before the first training run of this round; the numbers below are filled in
+afterwards without changing this section.
+
+What is known before the round: the features keep the Doppler sign (excess in dB over the floor per bin, no abs, no
+mirroring; augmentation tests assert it never mirrors). But `GestureCNN` takes the mean and the max of the last feature map
+over BOTH axes, so it is nearly translation-invariant along frequency: which side of the carrier the energy is on, the
+only difference between PUSH and PULL, reaches the head only through border effects. Pooled confusion (REPORT.md) shows
+PUSH answered as PULL 52 times and PULL answered as PUSH 37 times. Echo strength differs by about 35 dB between laptops.
+
+Candidates (3, no more; new ideas wait for the next round):
+1. `coord`: a constant channel with the relative frequency offset (-1 to +1 across the 87 bins) is appended to the input
+   inside the model, so the ONNX interface (1 x 48 x 87) is unchanged.
+2. `snrnorm`: the model input is the excess in dB scaled by 60 / the take's tone SNR (measured on the still lead-in,
+   `dataset.tone_snr_db`), so a 40 dB laptop and an 80 dB laptop look alike. Needs the same scaling in the engine if accepted.
+3. `coord_snrnorm`: both, run regardless of the first two verdicts.
+
+Protocol: leave-one-person-out over the 5 people, seeds 0 and 1 for the baseline (= the current defaults: idle weight 3,
+30 epochs, thresholds 0.85 / 0.90) and for every candidate, scored at the default thresholds, `ml/tune.py` with a new
+results folder (`ml/experiments/round3/`).
+
+Acceptance (all must hold, judged by `tune.decide` with `fa_slack = 0` and the per-seed pairing check):
+- macro recall beats the baseline by more than 2x the baseline's seed spread (floor 0.01),
+- on EACH of the two seeds the candidate's macro recall is above the baseline's for the same seed,
+- better than the baseline for at least 4 of the 5 held-out people,
+- mean false alarms per minute not higher than the baseline's (no slack),
+- the train-to-held-out F1 gap not wider by more than 0.02.
+If a candidate is accepted: train the final model with it, mirror it in the engine if it needs a runtime change, run all
+tests, push model and engine together, post DONE with the numbers. If none is accepted: post INFO with what failed and
+change nothing. PUSH and PULL recall and their mutual confusion are reported either way, but are not part of the rule.
