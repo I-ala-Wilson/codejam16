@@ -1,8 +1,8 @@
 # Miguel982
 
 ## Now
-- Issue #10: dashboard Care + Parent views with alert banners.
-- Next: build the two filtered views on top of the realtime event list and test each event kind.
+- Expanded issue #8 deployment.
+- Temporary Vercel preview works; next step is human Vercel authentication/claim for a persistent URL, then final phone smoke test.
 
 ## Done
 - WSL setup, GitHub authentication, sync, and recovery completed.
