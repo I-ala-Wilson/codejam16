@@ -281,23 +281,6 @@ export const agents: Scene = {
       const live = n.key === m.from ? u < 0.45 : m.to.includes(n.key) ? u > 0.55 : false
       g.strokeStyle = gray(live ? 1 : 0.55); g.lineWidth = live ? 2 : 1.2; g.setLineDash(live ? [] : [2, 5])
       g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); g.setLineDash([])
-      const lit = live ? 1 : 0.7
-      // a dark tile to sit the icon on, then the icon: a starburst for Claude, a terminal prompt for Codex
-      g.fillStyle = gray(0); g.strokeStyle = gray(lit); g.lineWidth = 1.4
-      g.beginPath(); g.roundRect(n.x - 18, n.y - 18, 36, 36, 7); g.fill(); g.stroke()
-      g.strokeStyle = gray(lit); g.fillStyle = gray(lit); g.lineCap = 'round'
-      if (n.agent === 'CLAUDE') {
-        g.lineWidth = 3
-        for (let r = 0; r < 12; r++) {
-          const th = (r / 12) * Math.PI * 2 + 0.13, len = r % 2 ? 8 : 11.5
-          g.beginPath(); g.moveTo(n.x + Math.cos(th) * 2.5, n.y + Math.sin(th) * 2.5); g.lineTo(n.x + Math.cos(th) * len, n.y + Math.sin(th) * len); g.stroke()
-        }
-      } else {
-        g.lineWidth = 2.6
-        g.beginPath(); g.moveTo(n.x - 10, n.y - 6); g.lineTo(n.x - 3, n.y); g.lineTo(n.x - 10, n.y + 6); g.stroke()
-        g.beginPath(); g.moveTo(n.x + 1, n.y + 7); g.lineTo(n.x + 10, n.y + 7); g.stroke()
-      }
-      g.lineCap = 'butt'
       // the person who drives this agent, joined by a short solid line
       const h = humanAt(n), dir = Math.sign(h.x - n.x)
       g.strokeStyle = gray(1); g.lineWidth = 1.6
@@ -315,6 +298,30 @@ export const agents: Scene = {
   },
   overlay(g, t) {
     const { m, u, k } = msgAt(t)
+    // agent tiles and icons drawn crisp (no dither): a sparkle for Claude, a terminal prompt for Codex
+    for (const n of NODES) {
+      const live = n.key === m.from ? u < 0.45 : m.to.includes(n.key) ? u > 0.55 : false
+      g.fillStyle = live ? INK : BG; g.strokeStyle = INK; g.lineWidth = 1.5
+      g.beginPath(); g.roundRect(n.x - 17, n.y - 17, 34, 34, 7); g.fill(); g.stroke()
+      g.fillStyle = live ? BG : INK; g.strokeStyle = live ? BG : INK; g.lineCap = 'round'; g.lineJoin = 'round'
+      if (n.agent === 'CLAUDE') {
+        // four-point sparkle: curved concave star
+        const R = 11, r = 2.6
+        g.beginPath()
+        for (let q = 0; q < 4; q++) {
+          const a0 = (q * Math.PI) / 2 - Math.PI / 2, a1 = a0 + Math.PI / 2
+          const px = n.x + Math.cos(a0) * R, py = n.y + Math.sin(a0) * R
+          if (q === 0) g.moveTo(px, py)
+          g.quadraticCurveTo(n.x + Math.cos(a0 + Math.PI / 4) * r, n.y + Math.sin(a0 + Math.PI / 4) * r, n.x + Math.cos(a1) * R, n.y + Math.sin(a1) * R)
+        }
+        g.closePath(); g.fill()
+      } else {
+        g.lineWidth = 2.4
+        g.beginPath(); g.moveTo(n.x - 9, n.y - 6); g.lineTo(n.x - 2, n.y); g.lineTo(n.x - 9, n.y + 6); g.stroke()
+        g.beginPath(); g.moveTo(n.x + 2, n.y + 7); g.lineTo(n.x + 10, n.y + 7); g.stroke()
+      }
+      g.lineCap = 'butt'; g.lineJoin = 'miter'
+    }
     // labels sit under each chip and each person, clear of the spokes that leave the chips toward the board
     for (const n of NODES) {
       label(g, n.agent, n.x, n.y + 31, 15, 'center')
