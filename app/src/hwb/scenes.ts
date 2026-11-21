@@ -305,16 +305,12 @@ export const agents: Scene = {
       g.beginPath(); g.roundRect(n.x - 17, n.y - 17, 34, 34, 7); g.fill(); g.stroke()
       g.fillStyle = live ? BG : INK; g.strokeStyle = live ? BG : INK; g.lineCap = 'round'; g.lineJoin = 'round'
       if (n.agent === 'CLAUDE') {
-        // four-point sparkle: curved concave star
-        const R = 11, r = 2.6
-        g.beginPath()
-        for (let q = 0; q < 4; q++) {
-          const a0 = (q * Math.PI) / 2 - Math.PI / 2, a1 = a0 + Math.PI / 2
-          const px = n.x + Math.cos(a0) * R, py = n.y + Math.sin(a0) * R
-          if (q === 0) g.moveTo(px, py)
-          g.quadraticCurveTo(n.x + Math.cos(a0 + Math.PI / 4) * r, n.y + Math.sin(a0 + Math.PI / 4) * r, n.x + Math.cos(a1) * R, n.y + Math.sin(a1) * R)
+        // the Claude spark: rounded, slightly uneven rays fanning out from the centre
+        const rays = [[0.05, 12.5], [0.6, 10], [1.08, 12], [1.6, 9.5], [2.1, 12.5], [2.62, 10.5], [3.12, 12], [3.66, 9.5], [4.18, 12.5], [4.7, 10], [5.22, 12], [5.74, 10.5]]
+        g.lineWidth = 3.2; g.lineCap = 'round'
+        for (const [a, L] of rays) {
+          g.beginPath(); g.moveTo(n.x + Math.cos(a) * 1.5, n.y + Math.sin(a) * 1.5); g.lineTo(n.x + Math.cos(a) * L, n.y + Math.sin(a) * L); g.stroke()
         }
-        g.closePath(); g.fill()
       } else {
         g.lineWidth = 2.4
         g.beginPath(); g.moveTo(n.x - 9, n.y - 6); g.lineTo(n.x - 2, n.y); g.lineTo(n.x - 9, n.y + 6); g.stroke()
