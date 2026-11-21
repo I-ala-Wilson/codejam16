@@ -9,6 +9,8 @@ import numpy as np
 WINDOW = 4096
 HOP = 1024
 HALF_BAND_HZ = 500.0
+#: Bins either side of the carrier that hold its main lobe; never counted as motion.
+GUARD_BINS = 2
 _MIN_MAGNITUDE = 1e-12
 _FLOOR_SIGMAS = 2.0
 _MAD_TO_SIGMA = 1.4826
@@ -50,6 +52,13 @@ def still_floor(frames: np.ndarray) -> np.ndarray:
     median = np.median(frames, axis=0)
     mad = np.median(np.abs(frames - median), axis=0)
     return (median + _FLOOR_SIGMAS * _MAD_TO_SIGMA * mad).astype(np.float32)
+
+
+def motion_energy(excess: np.ndarray) -> np.ndarray:
+    """Per frame: the largest excess over the floor in any bin outside the carrier's main lobe (dB)."""
+    centre = excess.shape[1] // 2  # frames are centred on the tone
+    keep = np.abs(np.arange(excess.shape[1]) - centre) > GUARD_BINS
+    return excess[:, keep].max(axis=1)
 
 
 def excess_db(

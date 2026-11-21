@@ -22,6 +22,7 @@ def take(
     kind: str = "gesture",
     noise_db: float = -100.0,
     seed: int = 3,
+    stray_s: float = 0.0,
 ) -> Session:
     """A synthetic take: 3 s lead-in, then a cue every PERIOD_S; the hand echo starts `react_s` after each cue."""
     rng = np.random.default_rng(seed)
@@ -35,6 +36,9 @@ def take(
         if echo_db is not None:
             a, b = int((cue + react_s) * FS), int((cue + react_s + 0.4) * FS)
             x[a:b] += db_amp(echo_db) * np.sin(2 * np.pi * (TONE + 117) * t[a:b])
+        if stray_s > 0:  # motion in the gap before the next cue, like a hand being repositioned
+            a, b = int((cue + 2.0) * FS), int((cue + 2.0 + stray_s) * FS)
+            x[a:b] += db_amp(-50) * np.sin(2 * np.pi * (TONE - 90) * t[a:b])
     if lead_in_motion:
         a, b = int(1.0 * FS), int(1.5 * FS)
         x[a:b] += db_amp(-50) * np.sin(2 * np.pi * (TONE + 117) * t[a:b])
@@ -64,16 +68,30 @@ class TestGestureTakes:
         aligned = audit_session(take(react_s=0.1))
         assert early.offset_ms > aligned.offset_ms + 500
 
+    def test_a_loud_repositioning_burst_in_the_gap_does_not_fail_a_take_whose_gesture_is_in_the_window(self):
+        r = audit_session(take(stray_s=0.4))  # gesture 0.4 s inside the window, stray burst of the same length outside
+        assert r.passed, r.problems
+
+    def test_a_take_whose_motion_is_mostly_outside_the_cue_windows_is_flagged_as_misaligned(self):
+        r = audit_session(take(react_s=1.4, stray_s=0.9))  # only the first 0.1 s of the gesture is inside the window
+        assert any("misaligned" in p for p in r.problems)
+
     def test_a_take_with_no_motion_fails(self):
         r = audit_session(take(echo_db=None))
         assert r.motion_fraction == 0.0
         assert not r.passed
         assert any("motion" in p for p in r.problems)
 
-    def test_motion_in_the_hands_off_lead_in_is_flagged(self):
+    def test_motion_in_the_lead_in_is_only_a_warning_when_the_take_is_otherwise_sound(self):
         r = audit_session(take(lead_in_motion=True))
         assert r.lead_in_motion_fraction > 0.1
-        assert any("lead-in" in p for p in r.problems)
+        assert any("lead-in" in w for w in r.warnings)
+        assert r.passed and r.problems == []
+        assert r.motion_fraction == 1.0  # the quiet-frame floor still sees every cue's motion
+
+    def test_a_moving_lead_in_does_not_hide_a_take_with_no_motion_in_the_cues(self):
+        r = audit_session(take(lead_in_motion=True, echo_db=None))
+        assert not r.passed and any("motion" in p for p in r.problems)
 
     def test_a_weak_tone_is_flagged(self):
         r = audit_session(take(noise_db=-25.0))

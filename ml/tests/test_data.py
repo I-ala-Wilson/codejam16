@@ -145,6 +145,15 @@ class TestProtocolLabels:
         assert "IGNORE" in labels
         assert labels[0] == "NONE"
 
+    def test_a_lead_in_that_was_not_still_is_ignored_instead_of_none(self):
+        cue = (int(3.0 * FS), int(4.5 * FS), "PUSH")
+        session = self.make("gesture", [cue])
+        n = 1 + (10 * FS - WINDOW) // HOP
+        labels = protocol_labels(session, n, lead_in_clean=False)
+        centres = frame_centers(n) / FS
+        assert "NONE" not in labels
+        assert all(label == "PUSH" for label, t in zip(labels, centres) if 3.2 <= t <= 4.3)
+
     def test_a_none_take_is_none_everywhere(self):
         session = self.make("none", [])
         n = 1 + (10 * FS - WINDOW) // HOP

@@ -71,8 +71,10 @@ def frame_labels(n_frames: int, reps: list[tuple[int, int, str]], none_label: st
     return labels
 
 
-def protocol_labels(session: Session, n_frames: int) -> list[str]:
-    """ml/PROTOCOL.md section 3: cue windows give the labels, the lead-in is NONE, everything else is IGNORE."""
+def protocol_labels(session: Session, n_frames: int, lead_in_clean: bool = True) -> list[str]:
+    """ml/PROTOCOL.md section 3: cue windows give the labels, the lead-in is NONE, everything else is IGNORE.
+
+    A lead-in the person did not keep still (lead_in_clean=False) is IGNORE too: it is not a reliable NONE example."""
     if session.meta.get("takeKind") == "none":
         return [NONE] * n_frames
     seconds = frame_centers(n_frames) / session.sample_rate
@@ -80,7 +82,7 @@ def protocol_labels(session: Session, n_frames: int) -> list[str]:
     lead_in_end = first_cue / session.sample_rate - LEAD_IN_MARGIN_S
     labels = [IGNORE] * n_frames
     for i, t in enumerate(seconds):
-        if t < lead_in_end:
+        if t < lead_in_end and lead_in_clean:
             labels[i] = NONE
     for start, end, label in session.reps:
         inside = (seconds >= start / session.sample_rate + CUE_EDGE_S) & (seconds <= end / session.sample_rate - CUE_EDGE_S)

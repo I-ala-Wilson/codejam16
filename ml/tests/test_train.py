@@ -5,7 +5,8 @@ import numpy as np
 import pytest
 import torch
 
-from dataset import CLASSES, CLASS_INDEX, Windows, concat, session_windows
+from dataset import CLASSES, CLASS_INDEX, Windows, concat, session_windows, take_floor
+from features import spectrogram_db
 from model import GestureCNN, count_parameters
 from synth import make_take
 from train import augment, export_onnx, macro_f1, pick_device, predict_proba, train
@@ -54,6 +55,34 @@ class TestDataset:
         push = w.x[w.y == CLASS_INDEX["PUSH"]]
         centre = push.shape[2] // 2
         assert push[:, :, centre + 5 : centre + 14].max() > 30  # the +117 Hz echo, well above the floor
+
+    def test_a_clean_lead_in_gives_the_floor_and_is_reported_clean(self):
+        take = make_take("PUSH", seed=8)
+        spec = spectrogram_db(take.samples, take.sample_rate, take.tone_hz)
+        floor, clean = take_floor(take, spec)
+        assert clean is True and floor.shape == (spec.shape[1],)
+
+    def test_a_moving_lead_in_falls_back_to_the_quietest_frames_for_the_floor(self):
+        moving = make_take("PUSH", seed=7, lead_in_motion=True)
+        spec = spectrogram_db(moving.samples, moving.sample_rate, moving.tone_hz)
+        floor, clean = take_floor(moving, spec)
+        assert clean is False
+        still = make_take("PUSH", seed=9)
+        still_floor_db, _ = take_floor(still, spectrogram_db(still.samples, still.sample_rate, still.tone_hz))
+        # a floor that had swallowed the +-100 Hz lead-in motion would sit tens of dB above the still one
+        assert float(np.max(floor - still_floor_db)) < 8.0
+
+    def test_a_moving_lead_in_still_trains_the_cues_but_gives_no_none_examples(self):
+        w = session_windows(make_take("PUSH", seed=6, lead_in_motion=True))
+        assert CLASS_INDEX["NONE"] not in set(w.y.tolist())
+        push = w.x[w.y == CLASS_INDEX["PUSH"]]
+        centre = push.shape[2] // 2
+        assert len(push) > 40
+        assert push[:, :, centre + 5 : centre + 14].max() > 30
+
+    def test_a_none_take_is_still_none_even_when_it_is_not_still(self):
+        w = session_windows(make_take("NONE", seed=10, lead_in_motion=True))
+        assert set(w.y.tolist()) == {CLASS_INDEX["NONE"]}
 
     def test_concat_keeps_every_window(self, corpus: dict[str, Windows]):
         total = sum(len(w.y) for w in corpus.values())

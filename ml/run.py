@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 
 from data import Session, find_sessions, load_session
-from dataset import CLASSES, STRIDE_FRAMES, WINDOW_FRAMES, Windows, concat, lead_in_floor, session_windows
+from dataset import CLASSES, STRIDE_FRAMES, WINDOW_FRAMES, Windows, concat, session_windows
 from evaluate import (
     CONFIRM_EVALS,
     DEFAULT_THRESHOLDS,
@@ -44,18 +44,14 @@ def load_corpus(root: Path) -> list[Session]:
 
 
 def usable_sessions(sessions: list[Session]) -> list[Session]:
-    """Takes with a long enough hands-off lead-in to learn a floor; the rest are reported and skipped."""
+    """Takes long enough to hold one model window; the rest are reported and skipped. A lead-in the person did not
+    keep still does not make a take unusable (dataset.take_floor falls back to the quietest frames)."""
     usable: list[Session] = []
     for session in sessions:
-        spec = spectrogram_db(session.samples, session.sample_rate, session.tone_hz)
-        try:
-            if spec.shape[0] > 0:
-                lead_in_floor(session, spec)
-                usable.append(session)
-                continue
-        except ValueError:
-            pass
-        sys.stderr.write(f"skipping {session.name}: no usable hands-off lead-in\n")
+        if spectrogram_db(session.samples, session.sample_rate, session.tone_hz).shape[0] >= WINDOW_FRAMES:
+            usable.append(session)
+        else:
+            sys.stderr.write(f"skipping {session.name}: too short for one model window\n")
     return usable
 
 

@@ -66,14 +66,26 @@ def write_take(session: Session, folder: Path) -> Path:
     return path
 
 
-def make_take(label: str, person: str = "ana", n_cues: int = 8, seed: int = 0, noise_db: float = -100.0) -> Session:
-    """A synthetic take: 3 s hands-off lead-in, then a cue every 3 s. label 'NONE' makes a still NONE take."""
+def make_take(
+    label: str,
+    person: str = "ana",
+    n_cues: int = 8,
+    seed: int = 0,
+    noise_db: float = -100.0,
+    lead_in_motion: bool = False,
+) -> Session:
+    """A synthetic take: 3 s hands-off lead-in, then a cue every 3 s. label 'NONE' makes a still NONE take.
+
+    lead_in_motion=True puts a hand wave into the lead-in, like a person who did not keep still."""
     rng = np.random.default_rng(seed)
     is_none = label == "NONE"
     seconds = NONE_TAKE_S if is_none else LEAD_IN_S + n_cues * PERIOD_S + 1.0
     t = np.arange(int(seconds * FS)) / FS
     x = amp(-36) * np.sin(2 * np.pi * TONE * t) + rng.uniform(-1, 1, t.size) * amp(noise_db)
     reps: list[tuple[int, int, str]] = []
+    if lead_in_motion:
+        for k in range(4):
+            _burst(x, t, 0.4 + 0.5 * k, 0.4, (1 if k % 2 == 0 else -1) * 100.0, -52.0)
     if not is_none:
         for k in range(n_cues):
             cue = LEAD_IN_S + PERIOD_S * k
