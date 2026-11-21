@@ -185,14 +185,18 @@ export class ClassifierRuntime {
 }
 
 export interface OnnxRunnerOptions {
-  /** Where the onnxruntime-web .wasm files are served from (a folder URL ending in a slash). */
-  readonly wasmPaths?: string
+  /**
+   * Where onnxruntime-web finds its files: a folder URL ending in a slash, or `{ wasm }` with the .wasm file alone.
+   * Prefer the object form in a browser: with a folder, ORT also imports its .mjs loader from there, and Vite's dev
+   * server refuses to import files that live in /public. The wasm-only build already embeds that loader.
+   */
+  readonly wasmPaths?: string | { readonly mjs?: string; readonly wasm?: string }
 }
 
 /** Loads an ONNX model (URL or bytes) with onnxruntime-web and returns a runner for it. */
 export async function createOnnxRunner(source: string | Uint8Array, opts: OnnxRunnerOptions = {}): Promise<ModelRunner> {
   const ort = await import('onnxruntime-web/wasm') // the wasm-only build: far smaller than the default WebGPU-capable one
-  if (opts.wasmPaths) ort.env.wasm.wasmPaths = opts.wasmPaths
+  if (opts.wasmPaths) ort.env.wasm.wasmPaths = typeof opts.wasmPaths === 'string' ? opts.wasmPaths : { ...opts.wasmPaths }
   ort.env.wasm.numThreads = 1 // multi-threading needs cross-origin isolation, which the app does not set up
   const session = await ort.InferenceSession.create(source as Uint8Array, { executionProviders: ['wasm'] })
   return {

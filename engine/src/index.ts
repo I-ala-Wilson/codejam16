@@ -20,8 +20,8 @@ const AUTO_CALIBRATION_MS = 1000
 /** calibrate() gives up this long after it should have finished if no audio frames are arriving. */
 const CALIBRATION_TIMEOUT_SLACK_MS = 2000
 
-/** Where the onnxruntime-web .wasm files are served from; the app has to publish them there. */
-const ORT_WASM_PATHS = '/ort/'
+/** The onnxruntime-web .wasm file, which the app publishes (app/copy-ort.sh). Only the wasm: see OnnxRunnerOptions. */
+const ORT_WASM_PATHS = { wasm: '/ort/ort-wasm-simd-threaded.wasm' }
 
 export interface LoadedClassifier {
   readonly runner: ModelRunner

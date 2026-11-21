@@ -177,6 +177,15 @@ describe('createOnnxRunner', () => {
     out.forEach((v, i) => expect(v).toBeCloseTo(logits[i], 3))
   })
 
+  it('can be given only the .wasm file (an object), so no .mjs loader is imported from a folder', async () => {
+    const wasm = new URL('../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm', import.meta.url).pathname
+    const model = readFileSync(fixture('parity.onnx'))
+    const { window, logits } = JSON.parse(readFileSync(fixture('parity.json'), 'utf8')) as { window: number[][]; logits: number[] }
+    const runner = await createOnnxRunner(new Uint8Array(model), { wasmPaths: { wasm } })
+    const out = await runner.run(Float32Array.from(window.flat()))
+    out.forEach((v, i) => expect(v).toBeCloseTo(logits[i], 3))
+  })
+
   it('refuses a model that is not ONNX', async () => {
     await expect(createOnnxRunner(new Uint8Array([1, 2, 3]))).rejects.toThrow()
   })
