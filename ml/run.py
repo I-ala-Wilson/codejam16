@@ -2,11 +2,13 @@
 
     ml/.venv/bin/python ml/run.py lopo  data/recordings      # leave-one-person-out, writes ml/REPORT.md
     ml/.venv/bin/python ml/run.py final data/recordings      # train on everyone, export ml/models/gesture.onnx + .json
+    ml/.venv/bin/python ml/run.py calib data/recordings --person <login>   # demo-day retrain, see ml/README.md
 """
 
 import argparse
 import json
 import sys
+import time
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
@@ -14,6 +16,7 @@ from pathlib import Path
 
 import torch
 
+from audit import AuditResult, audit_session
 from data import Session, find_sessions, load_session
 from dataset import CLASSES, STRIDE_FRAMES, WINDOW_FRAMES, Windows, concat, spectrogram_of, windows_of
 from evaluate import (
@@ -32,6 +35,10 @@ TARGET_RECALL = 0.80
 TARGET_FALSE_ALARMS_PER_MINUTE = 1.0
 DROP_BELOW_RECALL = 0.70
 DEFAULT_EPOCHS = 30
+#: Folders whose name starts with this hold the demo-day calibration takes (ml/README.md).
+CALIB_PREFIX = "calib-"
+#: A person's calibration takes count this many times in training (calibration.py: x5 was the best variant).
+DEFAULT_CALIB_REPEAT = 5
 
 
 @dataclass(frozen=True)
@@ -65,15 +72,28 @@ def _windows(sessions: list[Session]) -> Windows:
     return concat([windows_of(s) for s in sessions])
 
 
-def lopo_reports(sessions: list[Session], epochs: int, device: str, seed: int, **train_kwargs: float) -> list[FoldReport]:
+def lopo_reports(
+    sessions: list[Session],
+    epochs: int,
+    device: str,
+    seed: int,
+    drop_train: frozenset[str] = frozenset(),
+    drop_test: frozenset[str] = frozenset(),
+    **train_kwargs: float,
+) -> list[FoldReport]:
     """Train on everyone except one person and score that person's takes with the streaming decoder.
 
-    `train_kwargs` are the regularisation settings of train() (weight_decay, dropout, aug_strength, ...)."""
+    `drop_train` and `drop_test` are take names (file names without extension): a take in `drop_train` is left out of the
+    training windows of every fold, a take in `drop_test` is left out of the scoring of its held-out fold (the fold still
+    trains and scores all its other takes). `train_kwargs` are the regularisation settings of train() (weight_decay, dropout,
+    aug_strength, ...)."""
     sessions = usable_sessions(sessions)
     folds: list[FoldReport] = []
     for person in sorted({s.person for s in sessions}):
-        train_windows = _windows([s for s in sessions if s.person != person])
-        held_out = [s for s in sessions if s.person == person]
+        train_windows = _windows([s for s in sessions if s.person != person and s.name not in drop_train])
+        held_out = [s for s in sessions if s.person == person and s.name not in drop_test]
+        if not held_out:
+            continue
         result = train(train_windows, None, epochs=epochs, device=device, seed=seed, **train_kwargs)
         held_windows = _windows(held_out)
         held_f1 = macro_f1(held_windows.y, predict_proba(result.model, held_windows.x, device).argmax(axis=1), len(CLASSES))
@@ -134,10 +154,33 @@ def render_report(folds: list[FoldReport], epochs: int, device: str, seed: int) 
     return "\n".join(lines) + "\n"
 
 
-def train_final(sessions: list[Session], epochs: int, device: str, seed: int, out_dir: Path) -> None:
-    """Train on every person and write gesture.onnx plus gesture.json (what the engine needs to run it)."""
+def replicate(windows: Windows, times: int) -> Windows:
+    return windows if times <= 1 else concat([windows] * times)
+
+
+def calib_windows(sessions: list[Session], calibration: list[Session], repeat: int) -> Windows:
+    """Windows of every take, with the calibration takes (a subset of `sessions`) counted `repeat` times in all."""
+    parts = [_windows(sessions)]
+    if calibration and repeat > 1:
+        parts.append(replicate(_windows(calibration), repeat - 1))
+    return concat(parts)
+
+
+def train_final(
+    sessions: list[Session],
+    epochs: int,
+    device: str,
+    seed: int,
+    out_dir: Path,
+    calibration: list[Session] | None = None,
+    repeat: int = 1,
+) -> int:
+    """Train on every person and write gesture.onnx plus gesture.json (what the engine needs to run it).
+
+    `calibration` takes (already part of `sessions`) are repeated so that they count `repeat` times in training.
+    Returns the number of training windows."""
     sessions = usable_sessions(sessions)
-    windows = _windows(sessions)
+    windows = calib_windows(sessions, usable_sessions(calibration or []), repeat)
     model = train(windows, None, epochs=epochs, device=device, seed=seed).model
     out_dir.mkdir(parents=True, exist_ok=True)
     export_onnx(model, out_dir / "gesture.onnx")
@@ -161,6 +204,61 @@ def train_final(sessions: list[Session], epochs: int, device: str, seed: int, ou
         "windows": len(windows.y),
     }
     (out_dir / "gesture.json").write_text(json.dumps(config, indent=2) + "\n")
+    return len(windows.y)
+
+
+def is_calibration_path(path: Path, root: Path) -> bool:
+    """True when a folder between `root` and the file starts with `calib-`."""
+    return any(part.startswith(CALIB_PREFIX) for part in path.relative_to(root).parts[:-1])
+
+
+def load_corpus_and_calibration(root: Path, person: str) -> tuple[list[Session], list[Session]]:
+    """(every take under root, the subset that is `person`'s and sits in a calib-* folder)."""
+    sessions: list[Session] = []
+    calibration: list[Session] = []
+    for path in find_sessions(root):
+        session = load_session(path)
+        sessions.append(session)
+        if session.person == person.lower() and is_calibration_path(path, root):
+            calibration.append(session)
+    return sessions, calibration
+
+
+def failed_audits(calibration: list[Session]) -> list[AuditResult]:
+    """The calibration takes that FAIL the ml/audit.py checks (warnings do not count)."""
+    return [r for r in (audit_session(s) for s in calibration) if not r.passed]
+
+
+def cue_counts(calibration: list[Session]) -> Counter[str]:
+    return Counter(label for s in calibration for _, _, label in s.reps)
+
+
+def run_calibration(args: argparse.Namespace, sessions: list[Session], calibration: list[Session]) -> int:
+    if not calibration:
+        sys.stderr.write(
+            f"no calibration takes for {args.person} under {args.root}: put the .json and .wav files in "
+            f"<root>/<login>/{CALIB_PREFIX}1/ (a folder starting with '{CALIB_PREFIX}')\n"
+        )
+        return 2
+    bad = failed_audits(calibration)
+    if bad:
+        sys.stderr.write(f"{len(bad)} of {len(calibration)} calibration takes FAILED the audit, not training. Redo them:\n")
+        for r in bad:
+            sys.stderr.write(f"  {r.name}: " + "; ".join(r.problems) + "\n")
+        return 1
+    counts = cue_counts(calibration)
+    started = time.time()
+    n_windows = train_final(sessions, args.epochs, args.device, args.seed, args.out_dir, calibration, args.repeat)
+    seconds = time.time() - started
+    sys.stdout.write(
+        f"calibration takes: {len(calibration)} ({sum(counts.values())} cues; "
+        + ", ".join(f"{label} {n}" for label, n in sorted(counts.items()))
+        + f"), each repeated x{args.repeat}\n"
+        f"training windows: {n_windows} (from {len(sessions)} takes)\n"
+        f"training time: {seconds:.0f} s\n"
+        f"wrote {args.out_dir / 'gesture.onnx'} and {args.out_dir / 'gesture.json'}\n"
+    )
+    return 0
 
 
 def device_problem(device: str, allow_cpu: bool) -> str | None:
@@ -173,7 +271,7 @@ def device_problem(device: str, allow_cpu: bool) -> str | None:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("lopo", "final"):
+    for name in ("lopo", "final", "calib"):
         p = sub.add_parser(name)
         p.add_argument("root", type=Path, help="folder of recordings (data/recordings)")
         p.add_argument("--epochs", type=int, default=DEFAULT_EPOCHS)
@@ -184,6 +282,9 @@ def main(argv: list[str]) -> int:
             p.add_argument("--out", type=Path, default=Path(__file__).parent / "REPORT.md")
         else:
             p.add_argument("--out-dir", type=Path, default=Path(__file__).parent / "models")
+        if name == "calib":
+            p.add_argument("--person", required=True, help="login whose calib-* takes are repeated (case-insensitive)")
+            p.add_argument("--repeat", type=int, default=DEFAULT_CALIB_REPEAT, help="times the calibration takes count in training")
     args = parser.parse_args(argv)
 
     problem = device_problem(args.device, args.allow_cpu)
@@ -193,6 +294,12 @@ def main(argv: list[str]) -> int:
     gpu = f" ({torch.cuda.get_device_name(0)})" if args.device.startswith("cuda") else ""
     sys.stdout.write(f"training on {args.device}{gpu}\n")
 
+    if args.command == "calib":
+        if args.repeat < 1:
+            sys.stderr.write("--repeat must be at least 1\n")
+            return 2
+        sessions, calibration = load_corpus_and_calibration(args.root, args.person)
+        return run_calibration(args, sessions, calibration)
     sessions = load_corpus(args.root)
     if not usable_sessions(sessions):
         sys.stderr.write(f"no usable recordings under {args.root}\n")

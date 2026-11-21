@@ -16,9 +16,9 @@ from dataclasses import replace
 from pathlib import Path
 
 from data import Session
-from dataset import Windows, concat
+from dataset import concat
 from evaluate import EvalReport, evaluate_takes
-from run import FoldReport, _windows, device_problem, load_corpus, pooled_recall, usable_sessions
+from run import FoldReport, _windows, device_problem, load_corpus, pooled_recall, replicate, usable_sessions
 from train import pick_device, train
 
 #: Audio kept after the last cue of a truncated take (a cue's tone is still decaying and the decoder needs the tail).
@@ -33,10 +33,6 @@ def truncate_session(session: Session, max_reps: int) -> Session:
     kept = session.reps[:max_reps]
     end = kept[-1][1] + int(TAIL_S * session.sample_rate)
     return replace(session, samples=session.samples[:end], reps=kept)
-
-
-def replicate(windows: Windows, times: int) -> Windows:
-    return windows if times <= 1 else concat([windows] * times)
 
 
 def calibration_split(sessions: list[Session], person: str, calibration_hand: str) -> tuple[list[Session], list[Session], list[Session]]:

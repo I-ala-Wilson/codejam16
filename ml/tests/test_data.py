@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import soundfile as sf
 
-from data import Session, find_sessions, frame_labels, load_session, make_windows, protocol_labels
+from data import Session, find_held_out_sessions, find_sessions, frame_labels, load_session, make_windows, protocol_labels
 from features import HOP, WINDOW, band_bins, excess_db, frame_centers, spectrogram_db, still_floor
 
 FS = 48000
@@ -90,6 +90,14 @@ class TestSessions:
         good = write_session(tmp_path, "ian", tone(1.0), [])
         write_session(tmp_path / "ian" / "breath", "ian", tone(1.0), [])
         assert find_sessions(tmp_path) == [good]
+
+    def test_live_check_takes_are_held_out_of_training_but_findable(self, tmp_path: Path):
+        # data/recordings/<person>/livecheck-N/ holds takes that no training run may use (shipping rule, RESULTS.md)
+        good = write_session(tmp_path, "ian", tone(1.0), [])
+        held = write_session(tmp_path / "ian" / "livecheck-1", "ian", tone(1.0), [])
+        assert find_sessions(tmp_path) == [good]
+        assert find_held_out_sessions(tmp_path) == [held]
+        assert find_held_out_sessions(tmp_path / "ian" / "livecheck-1") == []  # relative to the folder itself it is the root
 
     def test_loads_pcm16_as_floats_with_the_metadata(self, tmp_path: Path):
         path = write_session(tmp_path, "ian", tone(1.0), [{"start": 6000, "end": 12000, "label": "PUSH"}])

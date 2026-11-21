@@ -10,7 +10,7 @@ Six classes: `NONE, PUSH, PULL, WAVE, OPEN_CLOSE, UNDO`.
 
 - UNDO is the v4 double tap toward (two small quick taps toward the screen within ~600 ms).
 - HOLD is not a class. It stays a timer on top of the model: no motion for 1.5 s after a gesture.
-- ASL and REPETITIVE are out of scope for this dataset (ASL is parked, REPETITIVE is rule-based, #15).
+- ASL is out of scope for the project (dropped, #18 closed). REPETITIVE (Habit) is recorded and trained as the 7th class (#15).
 - `NONE` is the safety class. It must contain what a person really does near the laptop, so that Lock does not fire by accident.
 
 ## 2. What each person records (tonight, 23:15 to 23:50, on their own laptop)

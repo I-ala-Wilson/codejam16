@@ -35,14 +35,31 @@ class Session:
 
 #: Folders that hold other experiments' recordings (the breathing takes), not gesture sessions.
 NON_GESTURE_FOLDERS = frozenset({"breath"})
+#: Folders whose name starts with this hold live-check takes: the presenter's own takes, kept OUT of every training run
+#: so a candidate model can be scored on data it has never seen (ml/experiments/RESULTS.md, shipping rule).
+HELD_OUT_PREFIX = "livecheck-"
 
 
 def find_sessions(root: Path) -> list[Path]:
-    """Every <name>.json under root that has a sibling <name>.wav, in a stable order. Breathing takes are skipped."""
+    """Every <name>.json under root that has a sibling <name>.wav, in a stable order.
+
+    Breathing takes and live-check (`livecheck-*`) takes are skipped: neither is training data."""
     return sorted(
         p
         for p in root.rglob("*.json")
-        if p.with_suffix(".wav").exists() and not NON_GESTURE_FOLDERS & set(p.relative_to(root).parts[:-1])
+        if p.with_suffix(".wav").exists()
+        and not NON_GESTURE_FOLDERS & set(p.relative_to(root).parts[:-1])
+        and not any(part.startswith(HELD_OUT_PREFIX) for part in p.relative_to(root).parts[:-1])
+    )
+
+
+def find_held_out_sessions(root: Path) -> list[Path]:
+    """The live-check takes under root (every take inside a `livecheck-*` folder), in a stable order."""
+    return sorted(
+        p
+        for p in root.rglob("*.json")
+        if p.with_suffix(".wav").exists()
+        and any(part.startswith(HELD_OUT_PREFIX) for part in p.relative_to(root).parts[:-1])
     )
 
 

@@ -252,7 +252,23 @@ The new model replaces the shipped one only if ALL hold:
 - the exported model passes the engine and ml tests (`npm test` in engine, `pytest` in ml) with the new `gesture.onnx/.json`.
 Otherwise the shipped model stays and the result is reported.
 
-### Retrain result: SHIPPED (rule met)
+### Retrain result: shipped, then ROLLED BACK after a live regression (correction, 12:50)
+Ian, live on his MacBook Pro, saw WAVE read as UNDO repeatedly with this model, "much worse than the morning model", and
+rolled the app back to the morning model (9f7e41e, fa5bd8c); `ml/models` is restored to it too. What I checked offline, with
+both ONNX files through the real streaming decoder: on Ian's takes (in the training set of both) WAVE 99% and 100%, no
+WAVE-as-UNDO; on his held-out pilot takes (`data/pilot`, never trained on, 7 takes, old protocol, few reps) neither model
+confuses WAVE with UNDO (WAVE 4 of 12 cues for both) and the Dell model is better at UNDO (12 of 13 against 6 of 13);
+UNDO events emitted during all 23 WAVE takes: 1 for the morning model, 3 for the Dell model, over 450 WAVE reps. So the
+regression is NOT reproducible on any recorded take; it shows up only live. A plausible but unproven reading: the Dell
+model is more eager to emit UNDO (it fires on more double taps, which is what the UNDO recall gain is), and in a live wave a
+stray UNDO then follows. Lesson: the pre-registered rule scores cued takes and cannot see the presenter's live behaviour.
+New shipping rule (Ian's order, in force from now on): a model goes to the app only if (a) the retrain rule below holds, (b)
+its per-gesture recall on Ian's MacBook Pro takes that it was NOT trained on is not lower than the shipped model's
+(`data/pilot/I-ala-Wilson` and any `livecheck-*` takes he records), AND (c) Ian has tried it live (wave 5x, UNDO 5x, PUSH and
+PULL 5x each) and keeps the previous model file so he can roll back in seconds. The "retrain rule" below was met by the
+numbers and is kept for the record.
+
+### Retrain result: rule met (superseded by the correction above)
 Leave-one-person-out, baseline recipe, seeds 0 and 1, 5 people, now including the Dell takes (`retrain_dell/SUMMARY.md`):
 macro recall 0.413 and 0.412 (mean 0.412, needs 0.39), false alarms 2.08 and 2.13 per minute (mean 2.10, needs 2.6),
 train F1 0.927, held-out F1 0.557 (was 0.946 and 0.555). Engine tests 184 passed, ml tests 263 passed (5 skipped) with the

@@ -116,6 +116,20 @@ def decide(baseline: list[RunScore], candidate: list[RunScore], fa_slack: float 
     return Verdict(not reasons, gain, margin, reasons)
 
 
+def read_take_list(path: Path | str | None) -> frozenset[str]:
+    """Take names (file names without extension), one per line, from a text file. Blank lines and # comments are ignored."""
+    if path is None:
+        return frozenset()
+    lines = (line.split("#", 1)[0].strip() for line in Path(path).read_text().splitlines())
+    return frozenset(line for line in lines if line)
+
+
+def unknown_takes(names: frozenset[str], sessions) -> list[str]:
+    """Listed take names that match no take in the corpus (a typo would otherwise silently drop nothing)."""
+    known = {s.name for s in sessions}
+    return sorted(names - known)
+
+
 def _load_runs(path: Path) -> tuple[dict, list[RunScore]]:
     saved = json.loads(path.read_text())
     return saved, [RunScore(recipe=saved["name"], **r) for r in saved["runs"]]
@@ -127,23 +141,35 @@ def _run_dict(score: RunScore) -> dict:
     return d
 
 
-def run_recipe(sessions, name: str, recipe: dict, seeds: list[int], epochs: int, device: str, out: Path) -> list[RunScore]:
-    """All seeds of one recipe, saved to <out>/results/<name>.json. An identical earlier result is reused."""
+def run_recipe(
+    sessions, name: str, recipe: dict, seeds: list[int], epochs: int, device: str, out: Path, drop_test: frozenset[str] = frozenset()
+) -> list[RunScore]:
+    """All seeds of one recipe, saved to <out>/results/<name>.json. An identical earlier result is reused.
+
+    The recipe key "drop_train" names a take list that is left out of the training of every fold; `drop_test` (from
+    --drop-test) is left out of the scoring of every fold."""
     path = out / RESULTS_DIR / f"{name}.json"
     wanted_epochs = int(recipe.get("epochs", epochs))
+    drop_train = read_take_list(recipe.get("drop_train"))
     if path.exists():
         saved, runs = _load_runs(path)
-        if saved["recipe"] == recipe and saved["epochs"] == wanted_epochs and [r.seed for r in runs] == seeds:
+        if (
+            saved["recipe"] == recipe
+            and saved["epochs"] == wanted_epochs
+            and [r.seed for r in runs] == seeds
+            and saved.get("drop_test", []) == sorted(drop_test)
+            and saved.get("drop_train_takes", []) == sorted(drop_train)
+        ):
             sys.stdout.write(f"{name}: reusing {path}\n")
             return runs
-    kwargs = {k: v for k, v in recipe.items() if k not in ("epochs", "snr_reference_db")}
+    kwargs = {k: v for k, v in recipe.items() if k not in ("epochs", "snr_reference_db", "drop_train")}
     snr_reference = recipe.get("snr_reference_db")
     runs = []
     set_snr_reference(snr_reference)  # input scaling is a property of the data, not of train(); it applies to this recipe only
     try:
         for seed in seeds:
             started = time.time()
-            folds = lopo_reports(sessions, wanted_epochs, device, seed, **kwargs)
+            folds = lopo_reports(sessions, wanted_epochs, device, seed, drop_train=drop_train, drop_test=drop_test, **kwargs)
             runs.append(score_run(name, seed, folds))
             r = runs[-1]
             sys.stdout.write(
@@ -155,7 +181,18 @@ def run_recipe(sessions, name: str, recipe: dict, seeds: list[int], epochs: int,
         set_snr_reference(None)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        json.dumps({"name": name, "recipe": recipe, "epochs": wanted_epochs, "runs": [_run_dict(r) for r in runs]}, indent=2) + "\n"
+        json.dumps(
+            {
+                "name": name,
+                "recipe": recipe,
+                "epochs": wanted_epochs,
+                "drop_test": sorted(drop_test),
+                "drop_train_takes": sorted(drop_train),
+                "runs": [_run_dict(r) for r in runs],
+            },
+            indent=2,
+        )
+        + "\n"
     )
     return runs
 
@@ -197,6 +234,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--device", default=pick_device())
     parser.add_argument("--allow-cpu", action="store_true")
     parser.add_argument("--fa-slack", type=float, default=FA_SLACK_PER_MIN, help="extra false alarms per minute a recipe may have")
+    parser.add_argument("--drop-test", type=Path, help="text file of take names (no extension) left out of the scoring of every fold")
     args = parser.parse_args(argv)
     problem = device_problem(args.device, args.allow_cpu)
     if problem:
@@ -207,9 +245,17 @@ def main(argv: list[str]) -> int:
     if len(people) < 3:
         sys.stderr.write("tuning needs at least three people\n")
         return 2
-    sys.stdout.write(f"tuning on {args.device}, {len(sessions)} takes, {len(people)} people\n")
-    for name, recipe in json.loads(args.recipes.read_text()).items():
-        run_recipe(sessions, name, recipe, args.seeds, args.epochs, args.device, args.out)
+    drop_test = read_take_list(args.drop_test)
+    recipes = json.loads(args.recipes.read_text())
+    lists = {"--drop-test": drop_test, **{f"{n} drop_train": read_take_list(r.get("drop_train")) for n, r in recipes.items()}}
+    for label, names in lists.items():
+        missing = unknown_takes(names, sessions)
+        if missing:
+            sys.stderr.write(f"{label}: no such take: {', '.join(missing)}\n")
+            return 2
+    sys.stdout.write(f"tuning on {args.device}, {len(sessions)} takes, {len(people)} people, {len(drop_test)} takes left out of scoring\n")
+    for name, recipe in recipes.items():
+        run_recipe(sessions, name, recipe, args.seeds, args.epochs, args.device, args.out, drop_test)
     results = {path.stem: _load_runs(path)[1] for path in sorted((args.out / RESULTS_DIR).glob("*.json"))}
     (args.out / "SUMMARY.md").write_text(render_summary(results, args.fa_slack))
     sys.stdout.write((args.out / "SUMMARY.md").read_text())
