@@ -1,0 +1,28 @@
+/* Home pitch sections (Apps, Results, Close): same frame as .hwb in index.css. Black, VT323, off-white, dotted rules. */
+.pz { font-family: var(--pixel); color: var(--ink); padding: 88px max(56px, calc((100% - 1680px) / 2)) 96px; border-top: 1px dotted var(--ink); }
+.pz__title { font: 400 52px/1.05 var(--pixel); color: var(--ink-strong); letter-spacing: .01em; margin: 0 0 48px; }
+
+.pz__cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+.pz__card { border-top: 1px dotted var(--ink); padding-top: 22px; }
+.pz__cardhead { font-size: 44px; line-height: 1; color: var(--ink-strong); display: flex; align-items: baseline; gap: 14px; }
+.pz__idx { font-size: 20px; background: var(--ink); color: var(--bg); padding: 0 6px; line-height: 1.1; }
+.pz__cat { font-size: 21px; letter-spacing: .06em; text-transform: uppercase; margin: 14px 0 16px; }
+.pz__line { font-size: 23px; line-height: 1.25; margin: 0; max-width: 36ch; }
+
+.pz__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+.pz__stat { border-top: 1px dotted var(--ink); padding-top: 22px; }
+.pz__big { font-size: 76px; line-height: .9; color: var(--ink-strong); white-space: nowrap; }
+.pz__label { font-size: 23px; line-height: 1.25; margin-top: 16px; max-width: 32ch; }
+.pz__note { font-size: 19px; letter-spacing: .04em; text-transform: uppercase; margin-top: 12px; max-width: 40ch; }
+.pz__small { font-size: 19px; line-height: 1.3; margin: 48px 0 0; max-width: 90ch; border-top: 1px dotted var(--ink); padding-top: 16px; }
+
+.pz--close { text-align: center; padding-top: 120px; padding-bottom: 140px; }
+.pz__closing { font-size: 76px; line-height: 1; color: var(--ink-strong); margin: 0 0 28px; }
+.pz__team { font-size: 24px; letter-spacing: .08em; text-transform: uppercase; margin: 0; }
+
+@media (max-width: 900px) {
+  .pz { padding: 56px 16px 64px; }
+  .pz__title { font-size: 40px; }
+  .pz__cards, .pz__stats { grid-template-columns: 1fr; }
+  .pz__closing { font-size: 48px; }
+}
