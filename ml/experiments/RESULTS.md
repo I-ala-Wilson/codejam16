@@ -173,3 +173,15 @@ The reference is the take's `paced_bpm`; the breaths counted from `inhale_starts
 Reported either way: per take the estimate, the paced rate, the error, which bin was chosen and a plot
 (`ml/experiments/breathing/*.png`). No threshold above changes after the first real take is processed. If it is a GO, the
 engine gets a breath estimator (rate in bpm, confidence, apnea flag) with tests, and the API is posted for Ian's Care page.
+
+### Breathing: data-quality gate added before any real take was analysed (Ian's INFO 7065037009)
+Ian found that in his hold take the 20 kHz tone magnitude fell about 10x between 15 s and 20 s and never recovered, so the
+"flat" hold was the tone dying (another audio tab, a device switch), not apnea. A take whose tone moves cannot say anything
+about breathing, so this gate is applied to every breathing take before the rate or apnea methods see it, with these fixed
+numbers:
+- Tone level per take: the magnitude of the mic spectrum at the tone frequency in 5 s windows stepped by 1 s, in dB.
+- A window is stable when its level is within 3 dB of the take's median level. The take is cropped to its longest run of
+  stable windows. If that run is shorter than 30 s (one rate window) the take is REJECTED: it is listed with its reason and
+  does not count for or against the GO/NO-GO counts below.
+- If, after the gate, fewer than 4 paced takes from fewer than 2 people remain, the verdict is INSUFFICIENT DATA (not NO-GO)
+  and more takes are asked for. The 75% rules above are otherwise unchanged and apply to the takes that pass the gate.
