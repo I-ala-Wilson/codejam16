@@ -61,13 +61,15 @@ Extra keys in the JSON next to the contract fields (the loader ignores what it d
 
 - A small CNN: three conv blocks (16, 32, 64 channels, 3x3, batch norm, ReLU, max-pool), global average and max pooling, one dense layer
   of 64, six logits. About 60k parameters, trains in minutes on the RTX 5070.
-- Training: AdamW, label smoothing 0.05, class-balanced batches, early stopping on the validation person.
+- Training: AdamW, label smoothing 0.05, class-balanced batches, a fixed 30 epochs. There is no early stopping: with only
+  three or four people, holding one out as a validation set would starve training, and picking the best epoch on the test
+  person would leak.
 - Augmentation: time shift +-6 frames, gain +-3 dB (added to the excess), bin shift +-1, 1 to 2 dB noise, a 2-frame cutout.
   **No left-right mirroring**: direction is the whole point (toward versus away).
 - Export: ONNX (opset 17, float32), input `x` of shape [1, 1, 48, 87], output `y` of shape [1, 6]. The engine runs it with onnxruntime-web
   behind the existing `useClassifier` and `modelUrl` options.
-- Post-processing in the engine: average 3 consecutive predictions, fire a class when its probability stays above that class's threshold for
-  2 evaluations, then a 600 ms refractory. A WAVE suppresses the PUSH and PULL inside it. HOLD stays a timer.
+- Post-processing in the engine: average 3 consecutive predictions, fire a class when its probability stays above that class's threshold
+  (0.8 by default; see the sweep in REPORT.md) for 2 evaluations, then a 600 ms refractory. A WAVE suppresses the PUSH and PULL inside it. HOLD stays a timer.
 
 ## 6. Evaluation (reported in ml/REPORT.md)
 
