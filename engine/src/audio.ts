@@ -74,6 +74,7 @@ export async function startCapture(opts: CaptureOptions): Promise<CaptureSession
   // and a context that was not resumed during the gesture may stay suspended for good.
   const ctx = new AudioContext({ sampleRate: PREFERRED_SAMPLE_RATE, latencyHint: 'interactive' })
   const resumed = ctx.resume()
+  resumed.catch(() => undefined) // if the mic fails first, release() closes the context and this rejects unobserved
   let stream: MediaStream | null = null
   let moduleUrl: string | null = null
 
