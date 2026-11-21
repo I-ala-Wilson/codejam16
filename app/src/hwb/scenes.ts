@@ -432,31 +432,30 @@ const activeStage = (t: number) => Math.min(4, Math.max(0, Math.round((pulseX(t)
 export const pipeline: Scene = {
   draw(g, t) {
     // clean line pictograms in solid ink (dim ink still dithers to dots, so only the active stage gets the full glow)
-    const a = activeStage(t), p = (t % PSTEP) / PSTEP
     g.strokeStyle = gray(1); g.lineWidth = 2
     g.beginPath(); g.moveTo(PX[0] + 42, PY); g.lineTo(PX[4] - 42, PY); g.stroke()
     // the pulse glides at constant speed, fading in at the start and out at the end of the line
     const px = pulseX(t), u = (t % CYCLE) / CYCLE, fade = Math.min(1, u * 12, (1 - u) * 12)
     g.fillStyle = `rgba(255,255,255,${fade.toFixed(3)})`; g.beginPath(); g.arc(px, PY, 4, 0, TAU); g.fill()
     STAGES.forEach((_, i) => {
-      const on = i === a, x = PX[i], y = PY
+      const x = PX[i], y = PY
       g.fillStyle = gray(1); g.strokeStyle = gray(1); g.lineWidth = 2.5
       if (i === 0) {
         for (let k = 0; k < 5; k++) { const px = x - 28 + k * 14; g.beginPath(); g.arc(px, y - 9, 4.5, 0, TAU); g.fill(); g.beginPath(); g.arc(px, y + 9, 7, Math.PI, 0); g.fill() }
       } else if (i === 1) {
         g.beginPath()
-        for (let k = 0; k <= 48; k++) { const xx = x - 30 + k * 60 / 48, yy = y + Math.sin(k * 0.55 + (on ? t * 5 : 0)) * 10; k ? g.lineTo(xx, yy) : g.moveTo(xx, yy) }
+        for (let k = 0; k <= 48; k++) { const xx = x - 30 + k * 60 / 48, yy = y + Math.sin(k * 0.55) * 10; k ? g.lineTo(xx, yy) : g.moveTo(xx, yy) }
         g.stroke()
         for (const cx of [-18, 2, 22]) g.fillRect(x + cx, y - 28, 2.5, 9)
       } else if (i === 2) {
         g.strokeRect(x - 26, y - 20, 52, 40)
         for (let k = 0; k < 4; k++) { g.fillRect(x - 19 + k * 12, y - 28, 3, 7); g.fillRect(x - 19 + k * 12, y + 21, 3, 7) }
-        g.fillRect(x - 18, y - 4, 36 * (on ? smooth(p) : i < a ? 1 : 0), 8)
+        g.fillRect(x - 18, y - 4, 36, 8)
       } else if (i === 3) {
         for (let k = 0; k < 3; k++) g.strokeRect(x - 22 + k * 12, y - 24 + k * 6, 14, 48 - k * 12)
       } else {
         g.strokeRect(x - 32, y - 24, 64, 48); g.fillRect(x - 32, y - 24, 64, 7)
-        for (let k = 0; k < 7; k++) { const h = on ? 3 + 14 * Math.abs(Math.sin(t * 6 + k * 1.3)) : k === 4 ? 14 : 3; g.fillRect(x - 26 + k * 8, y + 19 - h, 5, h) }
+        for (let k = 0; k < 7; k++) { const h = [4, 6, 3, 5, 15, 4, 6][k]; g.fillRect(x - 26 + k * 8, y + 19 - h, 5, h) }
       }
     })
   },
