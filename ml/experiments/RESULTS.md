@@ -288,6 +288,21 @@ new files. `gesture.json` differs only in the window count (73208 to 79550); cla
 Honest reading: the held-out numbers are the same as before within noise (0.412 vs 0.421), so this is not an accuracy gain
 on the people we already had. What it adds is a second laptop model (Dell Inspiron 15 3520) in the training set.
 
+## Reporting convention: five gestures, and Habit separately (Yahya's decision, confirmed by Ian, EJ and Michael, 13:06)
+REPETITIVE is the Habit feature's signal, not a gesture. The model keeps its 7th output (it needs it so scratching is not
+misread as a gesture) and the engine type is unchanged. From now on every public number is split:
+- GESTURES (PUSH, PULL, WAVE, OPEN_CLOSE, UNDO), people the model has never seen, leave-one-person-out, 2 seeds, 5 people:
+  macro recall 0.452 (PUSH 0.487, PULL 0.485, WAVE 0.449, OPEN_CLOSE 0.362, UNDO 0.477).
+- HABIT (REPETITIVE): recall 0.215 on unseen people (weakest signal; scratching works better live than this suggests, EJ's
+  live test caught 6 of 7; nail biting was dropped).
+- False alarms: 2.1 events per minute on idle takes, all classes together (the files do not separate Habit from gestures).
+- Ian on his MacBook Pro, trained on the other four people: gestures 0.656, Habit 0.07; adding his own cues per take:
+  5 cues 0.708 (+0.05), 20 cues 0.742 (+0.09), 20 cues repeated 5x 0.766 (+0.11); Habit 0.07 to 0.44. One person, 2 seeds.
+The numbers in the earlier sections (0.412, 0.421, the round 3 and retrain tables) are the mean over all SIX classes, Habit
+included, which is what the pre-registered rules were written and judged on; they are not re-judged. The six-class mean
+for the shipped data is 0.412; dropping Habit from the mean moves it to 0.452. `ml/experiments/summary.json` carries both,
+labelled (`gestures`, `habit`, `macro_recall_all_classes_rule_metric`).
+
 ## Breathing v2 result: NO-GO (computed once at 12:45:01, Sat 21 Nov, with the frozen rule)
 Test set: every take created at or after 11:05 and pushed by 12:45: EJ 3 (15 bpm, hold, natural), Michael 5 (Dell: 10, 15, 20
 bpm, hold, natural), Ian 4 (MacBook Pro, 12:39-12:43: 10, 15, 20 bpm, hold). 12 takes, 3 people, no choice involved in which

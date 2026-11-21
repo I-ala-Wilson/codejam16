@@ -16,11 +16,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPERIMENTS = ROOT / "ml" / "experiments"
-GESTURES = ("PUSH", "PULL", "WAVE", "OPEN_CLOSE", "UNDO", "REPETITIVE")
+#: The five gestures. REPETITIVE is not a gesture: it is the Habit feature's signal and is reported on its own.
+GESTURES = ("PUSH", "PULL", "WAVE", "OPEN_CLOSE", "UNDO")
+HABIT = "REPETITIVE"
 
 
 def mean(values: list[float]) -> float:
     return round(statistics.fmean(values), 3)
+
+
+def gesture_macro(class_recall: dict[str, float]) -> float:
+    """Mean recall over the five gestures only (Habit excluded)."""
+    return statistics.fmean(class_recall[g] for g in GESTURES)
 
 
 def recordings() -> tuple[set[str], int]:
@@ -43,10 +50,14 @@ def stranger() -> dict:
     return {
         "what": "leave-one-person-out: the model is trained on 4 people and scored on the 5th, who it has never seen",
         "seeds": len(runs),
-        # The definition every number in RESULTS.md uses (ml/tune.py): the mean over gestures of the recall pooled over people.
-        "macro_recall": mean([statistics.fmean(r["class_recall"].values()) for r in runs]),
-        "recall_per_person": {p: mean([r["fold_recall"][p] for r in runs]) for p in runs[0]["fold_recall"]},
-        "recall_per_gesture": {g: mean([r["class_recall"][g] for r in runs]) for g in GESTURES},
+        "gestures": {
+            "macro_recall": mean([gesture_macro(r["class_recall"]) for r in runs]),
+            "recall_per_gesture": {g: mean([r["class_recall"][g] for r in runs]) for g in GESTURES},
+        },
+        "habit": {"recall": mean([r["class_recall"][HABIT] for r in runs])},
+        # What the pre-registered rules in RESULTS.md judged (ml/tune.py): the mean over all six classes, Habit included.
+        "macro_recall_all_classes_rule_metric": mean([statistics.fmean(r["class_recall"].values()) for r in runs]),
+        "recall_per_person_all_classes": {p: mean([r["fold_recall"][p] for r in runs]) for p in runs[0]["fold_recall"]},
         "false_alarms_per_minute": mean([r["false_alarms_per_minute"] for r in runs]),
         "train_f1": mean([r["train_f1"] for r in runs]),
         "held_out_f1": mean([r["heldout_f1"] for r in runs]),
@@ -60,19 +71,20 @@ def calibration() -> dict:
             "condition": c["name"],
             "calibration_cues_per_take": c["cues"],
             "repeated": c["replicate"],
-            "macro_recall": round(c["macro_recall"], 3),
+            "gesture_macro_recall": round(gesture_macro(c["class_recall"]), 3),
+            "habit_recall": round(c["class_recall"][HABIT], 2),
             "false_alarms_per_minute": round(c["false_alarms_per_minute"], 2),
-            "recall_per_gesture": {g: round(c["class_recall"][g], 2) for g in GESTURES if g in c["class_recall"]},
+            "recall_per_gesture": {g: round(c["class_recall"][g], 2) for g in GESTURES},
         }
         for c in data["conditions"]
     ]
-    base = rows[0]["macro_recall"]
+    base = rows[0]["gesture_macro_recall"]
     return {
         "what": "one person (Ian, MacBook Pro): trained on the other 4 people plus N of his own cues per take, tested on his other hand",
         "person": data["person"],
         "seeds": len(data["seeds"]),
         "conditions": rows,
-        "gain_over_no_calibration": {r["condition"]: round(r["macro_recall"] - base, 3) for r in rows[1:]},
+        "gain_over_no_calibration": {r["condition"]: round(r["gesture_macro_recall"] - base, 3) for r in rows[1:]},
     }
 
 

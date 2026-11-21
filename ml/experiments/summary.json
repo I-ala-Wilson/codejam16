@@ -1,28 +1,33 @@
 {
-  "generated": "2026-11-21T12:43-05:00",
+  "generated": "2026-11-21T13:06-05:00",
   "data": {
     "people": 5,
-    "gesture_takes": 175,
-    "training_windows": 79550
+    "gesture_takes": 177,
+    "training_windows": 73208
   },
   "stranger": {
     "what": "leave-one-person-out: the model is trained on 4 people and scored on the 5th, who it has never seen",
     "seeds": 2,
-    "macro_recall": 0.412,
-    "recall_per_person": {
+    "gestures": {
+      "macro_recall": 0.452,
+      "recall_per_gesture": {
+        "PUSH": 0.487,
+        "PULL": 0.485,
+        "WAVE": 0.449,
+        "OPEN_CLOSE": 0.362,
+        "UNDO": 0.477
+      }
+    },
+    "habit": {
+      "recall": 0.215
+    },
+    "macro_recall_all_classes_rule_metric": 0.412,
+    "recall_per_person_all_classes": {
       "ej2007": 0.379,
       "i-ala-wilson": 0.556,
       "miguel982": 0.243,
       "naomi": 0.69,
       "yahya-github": 0.428
-    },
-    "recall_per_gesture": {
-      "PUSH": 0.487,
-      "PULL": 0.485,
-      "WAVE": 0.449,
-      "OPEN_CLOSE": 0.362,
-      "UNDO": 0.477,
-      "REPETITIVE": 0.215
     },
     "false_alarms_per_minute": 2.105,
     "train_f1": 0.927,
@@ -37,83 +42,83 @@
         "condition": "none",
         "calibration_cues_per_take": 0,
         "repeated": 1,
-        "macro_recall": 0.558,
+        "gesture_macro_recall": 0.656,
+        "habit_recall": 0.07,
         "false_alarms_per_minute": 2.72,
         "recall_per_gesture": {
           "PUSH": 0.51,
           "PULL": 0.3,
           "WAVE": 0.76,
           "OPEN_CLOSE": 0.84,
-          "UNDO": 0.88,
-          "REPETITIVE": 0.07
+          "UNDO": 0.88
         }
       },
       {
         "condition": "cues5x1",
         "calibration_cues_per_take": 5,
         "repeated": 1,
-        "macro_recall": 0.648,
+        "gesture_macro_recall": 0.708,
+        "habit_recall": 0.35,
         "false_alarms_per_minute": 2.35,
         "recall_per_gesture": {
           "PUSH": 0.53,
           "PULL": 0.51,
           "WAVE": 0.78,
           "OPEN_CLOSE": 0.92,
-          "UNDO": 0.8,
-          "REPETITIVE": 0.35
+          "UNDO": 0.8
         }
       },
       {
         "condition": "cues5x5",
         "calibration_cues_per_take": 5,
         "repeated": 5,
-        "macro_recall": 0.638,
+        "gesture_macro_recall": 0.694,
+        "habit_recall": 0.36,
         "false_alarms_per_minute": 2.64,
         "recall_per_gesture": {
           "PUSH": 0.53,
           "PULL": 0.46,
           "WAVE": 0.76,
           "OPEN_CLOSE": 0.88,
-          "UNDO": 0.84,
-          "REPETITIVE": 0.36
+          "UNDO": 0.84
         }
       },
       {
         "condition": "cues20x1",
         "calibration_cues_per_take": 20,
         "repeated": 1,
-        "macro_recall": 0.679,
+        "gesture_macro_recall": 0.742,
+        "habit_recall": 0.36,
         "false_alarms_per_minute": 2.56,
         "recall_per_gesture": {
           "PUSH": 0.51,
           "PULL": 0.64,
           "WAVE": 0.77,
           "OPEN_CLOSE": 0.93,
-          "UNDO": 0.86,
-          "REPETITIVE": 0.36
+          "UNDO": 0.86
         }
       },
       {
         "condition": "cues20x5",
         "calibration_cues_per_take": 20,
         "repeated": 5,
-        "macro_recall": 0.711,
+        "gesture_macro_recall": 0.766,
+        "habit_recall": 0.44,
         "false_alarms_per_minute": 2.72,
         "recall_per_gesture": {
           "PUSH": 0.62,
           "PULL": 0.64,
           "WAVE": 0.82,
           "OPEN_CLOSE": 0.92,
-          "UNDO": 0.83,
-          "REPETITIVE": 0.44
+          "UNDO": 0.83
         }
       }
     ],
     "gain_over_no_calibration": {
-      "cues5x1": 0.09,
-      "cues5x5": 0.08,
-      "cues20x1": 0.121,
-      "cues20x5": 0.153
+      "cues5x1": 0.052,
+      "cues5x5": 0.038,
+      "cues20x1": 0.086,
+      "cues20x5": 0.11
     }
   },
   "caveats": [
