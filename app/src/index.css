@@ -12,8 +12,6 @@ body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); f
 .home__hero { position: relative; height: calc(100vh - 58px); min-height: 640px; overflow: hidden; }
 .home__more { position: absolute; z-index: 1; right: 56px; bottom: 48px; font: 400 20px var(--pixel); letter-spacing: .06em; text-transform: uppercase; animation: lk-blink 2.4s steps(2) infinite; }
 .home__how { position: relative; }
-.home__howhead { padding: 56px 56px 28px; font-family: var(--pixel); }
-.home__howhead h2 { font: 400 56px/1 var(--pixel); margin: 10px 0 0; color: var(--ink-strong); }
 .home__text { position: absolute; z-index: 1; left: 56px; top: 104px; max-width: 720px; }
 .home__mark { font: 400 140px/0.85 var(--pixel); color: var(--ink-strong); margin: 0 0 22px; letter-spacing: .01em; }
 .home__text h1 { font: 400 46px/1 var(--pixel); margin: 0 0 14px; color: var(--ink-strong); letter-spacing: .01em; }
@@ -95,3 +93,17 @@ a { color: var(--ink-strong); }
 .cg__feed { border-top: 1px dotted var(--ink); }
 .cg__row { display: grid; grid-template-columns: 140px 1fr; font-size: 24px; padding: 10px 4px; border-bottom: 1px dotted var(--ink); }
 .cg__row.on { background: var(--ink); color: var(--bg); }
+
+/* How we built it */
+.hwb { font-family: var(--pixel); padding: 72px 56px 96px; border-top: 1px dotted var(--ink); max-width: 1320px; }
+.hwb__title { font: 400 52px/1 var(--pixel); margin: 10px 0 44px; color: var(--ink-strong); }
+.hwb__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 56px; }
+.hwb__block { border-top: 1px dotted var(--ink); padding-top: 14px; }
+.hwb__head { display: flex; justify-content: space-between; align-items: baseline; font-size: 30px; color: var(--ink-strong); margin-bottom: 10px; }
+.hwb__big { font-size: 44px; }
+.hwb__block ul { margin: 0; padding: 0; list-style: none; }
+.hwb__block li { font-size: 21px; line-height: 1.3; padding: 4px 0 4px 18px; position: relative; }
+.hwb__block li::before { content: '·'; position: absolute; left: 4px; }
+.hwb__faq { margin-top: 56px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+.hwb__q { border: 1px dotted var(--ink); padding: 12px 14px; font-size: 19px; line-height: 1.25; display: flex; flex-direction: column; gap: 8px; }
+.hwb__q b { font-weight: 400; color: var(--bg); background: var(--ink); padding: 2px 6px; align-self: flex-start; }

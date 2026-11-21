@@ -312,7 +312,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
     W = Math.max(1, host.clientWidth); H = Math.max(1, host.clientHeight)
     renderer.setSize(W, H)
     camera.aspect = W / H
-    camera.setViewOffset(W, H, -W * 0.13, -H * 0.02, W, H)
+    camera.setViewOffset(W, H, -W * 0.18, -H * 0.02, W, H) // figure sits right of the words column
     const rw = Math.max(1, Math.floor(W / PIX)), rh = Math.max(1, Math.floor(H / PIX))
     rt.setSize(rw, rh)
     ditherMat.uniforms.uRes.value.set(rw, rh)

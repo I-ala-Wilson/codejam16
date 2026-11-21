@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { createExplainer, GESTURES, F0, C, type Frame } from './scene.ts'
 import './explainer.css'
@@ -37,7 +38,7 @@ function drawSpectrum(cv: HTMLCanvasElement, df: number) {
 
 const fmt = (n: number, d: number) => (n >= 0 ? '+' : '-') + Math.abs(n).toFixed(d)
 
-export default function Explainer({ embedded = false }: { embedded?: boolean }) {
+export default function Explainer({ embedded = false, children }: { embedded?: boolean; children?: React.ReactNode }) {
   const root = useRef<HTMLDivElement>(null)
   const host = useRef<HTMLDivElement>(null)
   const speaker = useRef<HTMLDivElement>(null)
@@ -86,6 +87,7 @@ export default function Explainer({ embedded = false }: { embedded?: boolean }) 
       <div className="ex__tag ex__tag--down" ref={speaker}><span>speaker · 20 kHz</span></div>
       <div className="ex__tag ex__tag--up" ref={mic}><span>mic</span></div>
       <div className="ex__caption">
+        {children}
         <div className="ex__name">{g.name}</div>
         <div className="ex__sub">{g.sub}</div>
       </div>

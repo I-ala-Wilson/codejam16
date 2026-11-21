@@ -8,6 +8,7 @@ import { engine } from '../engine.ts'
 
 const REF_W = 1920, REF_H = 1080
 const STEM_X = 952, STEM_Y = 1080
+const HEAD_X = 955, HEAD_Y = 520 // centre of the bloom in the reference, where the pulses start
 const SHIFT_X = 0.16 // flower sits right of centre, clear of the headline
 const BLUR = 2 // px radius of each of the two box-blur passes, just enough to dissolve the digit shapes
 const GAIN = 1.25 // dither density tracks the reference's own ink coverage, so the tone matches it
@@ -112,14 +113,31 @@ export default function DitherFlower() {
       const stemX = f.ox + STEM_X * f.s, stemY = f.oy + STEM_Y * f.s, height = 840 * f.s
       const A = (14 * Math.sin(t * 2 * Math.PI / 6) + 3.5 * Math.sin(t * 2 * Math.PI / 2.3 + 1.1)) * f.s
       const pad = Math.ceil(18 * f.s) + 2
-      const x0 = Math.max(0, f.left - pad), x1 = Math.min(W - 1, f.right + pad)
-      for (let y = f.top; y <= f.bottom; y++) {
+      // Sonar pulses: solid rings travel out from the bloom like the 20 kHz ping, and a dashed echo ring travels back
+      // in, the same language as the How it works explainer. Hand motion makes them brighter.
+      const hx = f.ox + HEAD_X * f.s + A * 0.85, hy = f.oy + HEAD_Y * f.s
+      const RMAX = 520 * f.s, P = 3.6, WID = 3.2 * f.s + 1.2
+      const boost = 1 + 1.6 * Math.min(1, toward + away)
+      const outR = [0, 1, 2].map((k) => (((t + (k * P) / 3) % P) / P) * RMAX)
+      const inPh = ((t + P * 0.5) % P) / P, inR = RMAX * (1 - inPh)
+      const x0 = Math.max(0, Math.min(f.left - pad, Math.floor(hx - RMAX))), x1 = Math.min(W - 1, Math.max(f.right + pad, Math.ceil(hx + RMAX)))
+      const y0 = Math.max(0, Math.min(f.top, Math.floor(hy - RMAX))), y1 = Math.min(H - 1, Math.max(f.bottom, Math.ceil(hy + RMAX)))
+      for (let y = y0; y <= y1; y++) {
         const shift = Math.round(A * Math.max(0, (stemY - y) / height) ** 1.6)
         const row = y * W, b = (y & 7) * 8
+        const dy = y - hy
         for (let x = x0; x <= x1; x++) {
           const sx = x - shift
-          let g = sx >= 0 && sx < W ? f.v[row + sx] : 0
+          let g = y >= f.top && y <= f.bottom && sx >= 0 && sx < W ? f.v[row + sx] : 0
           if (g > 0) g += 0.25 * (sx < stemX ? toward : away) * g
+          if (g < 0.5) {
+            const dx = x - hx, d = Math.sqrt(dx * dx + dy * dy)
+            let ring = 0
+            for (const r of outR) { const q = (d - r) / WID; if (q > -3 && q < 3) ring = Math.max(ring, 0.34 * (1 - r / RMAX) ** 1.4 * Math.exp(-q * q)) }
+            const qi = (d - inR) / WID
+            if (qi > -3 && qi < 3 && ((Math.atan2(dy, dx) * 14) / Math.PI + 40) % 2 < 1.1) ring = Math.max(ring, 0.3 * Math.sin(Math.PI * inPh) * Math.exp(-qi * qi))
+            if (ring > 0) g = Math.max(g, Math.min(0.9, ring * boost))
+          }
           px[row + x] = g > BAYER[b + (x & 7)] ? INK : BG
         }
       }
