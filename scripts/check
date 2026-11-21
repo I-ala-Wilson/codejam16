@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Consistency check for the shared coordination files. Run by pre-commit (blocks on errors) and at session start.
+#   scripts/check [--quiet]
+source "$(dirname "$0")/lib.sh"
+q=0; [[ "${1:-}" == "--quiet" ]] && q=1
+errs=(); warns=()
+cd "$ROOT"
+jq -e . team/team.json >/dev/null 2>&1 || errs+=("team/team.json is not valid JSON")
+jq -e . team/board.json >/dev/null 2>&1 || errs+=("team/board.json is not valid JSON")
+spec="$(spec_version)"
+[[ "$spec" =~ ^[0-9]+$ ]] || errs+=("docs/SPEC.md has no valid 'SPEC_VERSION: N' line")
+if [[ ${#errs[@]} -eq 0 ]]; then
+  [[ "$(jq -r .lead team/team.json)" == "$(jq -r '.members[0].login' team/team.json)" ]] || warns+=("lead is not the first member in team.json")
+  if [[ "$spec" == 0 ]]; then
+    owned="$(jq -r '[.members[] | select(.owns | length > 0) | .login] | join(", ")' team/team.json)"
+    [[ -n "$owned" ]] && errs+=("SPEC is v0 but $owned already own folders; ownership is assigned only at kickoff")
+  else
+    [[ -f docs/BRIEF.md ]] || errs+=("SPEC v$spec but docs/BRIEF.md is missing")
+    [[ "$(ls contracts | grep -v README.md | wc -l | tr -d ' ')" -gt 0 ]] || warns+=("SPEC v$spec but contracts/ is empty")
+    unowned="$(jq -r '[.members[] | select(.owns | length == 0) | .login] | join(", ")' team/team.json)"
+    [[ -n "$unowned" ]] && warns+=("SPEC v$spec but no folders assigned to: $unowned")
+  fi
+  # overlapping globs between different owners (prefix before the first *)
+  ov="$(jq -r '[.members[] | .login as $l | .owns[] | {l: $l, p: (split("*")[0])}] + [(.qa // {owns: []}) | .login as $l | .owns[]? | {l: ($l + "/qa"), p: (split("*")[0])}]
+    | . as $all | [ $all[] as $a | $all[] as $b | select($a.l < $b.l and (($a.p | startswith($b.p)) or ($b.p | startswith($a.p)))) | "\($a.l) \($a.p)* vs \($b.l) \($b.p)*" ] | unique | .[]' team/team.json)"
+  [[ -n "$ov" ]] && while read -r o; do errs+=("overlapping ownership: $o"); done <<< "$ov"
+  shared_hit="$(jq -r '[.shared[] | split("*")[0]] as $s | .members[] | .login as $l | .owns[] | split("*")[0] as $p | select([$s[] | . as $x | select(($x | startswith($p)) or ($p | startswith($x)))] | length > 0) | "\($l) owns \($p)* inside a shared path"' team/team.json)"
+  [[ -n "$shared_hit" ]] && while read -r o; do errs+=("$o"); done <<< "$shared_hit"
+fi
+for w in "${warns[@]+"${warns[@]}"}"; do echo "CHECK WARNING: $w"; done
+for e in "${errs[@]+"${errs[@]}"}"; do echo "CHECK ERROR: $e"; done
+[[ ${#errs[@]} -eq 0 && ${#warns[@]} -eq 0 && $q == 0 ]] && echo "check: all consistent (spec v$spec)"
+[[ ${#errs[@]} -eq 0 ]]

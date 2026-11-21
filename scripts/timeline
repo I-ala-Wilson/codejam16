@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Everything that has happened, in order, from GitHub (no tokens): board posts, commits, issues.
+#   scripts/timeline [--login X] [--since 12h|2d] [--limit N]
+# --login keeps only events by or addressed to X (e.g. --login EJ2007, --login Yahya-github/qa).
+set -euo pipefail
+export TZ=America/Toronto
+source "$(dirname "$0")/lib.sh"
+REPO="$(jq -r .repo "$BOARD_CFG")"; BOARD="$(jq -r .issue "$BOARD_CFG")"
+login=""; since=""; limit=400
+while [[ $# -gt 0 ]]; do case "$1" in --login) login="$2"; shift 2 ;; --since) since="$2"; shift 2 ;; --limit) limit="$2"; shift 2 ;; *) shift ;; esac; done
+cutoff=0
+if [[ -n "$since" ]]; then n="${since%[hd]}"; [[ "$since" == *d ]] && cutoff=$(( $(date +%s) - n*86400 )) || cutoff=$(( $(date +%s) - n*3600 )); fi
+T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+gh api "repos/$REPO/issues/$BOARD/comments" --paginate --jq '.[] | @json' | jq -s 'map(
+  ((.body | capture("<!-- board type=(?<t>[A-Z]+) from=(?<f>[^ ]+) spec=(?<s>[0-9]+)( to=(?<to>[^ ]*))?")) // {t: "HUMAN-POST", f: .user.login, s: "", to: ""}) as $m
+  | {at: (.created_at | fromdateiso8601), who: $m.f, to: ($m.to // ""), kind: "board [\($m.t)]",
+     text: (.body | gsub("<!-- board [^>]*-->\n?"; "") | gsub("\\*\\*\\[[A-Z]+\\]\\*\\* from `[^`]+` \\(spec v[0-9]+\\)[^\n]*\n*"; "") | gsub("\n+"; " ") | .[0:220])})' > "$T/b.json"
+gh api "repos/$REPO/commits?per_page=100" --jq '[.[] | {at: (.commit.author.date | fromdateiso8601), who: (.author.login // .commit.author.name), to: "", kind: "commit", text: (.commit.message | split("\n")[0])}]' > "$T/c.json"
+gh issue list -R "$REPO" --state all --limit 300 --json number,title,createdAt,closedAt,assignees,state | jq --argjson b "$BOARD" --argjson s "$(jq -r .status_issue "$BOARD_CFG")" '
+  [ .[] | select(.number != $b and .number != $s) | (.assignees | map(.login) | join(",")) as $a
+    | {at: (.createdAt | fromdateiso8601), who: "", to: $a, kind: "issue opened", text: "#\(.number) \(.title)"},
+      (select(.closedAt != null) | {at: (.closedAt | fromdateiso8601), who: $a, to: "", kind: "issue closed", text: "#\(.number) \(.title)"}) ]' > "$T/i.json"
+jq -rs --arg login "$login" --argjson cutoff "$cutoff" --argjson limit "$limit" '
+  add | map(select(.at >= $cutoff))
+  | map(select($login == "" or .who == $login or (.to | split(",") | index($login)) or (.who | startswith($login + "/")) ))
+  | sort_by(.at) | .[-$limit:][]
+  | "\(.at | localtime | strftime("%a %H:%M"))  \(.kind)  \(if .who != "" then .who else "-" end)\(if .to != "" then " -> " + .to else "" end): \(.text)"' \
+  "$T/b.json" "$T/c.json" "$T/i.json"

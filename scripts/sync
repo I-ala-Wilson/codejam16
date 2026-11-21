@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Pull latest main, refresh local agent files, print status and unread mentions.
+set -euo pipefail
+source "$(dirname "$0")/lib.sh"
+cd "$ROOT"
+git pull --rebase --autostash -q || { echo "git pull failed: resolve it (never discard someone else's work), then rerun scripts/sync"; exit 1; }
+"$ROOT/scripts/setup" --quiet
+"$ROOT/scripts/awake" ensure
+"$ROOT/scripts/board" status
+"$ROOT/scripts/human-alerts" list

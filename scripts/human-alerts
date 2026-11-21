@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# Tracks [HUMAN] board tasks for you (the person): one corner notification per task, plus a red line in
+# Claude's status bar and a reminder at every prompt until you mark them done, which tells whoever sent it on the board.
+#   scripts/human-alerts ensure     start in the background if not running (setup/sync/session start call this)
+#   scripts/human-alerts list       pending tasks
+#   scripts/human-alerts done <id>  mark a task done from the terminal
+#   scripts/human-alerts stop | run | statusline | prompt-hook
+source "$(dirname "$0")/lib.sh"
+PIDF="$GITDIR/human-alerts.pid"; CUR="$GITDIR/board-cursor-human"; LOG="$GITDIR/human-alerts.log"
+PEND="$GITDIR/human-pending.json"; LOCK="$GITDIR/human-pending.lock"
+REPOP="${HUMAN_REPOP:-600}"
+REPO="$(jq -r .repo "$BOARD_CFG")"; ISSUE="$(jq -r .issue "$BOARD_CFG")"
+[[ -s "$PEND" ]] || echo '[]' > "$PEND"
+
+alive() { [[ -s "$PIDF" ]] && kill -0 "$(cat "$PIDF")" 2>/dev/null; }
+locked() {  # run "$@" while holding the pending-file lock
+  local i=0; until mkdir "$LOCK" 2>/dev/null; do sleep 0.2; (( ++i > 50 )) && rm -rf "$LOCK"; done
+  "$@"; local s=$?; rmdir "$LOCK" 2>/dev/null; return $s
+}
+pend_edit() { local t; t="$(mktemp)"; jq "$@" "$PEND" > "$t" && mv "$t" "$PEND"; }
+
+mark_done() {  # $1 = id
+  local task; task="$(jq -c --argjson id "$1" '.[] | select(.id == $id)' "$PEND")"
+  [[ -z "$task" ]] && return 0
+  locked pend_edit --argjson id "$1" 'map(select(.id != $id))'
+  "$ROOT/scripts/board" post --type DONE --to "$(echo "$task" | jq -r .from)" \
+    "Human task done: $(echo "$task" | jq -r .text | tr '\n' ' ' | head -c 150)" >/dev/null 2>&1
+}
+
+popup() {  # one corner notification per task, no dialogs
+  local from text; from="$(echo "$1" | jq -r .from)"; text="$(echo "$1" | jq -r .text | tr '\n' ' ')"
+  echo "[$(date '+%H:%M')] TASK FOR YOU from @$from: $text" >> "$LOG"
+  if command -v osascript >/dev/null; then
+    osascript - "$from" "$text" <<'OSA' >/dev/null 2>&1
+on run argv
+  display notification (item 2 of argv) with title ("Task for you from @" & item 1 of argv) sound name "Glass"
+end run
+OSA
+  elif grep -qi microsoft /proc/version 2>/dev/null && command -v powershell.exe >/dev/null; then
+    powershell.exe -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; \$n = New-Object System.Windows.Forms.NotifyIcon; \$n.Icon = [System.Drawing.SystemIcons]::Information; \$n.Visible = \$true; \$n.ShowBalloonTip(15000, 'Task for you from @$from', '$(echo "$text" | head -c 200 | tr "'" " ")', 'Info'); Start-Sleep 16; \$n.Dispose()" >/dev/null 2>&1 &
+  elif command -v notify-send >/dev/null; then
+    notify-send "Task for you from @$from" "$text"
+  fi
+}
+
+case "${1:-ensure}" in
+  ensure)
+    alive && exit 0
+    nohup "$0" run </dev/null >>"$LOG" 2>&1 &
+    echo $! > "$PIDF"; disown 2>/dev/null; exit 0 ;;
+  stop) alive && kill "$(cat "$PIDF")"; rm -f "$PIDF" ;;
+  list) jq -r 'if length == 0 then "(no tasks for you)" else .[] | "#\(.id) from @\(.from): \(.text)" end' "$PEND" ;;
+  done) mark_done "${2:?task id}"; echo "done" ;;
+  statusline)
+    n="$(jq length "$PEND")"
+    [[ "$n" != 0 ]] && printf '\033[1;31mTASK FOR YOU (%s): %s\033[0m\n' "$n" "$(jq -r '.[0].text | gsub("\n"; " ") | .[0:70]' "$PEND")"
+    exit 0 ;;
+  prompt-hook)
+    n="$(jq length "$PEND")"
+    if [[ "$n" != 0 ]]; then
+      echo "PENDING [HUMAN] TASKS for your human. Before anything else, show them verbatim. When they say it's done, run: scripts/human-alerts done <id>"
+      "$0" list
+    fi
+    exit 0 ;;
+  run)
+    ME="$(me)" || exit 1
+    if [[ ! -s "$CUR" ]]; then   # first run: start from now, don't replay history
+      gh api "repos/$REPO/issues/$ISSUE/comments" --paginate --jq '.[].id' 2>/dev/null | tail -1 > "$CUR"
+      [[ -s "$CUR" ]] || echo 0 > "$CUR"
+    fi
+    while :; do
+      if posts="$(gh api "repos/$REPO/issues/$ISSUE/comments" --paginate --jq '.[] | @json' 2>/dev/null | jq -s --argjson a "$(cat "$CUR")" 'map(select(.id > $a)) | sort_by(.id)')"; then
+        new="$(echo "$posts" | jq -c --arg me "$ME" '[ .[] | select(.body | test("<!-- board type=HUMAN from=[^ ]+ spec=[0-9]+ to=([^ ]*,)?" + $me + "(,| )"; "i"))
+          | {id, url: .html_url, shown: 0, from: (.body | capture("from=(?<f>[^ ]+)").f),
+             text: (.body | gsub("<!-- board [^>]*-->\n?"; "") | gsub("\\*\\*\\[HUMAN\\]\\*\\*[^\n]*\n*"; "") | gsub("^\\s+|\\s+$"; ""))} ]')"
+        [[ "$new" != "[]" ]] && locked pend_edit --argjson n "$new" '. + $n | unique_by(.id)'
+        last="$(echo "$posts" | jq -r 'last.id // empty')"; [[ -n "$last" ]] && echo "$last" > "$CUR"
+      fi
+      now="$(date +%s)"
+      jq -c --argjson now "$now" --argjson r "$REPOP" '.[] | select(.shown == 0)' "$PEND" | while read -r t; do
+        popup "$t"
+        locked pend_edit --argjson id "$(echo "$t" | jq .id)" --argjson now "$now" 'map(if .id == $id then .shown = $now else . end)'
+      done
+      sleep "${HUMAN_POLL:-30}"
+    done ;;
+esac

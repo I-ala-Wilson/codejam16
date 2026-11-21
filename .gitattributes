@@ -1,0 +1,4 @@
+# Keep bash scripts LF so they run in WSL even if someone's git converts line endings
+scripts/* text eol=lf
+.githooks/* text eol=lf
+*.sh text eol=lf

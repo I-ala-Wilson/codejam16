@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# One-time (and re-runnable) setup for each teammate's clone.
+set -euo pipefail
+source "$(dirname "$0")/lib.sh"
+quiet=0; newrole=""
+while [[ $# -gt 0 ]]; do case "$1" in --quiet) quiet=1; shift ;; --role) newrole="$2"; shift 2 ;; *) shift ;; esac; done
+say() { [[ $quiet == 1 ]] || echo "$@"; }
+
+for bin in git gh jq; do command -v "$bin" >/dev/null || { echo "Missing $bin (brew install $bin)"; exit 1; }; done
+gh auth status >/dev/null 2>&1 || { echo "Run: gh auth login"; exit 1; }
+
+cd "$ROOT"
+git config core.hooksPath .githooks
+git config pull.rebase true
+git config rebase.autoStash true
+
+[[ -n "$newrole" ]] && echo "$newrole" > "$GITDIR/agent-role"
+rm -f "$GITDIR/agent-id"
+ME="$(me)"
+jq -e --arg me "$ME" '.members[] | select(.login == $me)' "$TEAM" >/dev/null \
+  || { echo "@$ME is not in team/team.json. Ask @$(lead) to add you."; exit 1; }
+
+# Local agent files (gitignored, regenerated on every sync so they track docs/TEAM_RULES.md).
+printf '@docs/TEAM_RULES.md\n' > CLAUDE.md
+if [[ "$(role)" == qa ]]; then
+  printf '\n# You are the QA agent\nThis clone is the dedicated QA agent for @%s. Your job is ultra in-depth bug hunting, never product code. Follow tools/team/commands/qa.md for every pass. You may only edit qa/ and docs/qa/. You only wake on [QA] board posts; on start run /qa-standby.\n' "$(me)" >> CLAUDE.md
+fi
+{ cat docs/TEAM_RULES.md
+  printf '\n## Codex notes\n- Playbooks: when told sync/recover/kickoff/handoff/standup/lead, open tools/team/commands/<word>.md and follow it.\n- The board needs network access (gh). If a gh or git push command fails in the sandbox, ask your human to restart you with: codex --sandbox danger-full-access\n'
+} > AGENTS.md
+mkdir -p .claude/commands
+cp tools/team/claude-settings.json .claude/settings.json
+cp tools/team/commands/*.md .claude/commands/
+mkdir -p .codex
+printf 'notify = ["%s/scripts/heartbeat", "codex"]\n' "$ROOT" > .codex/config.toml
+
+# Publish a first heartbeat so the lead can see this clone is set up.
+"$ROOT/scripts/heartbeat" setup </dev/null
+[[ "$(role)" == qa ]] || "$ROOT/scripts/human-alerts" ensure
+"$ROOT/scripts/awake" ensure
+
+say "Setup done for @$ME. Sleep guard: $("$ROOT/scripts/awake" status)."
+say ""
+say "Keep your laptop working all hackathon:"
+say "  1. Plugged in the whole time"
+say "  2. Lid open (closing it sleeps the Mac no matter what)"
+say "  3. Low Power Mode off (System Settings > Battery), and say no to restart/update prompts"
+say "  4. Agent running in this folder"
+say ""
+say "Claude users: open Claude Code in this folder and type /sync"
+say "Codex user: start codex here and say: sync"
+say "Optional, in a spare terminal: scripts/board watch   (rings when your agent is tagged)"

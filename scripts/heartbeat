@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Automatic status reporting (no LLM tokens). Called by Claude hooks, Codex notify,
+# git post-commit and scripts/board. Updates this person's comment on the Agent Status issue.
+#   scripts/heartbeat <event> [json]     json from stdin (Claude hooks) or argv (Codex)
+# Events: claude-start claude-prompt claude-tool claude-notify claude-stop claude-end
+#         codex commit wait-start wait-end ack
+# Never fails and never blocks the caller.
+source "$(dirname "$0")/lib.sh" 2>/dev/null || exit 0
+event="${1:-ping}"; input="${2:-}"
+[[ -z "$input" && ! -t 0 ]] && input="$(cat 2>/dev/null)"
+[[ -z "$input" ]] && input='{}'
+echo "$input" | jq -e . >/dev/null 2>&1 || input='{}'
+
+STATE="$GITDIR/hb-state.json"
+[[ -s "$STATE" ]] || echo '{}' > "$STATE"
+now="$(date +%s)"
+
+wait_alive() { [[ -s "$GITDIR/board-wait.pid" ]] && kill -0 "$(cat "$GITDIR/board-wait.pid")" 2>/dev/null; }
+
+last_assistant() {  # last assistant text from a Claude transcript (jsonl)
+  local t="$1"; [[ -f "$t" ]] || return 0
+  tail -n 200 "$t" | jq -rs '[ .[] | select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text ] | last // empty' 2>/dev/null
+}
+
+upd=()   # jq assignments
+case "$event" in
+  claude-start)  upd+=('.state="working"' '.session="open"') ;;
+  claude-prompt) upd+=('.needs=null' '.state="working"' '.session="open"' ".last_prompt=\$in.prompt") ;;
+  claude-tool)   upd+=('.needs=null' '.state="working"' ".last_tool=\$in.tool_name") ;;
+  claude-notify)
+    msg="$(echo "$input" | jq -r '.message // ""')"; nt="$(echo "$input" | jq -r '.notification_type // ""')"
+    if [[ "$nt" == permission_prompt || "$msg" == *ermission* ]]; then upd+=('.state="needs-approval"' ".needs=\$in.message")
+    else upd+=('.state=(if .state=="idle-waiting-board" then .state else "idle" end)'); fi ;;
+  claude-stop)
+    msg="$(last_assistant "$(echo "$input" | jq -r '.transcript_path // ""')")"
+    input="$(jq -n --arg m "$msg" '{m: $m}')"
+    upd+=('.last_message=$in.m')
+    if wait_alive; then upd+=('.state="idle-waiting-board"'); else upd+=('.state="idle"'); fi ;;
+  claude-end)    upd+=('.state="session-ended"' '.session="closed"') ;;
+  codex)
+    input="$(echo "$input" | jq '{m: (."last-assistant-message" // ""), p: ((."input-messages" // []) | last // "")}')"
+    upd+=('.state="idle"' '.session="open"' '.last_message=$in.m' '.last_prompt=(if $in.p == "" then .last_prompt else $in.p end)') ;;
+  commit)        upd+=('.last_commit_at=$now') ;;
+  wait-start)    upd+=('.state="idle-waiting-board"') ;;
+  wait-end)      upd+=('.state="working"') ;;
+  setup)         upd+=('.state=(.state // "idle")');;
+  ack)           upd+=(".acked_spec=(\$in.spec|tonumber)") ;;
+esac
+upd+=('.updated=$now' '.last_event=$ev')
+filter="$(IFS='|'; echo "${upd[*]}")"
+tmp="$(mktemp)"
+jq --argjson in "$input" --argjson now "$now" --arg ev "$event" "$filter" "$STATE" > "$tmp" 2>/dev/null && mv "$tmp" "$STATE" || rm -f "$tmp"
+
+# Throttle: publish on state change, or at most once a minute.
+last_pub="$(cat "$GITDIR/hb-published" 2>/dev/null || echo '0 none')"
+st="$(jq -r .state "$STATE")"
+if [[ "${last_pub#* }" == "$st" && $(( now - ${last_pub%% *} )) -lt 60 && "$event" != commit && "$event" != ack ]]; then exit 0; fi
+echo "$now $st" > "$GITDIR/hb-published"
+
+( "$ROOT/scripts/heartbeat-publish" >/dev/null 2>&1 & ) 2>/dev/null
+exit 0

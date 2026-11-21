@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+# The agent board: one pinned GitHub issue that every agent reads and posts to.
+#
+#   scripts/board post [--type T] [--to login]... "message"   (message "-" reads stdin)
+#        T = DONE | NEED | BLOCKED | ACK | SPEC | INFO (default INFO)
+#            DIRECT = order from the lead to an agent; HUMAN = action for the human, not the agent
+#            QA = to a QA clone: a gate pass to run (from the lead) or a QA report (from login/qa)
+#   scripts/board inbox            unread posts that @mention you (marks them read)
+#   scripts/board read [--all]     every unread post, or the whole history (marks read)
+#   scripts/board wait [--timeout S] [--every S]
+#                                  block until someone @mentions you, print it, exit 0.
+#                                  Exit 3 on timeout (default: wait forever).
+#   scripts/board watch            for a human terminal: loops forever, rings + macOS
+#                                  notification on every mention
+#   scripts/board tasks            [HUMAN] tasks waiting for you (the person, not the agent)
+#   scripts/board acks             latest ACK per teammate vs the current spec version
+#   scripts/board status           short summary used at session start
+set -euo pipefail
+source "$(dirname "$0")/lib.sh"
+
+REPO="$(jq -r .repo "$BOARD_CFG")"
+ISSUE="$(jq -r .issue "$BOARD_CFG")"
+ME="$(me)"; TAG="$(me_tag)"; ROLE="$(role)"
+
+cursor_file() { echo "$GITDIR/board-cursor-$1"; }
+cursor_id() { local f; f="$(cursor_file "$1")"; [[ -s "$f" ]] && cut -d' ' -f1 "$f" || echo 0; }
+cursor_ts() { local f; f="$(cursor_file "$1")"; [[ -s "$f" ]] && cut -d' ' -f2 "$f" || echo ""; }
+
+# Fetch comments newer than the cursor as a JSON array.
+fetch() {
+  local ts; ts="$(cursor_ts "$1")"
+  local args=(-X GET "repos/$REPO/issues/$ISSUE/comments" -f per_page=100 --paginate --jq '.[] | @json')
+  [[ -n "$ts" ]] && args+=(-f since="$ts")
+  gh api "${args[@]}" | jq -s --argjson after "$(cursor_id "$1")" \
+    'map(select(.id > $after)) | sort_by(.id) | map({id, login: .user.login, body, created_at, url: .html_url})'
+}
+
+# Keep only posts that @mention me, skipping my own agent's posts.
+# Keep only posts that @mention me, skipping my own posts. QA triggers ([QA] from a non-QA sender)
+# go only to the QA clone; the QA clone hears nothing else.
+mentions_only() {
+  jq --arg me "$ME" --arg tag "$TAG" --arg role "$ROLE" 'map(
+      ((.body | capture("<!-- board type=(?<t>[A-Z]+) from=(?<f>[^ ]+)")) // {t: "", f: ""}) as $m
+      | select((.body | test("@" + $me + "(?![A-Za-z0-9-])"; "i")) and $m.f != $tag)
+      | ($m.t == "QA" and ($m.f | endswith("/qa") | not)) as $trigger
+      | select(if $role == "qa" then $trigger else ($trigger | not) end))'
+}
+
+advance() {  # $1 = cursor name, stdin = full fetched array
+  local last; last="$(jq -r 'last | select(. != null) | "\(.id) \(.created_at)"')"
+  [[ -n "$last" ]] && echo "$last" > "$(cursor_file "$1")"
+  return 0
+}
+
+print_posts() {
+  local local_spec; local_spec="$(spec_version)"
+  jq -r --argjson spec "${local_spec:-0}" '.[] | . as $c |
+    ((.body | capture("<!-- board type=(?<t>[A-Z]+) from=(?<f>[^ ]+) spec=(?<s>[0-9]+)")) // {t: "FROM-HUMAN", f: $c.login, s: "0"}) as $m
+    | "--- [\($m.t)] from \($m.f) at \(.created_at)  \(.url)\n"
+      + (if $m.t == "HUMAN" then ">>> ACTION FOR YOUR HUMAN: show this to them verbatim before doing anything else.\n"
+         elif $m.t == "DIRECT" then ">>> DIRECT ORDER FROM THE LEAD: do this now, it overrides your current plan unless unsafe.\n" else "" end)
+      + (.body | gsub("<!-- board [^>]*-->\n?"; ""))
+      + (if ($m.t | IN("NEED","BLOCKED","DIRECT","HUMAN","QA","SPEC")) then "\n>>> Reply exactly once with --re \(.id): DONE (did it), ACK (doing it now, with ETA) or BLOCKED (why). Within 10 min." else "" end)
+      + (if ($m.s | tonumber) > $spec then "\n>>> spec v\($m.s) is newer than your local v\($spec): run sync before continuing." else "" end)
+      + "\n"'
+}
+
+cmd="${1:-status}"; shift || true
+case "$cmd" in
+  post)
+    type=INFO; to=(); re=""
+    while [[ $# -gt 1 ]]; do
+      case "$1" in
+        --type) type="$(echo "$2" | tr '[:lower:]' '[:upper:]')"; shift 2 ;;
+        --to) to+=("${2#@}"); shift 2 ;;
+        --re) re="${2##*issuecomment-}"; shift 2 ;;
+        *) break ;;
+      esac
+    done
+    msg="${1:?message required}"; [[ "$msg" == "-" ]] && msg="$(cat)"
+    spec="$(spec_version)"
+    # Protocol checks: malformed posts are rejected so every message is actionable.
+    err() { echo "REJECTED: $*" >&2; echo "Format: scripts/board post --type TYPE --to LOGIN [--re COMMENT_ID] \"message\"   (see docs/TEAM_RULES.md section 4)" >&2; exit 1; }
+    case "$type" in DONE|NEED|BLOCKED|ACK|SPEC|INFO|DIRECT|HUMAN|QA) ;; *) err "unknown type $type" ;; esac
+    [[ ${#to[@]} -eq 0 && "$type" != INFO ]] && err "$type needs --to <login> (who must read this)"
+    for t in "${to[@]+"${to[@]}"}"; do
+      jq -e --arg t "${t%/qa}" '.members[] | select(.login == $t)' "$TEAM" >/dev/null || err "--to $t is not a team login (use: $(jq -r '[.members[].login] | join(", ")' "$TEAM"))"
+    done
+    (( ${#msg} < 15 )) && err "message too short to act on: say exactly what, where (file/issue/endpoint) and how"
+    [[ "$type" == SPEC && "$msg" != *"v${spec:-0}"* ]] && err "SPEC post must name the current version v${spec:-0}"
+    [[ "$type" == ACK && "$msg" != *"v"[0-9]* ]] && err "ACK must name the spec version you read (e.g. 'SPEC v2 read')"
+    [[ "$type" == DIRECT && "$TAG" != "$(lead)" ]] && err "only the lead sends DIRECT; use NEED"
+    [[ "$type" == HUMAN && "$TAG" != "$(lead)" && "$TAG" != */qa ]] && err "only the lead sends HUMAN tasks; ask the lead with NEED"
+    tags=""; for t in "${to[@]+"${to[@]}"}"; do tags+=" @$t"; done
+    tolist="$(IFS=,; echo "${to[*]+"${to[*]}"}")"
+    body="<!-- board type=$type from=$TAG spec=${spec:-0} to=$tolist${re:+ re=$re} -->
+**[$type]** from \`$TAG\` (spec v${spec:-0})${tags:+ →$tags}${re:+ · re: comment $re}
+
+$msg"
+    gh api "repos/$REPO/issues/$ISSUE/comments" -f body="$body" --jq .html_url
+    if [[ "$type" == ACK ]]; then "$ROOT/scripts/heartbeat" ack "{\"spec\": ${spec:-0}}" </dev/null; fi
+    ;;
+  inbox)
+    all="$(fetch inbox)"
+    echo "$all" | mentions_only | print_posts
+    [[ "$(echo "$all" | mentions_only | jq length)" == 0 ]] && echo "(no new mentions for @$ME)"
+    echo "$all" | advance inbox
+    ;;
+  read)
+    if [[ "${1:-}" == "--all" ]]; then rm -f "$(cursor_file read)"; fi
+    all="$(fetch read)"
+    echo "$all" | print_posts
+    [[ "$(echo "$all" | jq length)" == 0 ]] && echo "(nothing new on the board)"
+    echo "$all" | advance read
+    ;;
+  wait)
+    timeout=0; every=20
+    while [[ $# -gt 0 ]]; do
+      case "$1" in --timeout) timeout="$2"; shift 2 ;; --every) every="$2"; shift 2 ;; *) shift ;; esac
+    done
+    start=$SECONDS
+    echo $$ > "$GITDIR/board-wait.pid"
+    "$ROOT/scripts/heartbeat" wait-start </dev/null
+    trap 'rm -f "$GITDIR/board-wait.pid"; "$ROOT/scripts/heartbeat" wait-end </dev/null' EXIT
+    while :; do
+      if all="$(fetch inbox 2>/dev/null)"; then
+        hits="$(echo "$all" | mentions_only)"
+        echo "$all" | advance inbox
+        if [[ "$(echo "$hits" | jq length)" != 0 ]]; then echo "$hits" | print_posts; exit 0; fi
+      fi
+      if (( timeout > 0 && SECONDS - start >= timeout )); then echo "(no mentions in ${timeout}s, run wait again)"; exit 3; fi
+      sleep "$every"
+    done
+    ;;
+  watch)
+    echo "Watching the board for @$ME (Ctrl-C to stop)..."
+    while :; do
+      out="$("$0" wait 2>&1)" || true
+      printf '\a\n%s\n' "$out"
+      command -v osascript >/dev/null && osascript -e "display notification \"New board mention for @$ME\" with title \"Agent Board\" sound name \"Glass\"" || true
+    done
+    ;;
+  tasks) exec "$ROOT/scripts/human-alerts" list ;;
+  acks)
+    rm -f "$(cursor_file acks)"
+    spec="$(spec_version)"
+    fetch acks | jq -r --argjson spec "${spec:-0}" --slurpfile team "$TEAM" '
+      [ .[] | .body | capture("<!-- board type=ACK from=(?<f>[^ ]+) spec=(?<s>[0-9]+)") ] as $acks
+      | $team[0].members[] | .login as $l
+      | ([ $acks[] | select(.f == $l) | .s | tonumber ] | max) as $s
+      | "\($l): " + (if $s == null then "no ACK yet" elif $s >= $spec then "ACKed v\($s) ✓" else "ACKed v\($s), behind current v\($spec)" end)'
+    ;;
+  status)
+    spec="$(spec_version)"
+    jq -r --arg me "$ME" '.members[] | select(.login == $me) |
+      "You are @\(.login) (\(.name), \(.agent), budget \(.budget)). Role: \(.role)\nYou own: \(if (.owns|length)==0 then "nothing yet (assigned at kickoff)" else (.owns|join(", ")) end)"' "$TEAM"
+    echo "Lead: @$(lead). Spec: v${spec:-0}$([[ "${spec:-0}" == 0 ]] && echo ' (no idea chosen yet: do not write product code)')"
+    if all="$(fetch inbox 2>/dev/null)"; then
+      hits="$(echo "$all" | mentions_only)"
+      n="$(echo "$hits" | jq length)"
+      echo "Unread board mentions: $n"
+      [[ "$n" != 0 ]] && echo "$hits" | print_posts
+      echo "$all" | advance inbox
+    else
+      echo "Board unreachable (check gh auth / network)."
+    fi
+    echo "No memory of earlier work this hackathon (new session, wiped, compacted)? Run /recover first (Codex: say recover)."
+    [[ "$ROLE" == qa ]] && echo "You are the QA agent (@$TAG). You only wake on [QA] posts. Playbook: tools/team/commands/qa.md. You own only qa/ and docs/qa/."
+    "$ROOT/scripts/check" --quiet || true
+    if [[ "$ME" == "$(lead)" && "$ROLE" == main ]]; then
+      echo; echo "=== LEAD BRIEFING ==="; "$ROOT/scripts/team" 2>&1 || true
+      echo; echo "=== docs/STATE.md ==="; cat "$ROOT/docs/STATE.md"
+    fi
+    ;;
+  *) sed -n '2,20p' "$0"; exit 1 ;;
+esac

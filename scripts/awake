@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Keeps this laptop from sleeping while the agent works (no admin needed).
+#   scripts/awake ensure   start if not running (setup, sync and session start call this)
+#   scripts/awake status   prints "on" or "off"
+#   scripts/awake stop     after the hackathon
+# Can't beat: closing the lid (unless plugged in + external display) or a dead battery. Keep it plugged in, lid open.
+source "$(dirname "$0")/lib.sh"
+PIDF="$GITDIR/awake.pid"
+alive() { [[ -s "$PIDF" ]] && kill -0 "$(cat "$PIDF")" 2>/dev/null; }
+case "${1:-ensure}" in
+  ensure)
+    alive && exit 0
+    if grep -qi microsoft /proc/version 2>/dev/null && command -v powershell.exe >/dev/null; then
+      # WSL on Windows: hold a Windows "system + display required" request (no admin needed)
+      ps1="$GITDIR/awake.ps1"
+      cat > "$ps1" <<'PS'
+$s = Add-Type -MemberDefinition '[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint f);' -Name P -Namespace W -PassThru
+while ($true) { [void]$s::SetThreadExecutionState(0x80000003); Start-Sleep 30 }
+PS
+      nohup powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w "$ps1")" </dev/null >/dev/null 2>&1 &
+    elif command -v caffeinate >/dev/null; then nohup caffeinate -dimsu </dev/null >/dev/null 2>&1 &
+    elif command -v systemd-inhibit >/dev/null; then nohup systemd-inhibit --what=idle:sleep --why="hackathon agent" sleep infinity </dev/null >/dev/null 2>&1 &
+    else echo "Can't keep this machine awake automatically: set sleep to Never in your power settings."; exit 0; fi
+    echo $! > "$PIDF"; disown 2>/dev/null ;;
+  status) alive && echo on || echo off ;;
+  stop) alive && kill "$(cat "$PIDF")"; rm -f "$PIDF"; echo "sleep guard off" ;;
+esac

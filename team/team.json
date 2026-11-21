@@ -1,0 +1,62 @@
+{
+  "lead": "I-ala-Wilson",
+  "shared": [
+    "docs/*",
+    "contracts/*",
+    "team/*",
+    "scripts/*",
+    "tools/*",
+    ".githooks/*",
+    "README.md",
+    ".gitignore"
+  ],
+  "members": [
+    {
+      "login": "I-ala-Wilson",
+      "name": "Ian",
+      "agent": "claude",
+      "plan": "Claude Max",
+      "budget": "high",
+      "role": "lead: spec, contracts, scaffold, integration, demo",
+      "owns": [],
+      "machine": "MacBook Pro"
+    },
+    {
+      "login": "Yahya-github",
+      "name": "Yahya",
+      "agent": "claude",
+      "plan": "Claude Max 20x",
+      "budget": "high",
+      "role": "TBD at kickoff (biggest lane + rescue)",
+      "owns": [],
+      "machine": "Linux"
+    },
+    {
+      "login": "EJ2007",
+      "name": "EJ",
+      "agent": "claude",
+      "plan": "Claude Pro",
+      "budget": "low",
+      "role": "TBD at kickoff (small, tightly specced lane)",
+      "owns": [],
+      "machine": "MacBook Air"
+    },
+    {
+      "login": "Miguel982",
+      "name": "Michael",
+      "agent": "codex",
+      "plan": "Codex basic",
+      "budget": "low",
+      "role": "TBD at kickoff (small, tightly specced lane)",
+      "owns": [],
+      "machine": "Dell Windows (WSL), Intel i5"
+    }
+  ],
+  "qa": {
+    "login": "Yahya-github",
+    "owns": [
+      "qa/*",
+      "docs/qa/*"
+    ]
+  }
+}

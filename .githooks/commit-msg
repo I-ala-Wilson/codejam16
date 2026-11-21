@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Commits are authored by humans only: strip AI co-author trailers and "generated with" lines.
+f="$1"
+ai='(claude|anthropic|codex|openai|chatgpt|gpt-[0-9]|copilot|cursor|gemini|devin)'
+tmp="$(mktemp)"
+grep -viE "^[[:space:]]*co-authored-by:.*$ai|generated (with|by).*$ai|🤖" "$f" > "$tmp" || true
+# drop trailing blank lines
+sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$tmp" > "$f"
+rm -f "$tmp"

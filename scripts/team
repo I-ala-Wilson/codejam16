@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Lead's mission control: where every agent is, and what needs attention.
+#   scripts/team          full picture + ALERTS
+set -euo pipefail
+source "$(dirname "$0")/lib.sh"
+REPO="$(jq -r .repo "$BOARD_CFG")"; BOARD="$(jq -r .issue "$BOARD_CFG")"; STATUS="$(jq -r .status_issue "$BOARD_CFG")"
+T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+
+gh api "repos/$REPO/issues/$STATUS/comments" --paginate --jq '.[] | .body' 2>/dev/null \
+  | { grep -oE 'statusjson:[A-Za-z0-9+/=]+' || true; } | sed 's/statusjson://' | while read -r b; do echo "$b" | base64 -d; echo; done \
+  | jq -s 'map({((.key // .login)): .}) | add // {}' > "$T/status.json"
+gh api "repos/$REPO/issues/$BOARD/comments" --paginate --jq '.[] | @json' | jq -s \
+  'map({id, author: .user.login, at: (.created_at | fromdateiso8601), url: .html_url,
+        m: ((.body | capture("<!-- board type=(?<t>[A-Z]+) from=(?<f>[^ ]+) spec=(?<s>[0-9]+)( to=(?<to>[^ ]*))?")) // null), re: ((.body | capture(" re=(?<r>[0-9]+) -->")) // {r: null} | .r),
+        text: (.body | gsub("<!-- board [^>]*-->\n?"; "") | gsub("\\*\\*\\[[A-Z]+\\]\\*\\* from `[^`]+` \\(spec v[0-9]+\\)[^\n]*\n*"; "") | gsub("\n"; " ") | .[0:140])})' > "$T/board.json"
+gh issue list -R "$REPO" --state all --limit 300 --json number,title,state,assignees,labels \
+  | jq --argjson b "$BOARD" --argjson s "$STATUS" 'map(select(.number != $b and .number != $s))' > "$T/issues.json"
+gh api "repos/$REPO/commits?per_page=100" --jq '[.[] | {login: (.author.login // .commit.author.name), at: (.commit.author.date | fromdateiso8601), msg: (.commit.message | split("\n")[0])}]' > "$T/commits.json"
+
+jq -rn --slurpfile team "$TEAM" --slurpfile st "$T/status.json" --slurpfile bd "$T/board.json" \
+  --slurpfile is "$T/issues.json" --slurpfile cm "$T/commits.json" \
+  --argjson spec "$(spec_version || echo 0)" --argjson now "${TEAM_NOW:-$(date +%s)}" --arg lead "$(lead)" '
+def ago(t): if t == null then "never" else (($now - t) / 60 | floor) as $m | if $m < 60 then "\($m)m ago" else "\($m/60|floor)h\($m%60)m ago" end end;
+($team[0].members + (if $team[0].qa then [{login: ($team[0].qa.login + "/qa"), name: "QA agent", agent: "claude", budget: "high"}] else [] end)) as $mem | $st[0] as $S | $bd[0] as $B | $is[0] as $I | $cm[0] as $C |
+"SPEC v\($spec)   board posts: \($B|length)   issues: \($I|map(select(.state=="OPEN"))|length) open / \($I|length) total   now: \($now|strftime("%H:%M")) UTC\n",
+( $mem[] | .login as $l | ($S[$l] // null) as $s
+  | ($I | map(select(.assignees | map(.login) | index($l)))) as $mine
+  | ($mine | map(select(.state=="OPEN")) | sort_by(.number)) as $open
+  | ($C | map(select(.login == $l)) | first) as $lc
+  | ( [$B[] | select(.m.t == "ACK" and .m.f == $l) | .m.s | tonumber] | max ) as $ack
+  | "== @\($l) (\(.name), \(.agent), \(.budget)) ==",
+    "  state: \(if $s == null then "NO HEARTBEAT (setup not run?)" else "\($s.state), updated \(ago($s.updated))" end)   spec ACK: \(if $ack == null then "none" else "v\($ack)" end)",
+    (if $s then "  laptop: sleep guard \($s.awake // "?"), \($s.power // "?"), battery \($s.battery // "?")%" else empty end),
+    "  issues: \($open|length) open, \($mine|length - ($open|length)) closed   next: \($open[0] | if . == null then "-" else "#\(.number) \(.title)" end)",
+    "  git: last push \(ago($lc.at)) \(if $lc then "\"\($lc.msg)\"" else "" end)\(if $s then "   local: \($s.uncommitted) uncommitted, \($s.ahead) unpushed, \($s.behind) behind" else "" end)",
+    (if $s then "  last prompt: \(($s.last_prompt // "-") | gsub("\n";" ") | .[0:160])\n  last agent msg: \(($s.last_message // "-") | gsub("\n";" ") | .[0:220])" else empty end),
+    ""
+),
+"=== ALERTS ===",
+( [ $mem[] | .login as $l | (.agent) as $ag | ($S[$l] // null) as $s
+    | ($I | map(select(.state=="OPEN" and (.assignees | map(.login) | index($l))))) as $open
+    | ( [$B[] | select(.m.t == "ACK" and .m.f == $l) | .m.s | tonumber] | max ) as $ack
+    | ($C | map(select(.login == $l)) | first) as $lc
+    | (if $s == null and (($l | endswith("/qa") | not) or $spec > 0) then "HUMAN @\($l): no heartbeat, \(if ($l | endswith("/qa")) then "QA agent not started (second clone, scripts/setup --role qa)" else "they have not run scripts/setup" end)" else empty end),
+      (if $s and $s.state == "needs-approval" and ($now - $s.updated) > 180 then "HUMAN @\($l): agent stuck on a permission prompt since \(ago($s.updated)): \($s.needs // "")" else empty end),
+      (if $s and ($now - $s.updated) > 900 and ($open|length) > 0 and $s.state != "idle-waiting-board" then "STALE @\($l): no activity \(ago($s.updated)) with \($open|length) open issues (state \($s.state))" else empty end),
+      (if $s and $s.state == "session-ended" and ($open|length) > 0 then "HUMAN @\($l): agent session closed with \($open|length) open issues" else empty end),
+      (if $spec > 0 and ($ack // 0) < $spec then "SPEC @\($l): has not ACKed v\($spec) (last \($ack // "none"))" else empty end),
+      (if $s and $s.state == "idle" and $ag == "claude" and ($now - $s.updated) > 300 then "WAIT @\($l): idle without a board wait armed (\(ago($s.updated)))" else empty end),
+      (if $s and $s.state == "idle" and ($open|length) > 0 and ($now - $s.updated) > 300 then "IDLE @\($l): idle but has \($open|length) open issues" else empty end),
+      (if $s and $s.power == "battery" and ($s.battery // 100) < 30 then "HUMAN @\($l): laptop on battery at \($s.battery)%, plug it in" else empty end),
+      (if $s and $s.awake == "off" and $s.state != "session-ended" then "HUMAN @\($l): sleep guard not running, the laptop can sleep mid-task (run scripts/awake ensure)" else empty end),
+      (if $s and $s.uncommitted > 15 then "GIT @\($l): \($s.uncommitted) uncommitted files" else empty end),
+      (if $spec > 0 and $s and $s.state == "working" and ($lc == null or ($now - $lc.at) > 1800) then "GIT @\($l): working but no push in \(ago($lc.at))" else empty end)
+  ]
+  + [ $B[] | select(.m != null and (.m.t | IN("NEED","BLOCKED","DIRECT","HUMAN"))) | . as $p
+      | (.m.to // "" | split(",") | map(select(. != "")))[] as $r
+      | select(($now - $p.at) > 600)
+      | select([ $B[] | select(.at > $p.at and (.author == $r or ((.m.f // "") | startswith($r))) and ((.re // null) == null or .re == ($p.id|tostring))) ] | length == 0)
+      | "UNANSWERED \($p.m.t) from @\($p.m.f) to @\($r), \(ago($p.at)): \($p.text)  \($p.url)" ]
+  | if length == 0 then "none" else .[] end )
+'
+echo; echo "=== Milestones (SPEC section 9) ==="
+awk '/^## 9\./{f=1;next} /^## /{f=0} f && /^\|/' "$ROOT/docs/SPEC.md"

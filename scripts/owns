@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Usage: scripts/owns <path>...   exit 0 if you own every path, 1 otherwise (prints who does).
+# Rules: your "owns" globs in team/team.json, plus docs/notes/<you>.md. Shared files and
+# anything unassigned belong to the lead. In globs, * also matches "/", so "web/*" covers all of web/.
+set -euo pipefail
+source "$(dirname "$0")/lib.sh"
+ME="$(me_tag)"; LEAD="$(lead)"
+status=0
+for p in "$@"; do
+  rel="$(relpath "$p")"
+  [[ -z "$rel" ]] && continue
+  owner="$(owner_of "$rel")"
+  [[ -z "$owner" ]] && owner="$LEAD"
+  if [[ "$owner" != "$ME" ]]; then
+    echo "$rel is owned by @$owner, not you (@$ME)."
+    status=1
+  fi
+done
+exit $status

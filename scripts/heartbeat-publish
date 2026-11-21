@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Writes the local heartbeat state to this person's comment on the Agent Status issue.
+source "$(dirname "$0")/lib.sh" || exit 0
+LOCK="$GITDIR/hb-lock"; mkdir "$LOCK" 2>/dev/null || exit 0; trap 'rmdir "$LOCK"' EXIT
+REPO="$(jq -r .repo "$BOARD_CFG")"; ISSUE="$(jq -r .status_issue "$BOARD_CFG")"
+[[ "$ISSUE" == null ]] && exit 0
+ME="$(me)" || exit 0; ROLE="$(role)"; KEY="$ME"; [[ "$ROLE" == qa ]] && KEY="$ME/qa"
+cd "$ROOT"
+agent="$(jq -r --arg me "$ME" '.members[] | select(.login==$me) | .agent' "$TEAM")"
+upstream="$(git rev-list --left-right --count HEAD...origin/main 2>/dev/null || echo '0 0')"
+issue_no="$(git log -1 --format=%s 2>/dev/null | grep -oE '#[0-9]+' | head -1)"
+awake="$("$ROOT/scripts/awake" status 2>/dev/null || echo off)"
+power="unknown"; batt=100
+if grep -qi microsoft /proc/version 2>/dev/null && command -v powershell.exe >/dev/null; then
+  b="$(powershell.exe -NoProfile -Command '$b = Get-CimInstance Win32_Battery; if ($b) { "$($b.BatteryStatus) $($b.EstimatedChargeRemaining)" }' 2>/dev/null | tr -d '\r')"
+  if [[ -n "$b" ]]; then [[ "${b%% *}" == 2 ]] && power=AC || power=battery; batt="${b##* }"; else power=AC; fi
+elif command -v pmset >/dev/null; then
+  b="$(pmset -g batt 2>/dev/null)"
+  [[ "$b" == *"AC Power"* ]] && power=AC || power=battery
+  pct="$(echo "$b" | grep -oE '[0-9]+%' | head -1 | tr -d '%')"; [[ -n "$pct" ]] && batt="$pct"
+fi
+json="$(HB_ROLE="$ROLE" HB_KEY="$KEY" jq --arg awake "$awake" --arg power "$power" --argjson batt "${HB_BATT:-$batt}" --arg me "$ME" --arg agent "$agent" --arg head "$(git rev-parse --short HEAD)" \
+  --argjson dirty "$(git status --porcelain | wc -l | tr -d ' ')" \
+  --argjson ahead "${upstream%%[[:space:]]*}" --argjson behind "${upstream##*[[:space:]]}" \
+  --argjson spec "$(spec_version || echo 0)" --arg issue "$issue_no" --arg lastsub "$(git log -1 --format=%s)" \
+  '. + {role: env.HB_ROLE, key: env.HB_KEY, awake: $awake, power: (if env.HB_POWER then env.HB_POWER else $power end), battery: $batt, login: $me, agent: $agent, head: $head, uncommitted: $dirty, ahead: $ahead, behind: $behind,
+        local_spec: $spec, current_issue: $issue, last_commit_msg: $lastsub}' "$GITDIR/hb-state.json")"
+when="$(TZ=America/Toronto date -r "$(echo "$json" | jq -r .updated)" '+%a %H:%M:%S')"
+clip() { echo "$json" | jq -r --argjson n "$2" "(.$1 // \"\") | gsub(\"[\\r\\n|]+\"; \" \") | .[0:\$n]"; }
+body="<!-- status login=$ME role=$ROLE -->
+### @$KEY ($agent$([[ $ROLE == qa ]] && echo ", QA")): **$(echo "$json" | jq -r .state)** at $when Montreal
+| | |
+|---|---|
+| Spec | local v$(echo "$json" | jq -r .local_spec), ACKed v$(echo "$json" | jq -r '.acked_spec // 0') |
+| Laptop | sleep guard $(echo "$json" | jq -r .awake), $(echo "$json" | jq -r .power), battery $(echo "$json" | jq -r .battery)% |
+| Git | HEAD $(echo "$json" | jq -r .head), $(echo "$json" | jq -r .uncommitted) uncommitted, $(echo "$json" | jq -r .ahead) unpushed, $(echo "$json" | jq -r .behind) behind main |
+| Last commit | $(clip last_commit_msg 120) |
+| Last prompt | $(clip last_prompt 200) |
+| Last tool | $(clip last_tool 60) |
+| Last agent message | $(clip last_message 300) |
+| Needs | $(clip needs 150) |
+<!-- statusjson:$(echo "$json" | jq -c . | base64 | tr -d '\n') -->"
+
+idf="$GITDIR/status-comment-id"
+if [[ -s "$idf" ]]; then
+  gh api -X PATCH "repos/$REPO/issues/comments/$(cat "$idf")" -f body="$body" >/dev/null 2>&1 && exit 0
+  rm -f "$idf"
+fi
+existing="$(gh api "repos/$REPO/issues/$ISSUE/comments" --paginate --jq ".[] | select(.user.login==\"$ME\" and (.body|startswith(\"<!-- status login=$ME role=$ROLE \"))) | .id" 2>/dev/null | head -1)"
+if [[ -n "$existing" ]]; then
+  echo "$existing" > "$idf"
+  gh api -X PATCH "repos/$REPO/issues/comments/$existing" -f body="$body" >/dev/null
+else
+  gh api "repos/$REPO/issues/$ISSUE/comments" -f body="$body" --jq .id > "$idf"
+fi
