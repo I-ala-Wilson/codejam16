@@ -30,7 +30,7 @@ export default function Lock() {
       <h3>2. Test lock and unlock</h3>
       <p>Sites to block: <input value={sites} onChange={(e) => setSites(e.target.value)} style={{ width: 360 }} /></p>
       <p>
-        <button onClick={() => call({ type: 'LOCK', sites: sites.split(',').map((s) => s.trim()).filter(Boolean) })}>Lock</button>{' '}
+        <button onClick={() => call({ type: 'LOCK', sites: sites.split(',').map((s) => s.trim()).filter(Boolean), appUrl: `${location.origin}/#lock` })}>Lock</button>{' '}
         <button onClick={() => call({ type: 'UNLOCK' })}>Unlock</button>{' '}
         <button onClick={() => call({ type: 'STATUS' })}>Status</button>
       </p>

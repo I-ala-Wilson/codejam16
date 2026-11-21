@@ -7,9 +7,9 @@ The extension (extension/) blocks sites; the web app (app/) senses gestures and 
 
 | message (app -> extension) | effect | reply |
 |---|---|---|
-| `{type:'LOCK', sites:['youtube.com','tiktok.com']}` | kid mode on: those sites redirect to the extension's `blocked.html` | `{ok:true, locked:true}` |
+| `{type:'LOCK', sites:['youtube.com','tiktok.com'], appUrl?:'http://localhost:5173/#lock'}` | kid mode on: those sites redirect to the extension's `blocked.html`, whose button opens `appUrl` | `{ok:true, locked:true}` |
 | `{type:'UNLOCK'}` | kid mode off for 30 min | `{ok:true, locked:false, until:<ms epoch>}` |
 | `{type:'STATUS'}` | - | `{locked:boolean, sites:string[], until:number|null}` |
 
-- `blocked.html` shows "Locked by Echo. Ask a parent." and a button that opens the app's `/lock` page.
+- `blocked.html` shows "Locked by Echo. Ask a parent." and a link to `appUrl` (the page that locked it), so it works on any port or deployment.
 - The secret sequence and attempt counting live in the app, never in the extension.

@@ -7,7 +7,7 @@ export function extensionId(): string {
   return localStorage.getItem('echo.extId') || (import.meta.env.VITE_EXTENSION_ID as string | undefined) || ''
 }
 
-export function sendToExtension(msg: { type: 'LOCK'; sites: string[] } | { type: 'UNLOCK' } | { type: 'STATUS' }): Promise<ExtReply> {
+export function sendToExtension(msg: { type: 'LOCK'; sites: string[]; appUrl?: string } | { type: 'UNLOCK' } | { type: 'STATUS' }): Promise<ExtReply> {
   return new Promise((resolve, reject) => {
     const id = extensionId()
     if (!id) return reject(new Error('No extension id set'))

@@ -17,7 +17,7 @@ chrome.runtime.onMessageExternal.addListener((msg, _sender, reply) => {
   (async () => {
     const st = await chrome.storage.local.get({ locked: false, sites: [], until: null })
     if (msg.type === 'LOCK') {
-      await chrome.storage.local.set({ locked: true, sites: msg.sites, until: null })
+      await chrome.storage.local.set({ locked: true, sites: msg.sites, until: null, appUrl: msg.appUrl || null })
       await applyRules(msg.sites); reply({ ok: true, locked: true })
     } else if (msg.type === 'UNLOCK') {
       const until = Date.now() + 30 * 60 * 1000
