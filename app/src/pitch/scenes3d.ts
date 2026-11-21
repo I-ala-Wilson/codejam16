@@ -212,7 +212,7 @@ const scratchingHand = make3D(() => {
       if (!m.isMesh) return
       if (/^(EyeLeft|EyeRight|Wolf3D_Teeth|Wolf3D_Beard|Wolf3D_Headwear)$/.test(m.name)) m.visible = false
       ;(m.material as THREE.Material).dispose(); m.material = body; m.frustumCulled = false
-      if ((m as THREE.SkinnedMesh).isSkinnedMesh) armsOnly(m as THREE.SkinnedMesh)
+      void armsOnly // whole body kept: cutting it open showed the inside of the mesh
     })
     const bone = (n: string) => { const b = bones.get(n); if (!b) throw new Error('guy.glb: missing bone ' + n); return b }
     const at = (n: string) => bone(n).getWorldPosition(new V3())
@@ -248,7 +248,7 @@ const scratchingHand = make3D(() => {
     const f = wl.clone().lerp(g.el, 0.45)
     const sideR = Math.sign(rSh.x - mid.x)
     // in front of him and to his right, above the desk, looking down at both forearms
-    camera.position.set(f.x + sideR * 0.42, f.y + 0.8, f.z + 0.95); camera.lookAt(f.x - sideR * 0.03, f.y, f.z + 0.04)
+    camera.position.set(f.x + sideR * 0.32, f.y + 0.5, f.z + 0.85); camera.lookAt(f.x - sideR * 0.06, f.y, f.z - 0.02)
   }, undefined, (e) => console.warn('guy.glb failed to load for the Habit scene', e))
 
   return {

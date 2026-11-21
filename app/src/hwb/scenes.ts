@@ -441,21 +441,21 @@ export const pipeline: Scene = {
       const x = PX[i], y = PY
       g.fillStyle = gray(1); g.strokeStyle = gray(1); g.lineWidth = 2.5
       if (i === 0) {
-        for (let k = 0; k < 5; k++) { const px = x - 28 + k * 14; g.beginPath(); g.arc(px, y - 9, 4.5, 0, TAU); g.fill(); g.beginPath(); g.arc(px, y + 9, 7, Math.PI, 0); g.fill() }
+        for (let k = 0; k < 5; k++) { const px = x - 28 + k * 14, b = Math.max(0, Math.sin(t * 2.2 - k * 0.9)) * 2.5; g.beginPath(); g.arc(px, y - 9 - b, 4.5, 0, TAU); g.fill(); g.beginPath(); g.arc(px, y + 9, 7, Math.PI, 0); g.fill() }
       } else if (i === 1) {
         g.beginPath()
-        for (let k = 0; k <= 48; k++) { const xx = x - 30 + k * 60 / 48, yy = y + Math.sin(k * 0.55) * 10; k ? g.lineTo(xx, yy) : g.moveTo(xx, yy) }
+        for (let k = 0; k <= 48; k++) { const xx = x - 30 + k * 60 / 48, yy = y + Math.sin(k * 0.55 - t * 1.6) * 10; k ? g.lineTo(xx, yy) : g.moveTo(xx, yy) }
         g.stroke()
         for (const cx of [-18, 2, 22]) g.fillRect(x + cx, y - 28, 2.5, 9)
       } else if (i === 2) {
         g.strokeRect(x - 26, y - 20, 52, 40)
         for (let k = 0; k < 4; k++) { g.fillRect(x - 19 + k * 12, y - 28, 3, 7); g.fillRect(x - 19 + k * 12, y + 21, 3, 7) }
-        g.fillRect(x - 18, y - 4, 36, 8)
+        g.fillRect(x - 18, y - 4, 36 * smooth(((t * 0.35) % 1.2) / 1), 8)
       } else if (i === 3) {
-        for (let k = 0; k < 3; k++) g.strokeRect(x - 22 + k * 12, y - 24 + k * 6, 14, 48 - k * 12)
+        for (let k = 0; k < 3; k++) { g.strokeRect(x - 22 + k * 12, y - 24 + k * 6, 14, 48 - k * 12); if (Math.floor(t * 1.5) % 3 === k) g.fillRect(x - 19 + k * 12, y - 21 + k * 6, 8, 42 - k * 12) }
       } else {
         g.strokeRect(x - 32, y - 24, 64, 48); g.fillRect(x - 32, y - 24, 64, 7)
-        for (let k = 0; k < 7; k++) { const h = [4, 6, 3, 5, 15, 4, 6][k]; g.fillRect(x - 26 + k * 8, y + 19 - h, 5, h) }
+        for (let k = 0; k < 7; k++) { const h = 3 + 12 * Math.pow(0.5 + 0.5 * Math.sin(t * 1.3 - k * 0.9), 3); g.fillRect(x - 26 + k * 8, y + 19 - h, 5, h) }
       }
     })
   },
