@@ -24,7 +24,15 @@ export default function Lock() {
   const [shake, setShake] = useState(0)
   const [error, setError] = useState('')
   const [heard, setHeard] = useState('')
-  const listening = (mode === 'set' || mode === 'verify') && running
+  // Get-ready pause: clicking the button and bringing the hand up must not count as a sign (it read as PULL).
+  const [ready, setReady] = useState(0)
+  useEffect(() => {
+    if (mode !== 'set' && mode !== 'verify') return
+    setReady(3)
+    const id = window.setInterval(() => setReady((n) => { if (n <= 1) { clearInterval(id); return 0 } return n - 1 }), 1000)
+    return () => clearInterval(id)
+  }, [mode, shake])
+  const listening = (mode === 'set' || mode === 'verify') && running && ready === 0
   const { signs, reset } = useSignInput(listening)
 
   useEffect(() => { localStorage.setItem('echo.lock.sites', sites.join(',')) }, [sites])
@@ -117,6 +125,8 @@ export default function Lock() {
             </div>
           ) : !running ? (
             <div className="lk__status">starting sonar… keep still</div>
+          ) : ready > 0 ? (
+            <div className="lk__status">get your hand ready · not listening yet · {ready}</div>
           ) : (
             <>
               <SonarMeter />
