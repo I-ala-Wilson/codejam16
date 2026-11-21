@@ -570,3 +570,10 @@ Result `calib-yahya` (pooled, Yahya calib-1 x5; trained 224 s, 111061 windows; S
 Misses of calib-yahya: PULL read as PUSH 3, UNDO read as WAVE 2. Success rule (70% per class on livecheck-1): MET for PUSH, PULL (exactly 70),
 UNDO and WAVE. NOT MEASURABLE on held-out data: OPEN_CLOSE (livecheck-1 has no OPEN_CLOSE cue) and idle false alarms (no idle-only held-out
 take). 10 cues per class means about +-15 points of noise. Candidate only: `ml/models/candidates/calib-yahya`, nothing shared changes.
+
+Result `katana-only` (Yahya's 42 takes only, calib-1 x5; trained 44 s, 28045 windows). Same held-out takes:
+- livecheck-1: PUSH 70, PULL 50, UNDO 70, WAVE 100 (PULL read as PUSH 4, PUSH read as PULL 2, UNDO read as WAVE 2). 15:25 live UNDO take: 70.
+- Rule (70% per class): FAILED on PULL (50) at this sample size.
+Pooled vs single-laptop on this laptop: `calib-yahya` (PUSH 100, PULL 70, UNDO 80, WAVE 100; live UNDO 50) beats `katana-only` on 3 of 4 gestures
+on livecheck-1; `katana-only` is better only on the single 15:25 UNDO take (70 vs 50). So other people's data helps on the Katana as long as
+his own calibration takes are added with weight; 42 takes alone are too few. Best Katana candidate: `calib-yahya`. Nothing shipped.
