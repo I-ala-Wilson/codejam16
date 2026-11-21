@@ -1,13 +1,13 @@
 # Miguel982
 
 ## Now
-- Issue #4: Supabase events schema and realtime.
-- `backend/schema.sql` is implemented and repo checks pass.
-- Next: Michael creates the Supabase project and fills root `.env`; then run the SQL in Supabase and execute the acceptance curl.
+- Issue #8: dashboard realtime event list.
+- Next: add `dashboard/src/supabase.ts`, load the latest 50 events, and subscribe to realtime inserts in `dashboard/src/App.tsx`.
 
 ## Done
 - WSL setup, GitHub authentication, sync, and recovery completed.
 - SPEC v1 ACKed; ownership is `backend/*` and `dashboard/*`.
+- Issue #4: events schema, realtime publication, RLS, anon SELECT/INSERT grants, and HTTP 201 live acceptance.
 
 ## How to run my lane
 - Backend: execute `backend/schema.sql` in the Supabase SQL editor.
@@ -19,4 +19,4 @@
 - Anonymous users may INSERT and SELECT events only; no UPDATE or DELETE policies.
 
 ## Waiting on
-- Michael: create the Supabase project, fill `.env`, and privately share credentials with the team.
+- None.
