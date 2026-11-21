@@ -64,3 +64,22 @@ h1, h2, h3 { font-family: var(--font-pixel); font-weight: 400; color: var(--ink-
 .echo-window__body [style*="border-radius"] { border: 1px dotted var(--ink) !important; border-radius: 0 !important; box-shadow: none !important; }
 .echo-window__body [style*="font-weight: 900"] { font-family: var(--font-pixel); font-weight: 400 !important; }
 .echo-window__body canvas { border: 1px dotted var(--ink) !important; border-radius: 0 !important; image-rendering: pixelated; }
+
+/* AlertScreen: full-screen inverted block, huge VT323 title */
+.echo-alert { position: fixed; inset: 0; z-index: 1000; background: var(--ink); color: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 32px; box-sizing: border-box; font-family: var(--font-pixel); cursor: pointer; animation: echo-fade 300ms ease-out; }
+.echo-alert__title { font-size: 160px; line-height: .9; letter-spacing: .01em; }
+.echo-alert__sub { font-size: 34px; margin-top: 24px; }
+.echo-alert__hint { font-size: 20px; letter-spacing: .06em; text-transform: uppercase; margin-top: 48px; border-top: 1px dotted var(--bg); padding-top: 12px; }
+@keyframes echo-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Timeline: dithered bars, marks as small inverted ticks with labels underneath */
+.echo-timeline { position: relative; max-width: 100%; padding: 0 28px 34px 0; border-bottom: var(--rule); }
+.echo-window__body .echo-timeline canvas { border: 0 !important; }
+.echo-timeline canvas { display: block; image-rendering: pixelated; }
+.echo-timeline__marks { position: absolute; left: 0; right: 0; bottom: 0; height: 34px; }
+.echo-timeline__mark { position: absolute; top: 4px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 3px; font: 400 18px/1 var(--font-pixel); color: var(--ink); white-space: nowrap; }
+.echo-timeline__mark i { display: block; width: 6px; height: 8px; background: var(--ink); }
+
+/* Toast: tiny corner note bottom-right, fades 300 ms */
+.echo-toast { position: fixed; right: 20px; bottom: 20px; z-index: 900; font: 400 20px/1.1 var(--font-pixel); letter-spacing: .04em; color: var(--ink); background: var(--bg); border: var(--rule); padding: 8px 12px 9px; opacity: 0; transition: opacity 300ms; pointer-events: none; }
+.echo-toast--on { opacity: 1; }
