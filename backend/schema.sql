@@ -12,6 +12,8 @@ alter publication supabase_realtime add table public.events;
 
 alter table public.events enable row level security;
 
+grant select, insert on table public.events to anon;
+
 create policy "anon can insert events"
 on public.events
 for insert
