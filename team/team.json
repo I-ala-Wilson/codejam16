@@ -35,7 +35,9 @@
         "engine/*",
         "ml/*",
         "app/src/breath/*",
-        "app/src/BreathRecord.tsx"
+        "app/src/BreathRecord.tsx",
+        "app/src/Lock.tsx",
+        "app/src/lock/*"
       ],
       "machine": "Linux"
     },
