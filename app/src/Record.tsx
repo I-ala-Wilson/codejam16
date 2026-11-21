@@ -14,7 +14,7 @@ const GESTURES: Item[] = [
     how: 'Hand about 30 cm from the screen. Each GO says PUSH or PULL: one brisk 15 cm move that way, then stop. They alternate, so you never run out of room.' },
   { gesture: 'WAVE', how: 'Wave side to side, fast, for the whole GO window.' },
   { gesture: 'OPEN_CLOSE', how: 'Hand toward the screen: open and close your fist 3 times quickly.' },
-  { gesture: 'UNDO', how: 'Two quick pulls back to back (pull, reset, pull).' },
+  { gesture: 'UNDO', how: 'FLICK AWAY: hand close to the screen, then one very fast, short flick of your fingers away from it, like shooing a fly. Then slowly bring your hand back.' },
   { gesture: 'HOLD', how: 'Hand in front of the screen, completely still for the GO window.' },
   { gesture: 'REPETITIVE', how: 'Scratch your forearm in front of the laptop, small fast movements.' },
   { gesture: 'FREE', how: 'Normal activity: type, reach for a drink, shift in your seat. Teaches it what is NOT a gesture.' },
