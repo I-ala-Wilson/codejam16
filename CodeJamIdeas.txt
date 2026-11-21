@@ -1,0 +1,57 @@
+Need to figure out
+------------------------------------
+
+- working range
+- accuracy
+- noise reduction
+- Information compression
+- Capacity to carry info
+- Machine learning model for passwords
+
+Others
+------------------------
+- password
+- works in dark
+- battery life
+- price point
+- Useful for Nuclear Security
+- Mic vs Cam quality
+- Discrete
+
+Touch Grass/People
+----------------------------------
+- Lockdown kid iPad and notify parent
+
+Health
+----------------------------------
+- cell resonance frequency
+- movement attention
+- elderly 
+- ALS in dark rooms
+
+Undo
+-----------------------------------
+- Fix mistake of giving kids iPad
+- Undo action via movement
+- Shortcuts via movement
+- Habit interruption (Detect nail-biting, face-touching, poor posture, or repetitive movements and gently alert the user)
+
+
+Agentic
+----------------------------------
+- Git Hub/Agent setup
+
+To Mention in Pitch
+------------------------------------
+- Undo (via movement) (fixing iPad kid mistake)
+- Cheaper security/hardware alternative
+- Acknowledge weaknesses
+
+
+
+Primary Diliverable
+-------------------------------------
+- ASL movement detection (health)
+- Discrete passwords/communication (touch grass/people first)
+- UI/Art (Black/White/Gray)(add 60/20/20 multicolor schemes if there is extra time)
+- Habit interruption (Detect nail-biting, face-touching, poor posture, or repetitive movements and gently alert the user)
