@@ -321,7 +321,7 @@ export const agents: Scene = {
       g.save(); g.beginPath(); g.arc(h.x, h.y, 13, 0, Math.PI * 2); g.clip()
       g.fillStyle = INK
       g.beginPath(); g.arc(h.x, h.y - 4, 4.2, 0, Math.PI * 2); g.fill()
-      g.beginPath(); g.ellipse(h.x, h.y + 11, 8.5, 6.5, 0, Math.PI, Math.PI * 2); g.fill()
+      g.beginPath(); g.moveTo(h.x, h.y + 2); g.lineTo(h.x + 8.5, h.y + 14); g.lineTo(h.x - 8.5, h.y + 14); g.closePath(); g.fill() // triangular body
       g.restore()
     }
     // labels sit under each chip and each person, clear of the spokes that leave the chips toward the board
