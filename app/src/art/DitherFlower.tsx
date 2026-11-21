@@ -86,6 +86,19 @@ function buildField(img: HTMLImageElement, W: number, H: number) {
     if (y < H - 1) { d = Math.min(d, dist[p + W] + 1); if (x < W - 1) d = Math.min(d, dist[p + W + 1] + 1.414); if (x > 0) d = Math.min(d, dist[p + W - 1] + 1.414) }
     dist[p] = d
   }
+  // pixels truly outside the flower (reachable from the screen edge without crossing a petal): waves only live there,
+  // so they come off the outer petals and never fill the gaps inside the bloom
+  const outside = new Uint8Array(W * H), stack: number[] = []
+  const seed = (p: number) => { if (!outside[p] && a[p] <= 0.16) { outside[p] = 1; stack.push(p) } }
+  for (let x = 0; x < W; x++) { seed(x); seed((H - 1) * W + x) }
+  for (let y = 0; y < H; y++) { seed(y * W); seed(y * W + W - 1) }
+  while (stack.length) {
+    const p = stack.pop()!, x = p % W
+    if (x > 0) seed(p - 1)
+    if (x < W - 1) seed(p + 1)
+    if (p >= W) seed(p - W)
+    if (p < W * (H - 1)) seed(p + W)
+  }
   // points on the outer edge of the petals, found by marching out from the bloom centre at 72 angles
   const cx = ox + HEAD_X * s, cy = oy + HEAD_Y * s
   const edges: { x: number; y: number; nx: number; ny: number }[] = []
@@ -100,7 +113,7 @@ function buildField(img: HTMLImageElement, W: number, H: number) {
     }
     if (last > 40 * s) edges.push({ x: cx + nx * last, y: cy + ny * last, nx, ny })
   }
-  return { W, H, v: a, s, ox, oy, top, bottom, left, right, edges, dist, cx, cy }
+  return { W, H, v: a, s, ox, oy, top, bottom, left, right, edges, dist, outside, cx, cy }
 }
 
 export default function DitherFlower() {
@@ -158,7 +171,7 @@ export default function DitherFlower() {
         const th = (k / BINS) * Math.PI * 2, nx = Math.cos(th), ny = Math.sin(th)
         const lift = Math.max(0, Math.min(1, (stemY - (f.cy + ny * 160 * f.s)) / height)) ** 1.6
         const vn = Math.max(0, vA * lift * nx) // outward speed of the petals on this side, px/s
-        const goal = ny > 0.6 ? 0 : Math.min(1, 0.14 + vn * 0.06 + hand * 0.8)
+        const goal = ny > 0.6 ? 0 : Math.min(1, vn * 0.06 * (1 + 1.5 * hand)) // only the side moving outward makes sound
         level[k] += (goal - level[k]) * Math.min(1, dt * 3)
         const lam = WAVE_LAMBDA * f.s / (1 + vn * 0.025) // tighter spacing when the edge moves out faster
         lamB[k] = lam
@@ -177,7 +190,7 @@ export default function DitherFlower() {
           const inside = y >= f.top && sx >= 0 && sx < W
           let g = inside ? f.v[row + sx] : 0
           if (g > 0) g += 0.25 * (sx < stemX ? toward : away) * g
-          if (g < 0.16 && sx >= 0 && sx < W) {
+          if (g < 0.16 && sx >= 0 && sx < W && f.outside[row + sx]) {
             const d = f.dist[row + sx]
             if (d > 1.5 && d < reach) {
               let ang = Math.atan2(y - f.cy, sx - f.cx); if (ang < 0) ang += Math.PI * 2
