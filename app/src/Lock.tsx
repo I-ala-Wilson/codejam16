@@ -166,8 +166,7 @@ export default function Lock() {
             </div>
             <p>{password ? 'Four hand signs. Only someone who knows them can change them.' : 'Four hand signs that only you know.'}</p>
             <button className="lk__btn lk__btn--primary" onClick={() => go(password ? 'verify' : 'set')}>{password ? 'Change password' : 'Set password'}</button>
-            {/* owner-only escape hatch for forgotten passwords: shown only with ?owner in the URL, never to a kid */}
-            {password && new URLSearchParams(location.search).has('owner') && <>{' '}<button className="lk__btn" onClick={() => { localStorage.removeItem('echo.lock.password'); setPassword(null); setMessage('') }}>Reset password</button></>}
+            {password && <>{' '}<button className="lk__btn" onClick={() => { localStorage.removeItem('echo.lock.password'); setPassword(null); setMessage('') }}>Reset password</button></>}
           </section>
 
           <section>
