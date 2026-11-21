@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Timeline } from '@ui/index.ts'
 import { engine } from '../engine.ts'
 import { ensureSonar } from '../sonar.ts'
-import { habitOn, hourCounts, lastWeek, longestCalm, setHabitOn, snooze, snoozedUntil, today } from './store.ts'
+import { cancelSnooze, habitOn, hourCounts, lastWeek, longestCalm, setHabitOn, snooze, snoozedUntil, today } from './store.ts'
 import './habit.css'
 
 // ECHØ Habit: turn the watcher on (after a 10 s still-hands calibration), then see today's nudges by hour,
@@ -28,12 +28,13 @@ export default function HabitPage() {
 
   const turnOn = async () => {
     setFailed(false); cancelled.current = false; setCount(CALIBRATE_S)
-    const id = setInterval(() => setCount((c) => Math.max(1, c - 1)), 1000)
+    const id = setInterval(() => setCount((c) => (cancelled.current ? 0 : Math.max(1, c - 1))), 1000)
     let ok = await ensureSonar()
     if (ok) { try { await engine.calibrate(CALIBRATE_S * 1000) } catch { ok = false } }
     clearInterval(id); setCount(0)
+    if (cancelled.current) return
     if (!ok) { setFailed(true); return }
-    if (!cancelled.current) setHabitOn(true)
+    setHabitOn(true)
   }
 
   const on = habitOn()
@@ -52,6 +53,7 @@ export default function HabitPage() {
           <div className="lk__eyebrow">ECHØ HABIT · CALIBRATING</div>
           <div className="lk__huge">{count}</div>
           <div className="lk__sub">Keep your hands still.</div>
+          <button className="lk__btn" onClick={() => { cancelled.current = true; setCount(0) }}>Cancel</button>
         </div>
       </div>
     )
@@ -65,6 +67,7 @@ export default function HabitPage() {
         <div className="lk__chips">
           <span className={on ? 'on' : ''}>{on ? 'watching' : 'not watching'}</span>
           {snoozeLeft > 0 && <span className="on">snoozed {snoozeLeft} min</span>}
+          {snoozeLeft > 0 && <button className="lk__btn hb-resume" onClick={cancelSnooze}>Resume now</button>}
         </div>
         <p className="lk__how">
           Leave this on while you work. When the sonar hears scratching or nail-biting it plays a soft chime and shows a

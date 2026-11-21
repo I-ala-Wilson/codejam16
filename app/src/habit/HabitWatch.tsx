@@ -3,7 +3,7 @@ import { Toast } from '@ui/index.ts'
 import { engine } from '../engine.ts'
 import { sendEvent } from '../events.ts'
 import { chime, ensureSonar } from '../sonar.ts'
-import { firstNudgeThisHour, habitOn, logHabit, snooze, snoozedUntil, today } from './store.ts'
+import { cancelSnooze, firstNudgeThisHour, habitOn, logHabit, snooze, snoozedUntil, today } from './store.ts'
 import './habit.css'
 
 // Habit mode runs app-wide, like the lock guardian: when the sonar hears repetitive hand motion (scratching,
@@ -27,6 +27,7 @@ export default function HabitWatch() {
   const [bar, setBar] = useState(false)
   const lastNudge = useRef(0)
   const lastPush = useRef(0)
+  const lastSnooze = useRef(0)
   const lastInput = useRef(0)
   const hideNote = useRef(0)
   const hideBar = useRef(0)
@@ -51,14 +52,18 @@ export default function HabitWatch() {
   useEffect(() => engine.onGesture((g) => {
     if (!habitOn()) return
     const t = Date.now()
-    if (t - lastNudge.current < UNDO_WINDOW_MS) {
-      const pair = g.type === 'PUSH' && t - lastPush.current < TAP_PAIR_MS
-      if (g.type === 'PUSH') lastPush.current = t
-      if (g.type === 'UNDO' || pair) {
-        lastNudge.current = 0; lastPush.current = 0
-        snooze(SNOOZE_MS); show('snoozed 10 min'); sendEvent('habit', 'snoozed', {}, 'UNDO')
-        return
-      }
+    const pair = g.type === 'PUSH' && t - lastPush.current < TAP_PAIR_MS
+    if (g.type === 'PUSH') lastPush.current = pair ? 0 : t
+    const doubleTap = g.type === 'UNDO' || pair
+    if (doubleTap && t - lastSnooze.current < UNDO_WINDOW_MS) {
+      // A second double tap right after a snooze undoes it (an accidental snooze is reversible).
+      lastSnooze.current = 0; cancelSnooze(); show('snooze off')
+      return
+    }
+    if (doubleTap && t - lastNudge.current < UNDO_WINDOW_MS) {
+      lastNudge.current = 0; lastSnooze.current = t
+      snooze(SNOOZE_MS); show('snoozed 10 min'); sendEvent('habit', 'snoozed', {}, 'UNDO')
+      return
     }
     if (g.type !== 'REPETITIVE' || t < snoozedUntil()) return
     if (t - lastInput.current < INPUT_QUIET_MS || t - lastNudge.current < COOLDOWN_MS) return

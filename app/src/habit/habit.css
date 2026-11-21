@@ -17,3 +17,4 @@
 /* Gentle full-width bar along the bottom, first nudge each hour, 2 s */
 .hb-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 899; font: 400 24px/1 var(--pixel); letter-spacing: .04em; text-align: center; color: var(--ink); background: var(--bg); border-top: 1px dotted var(--ink); padding: 14px 16px 16px; opacity: 0; transition: opacity 500ms; pointer-events: none; }
 .hb-bar--on { opacity: 1; }
+.hb-resume { font-size: 21px; padding: 4px 12px 5px; }

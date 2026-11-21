@@ -17,6 +17,7 @@ export const setHabitOn = (v: boolean) => {
 }
 export const snoozedUntil = () => Number(read(SNOOZE) ?? 0)
 export const snooze = (ms: number) => { write(SNOOZE, String(Date.now() + ms)); ping() }
+export const cancelSnooze = () => { write(SNOOZE, '0'); ping() }
 
 export const habitLog = (): number[] => { try { return JSON.parse(read(LOG) ?? '[]') } catch { return [] } }
 export const logHabit = (t: number) => {
