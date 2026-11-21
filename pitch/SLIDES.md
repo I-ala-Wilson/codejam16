@@ -1,7 +1,8 @@
 # ECHØ: 6-slide outline
 
 Look: pure black, VT323, off-white ink, dotted rules, the dithered flower on slide 1 only.
-Categories said out loud: Health (Care), Touch Grass + Undo (Lock), Undo (Habit), People First (privacy), Agent (how we built it).
+Four challenges, said out loud in the organisers' words: Health, Undo Button, Touch Grass, Agent Solution.
+Pitch is 3-5 minutes, then Q&A (7 minutes total, judges come to our room). Spoken script: pitch/demo-script.md.
 
 ---
 
@@ -19,24 +20,25 @@ Categories said out loud: Health (Care), Touch Grass + Undo (Lock), Undo (Habit)
 ## 3. How the sonar works
 - The speaker plays a 20 kHz tone that's too high to hear.
 - A moving hand bounces it back slightly shifted (the Doppler effect): toward = higher, away = lower.
-- The mic hears that shift, and a small model turns it into five gestures (push, pull, wave, open/close, undo), plus a Habit mode that notices scratching.
-- No camera, no image, works in the dark, runs in the browser on the laptop you already have.
-- Visual: the live dithered waterfall with a hand streak.
+- A small model turns that into five gestures (push, pull, wave, open/close, undo), plus a Habit mode that notices scratching.
+- No camera, no image, works in the dark. Privacy is built in: audio never leaves the laptop, only events like "help".
+- Visual: the 3D explainer and the live dithered waterfall.
 
-## 4. Three apps, one engine
-- **Care (Health):** a hands-free help call where cameras aren't allowed, like hospital beds and bathrooms, and for people who can't easily speak or reach a call button.
-- **Lock (Touch Grass + Undo):** undo handing your kid the iPad. Blocked sites look like "This site can't be reached", so to the kid the Wi-Fi is just broken and they go outside. Only your secret hand signs open it.
-- **Habit (Undo):** undo a habit. It catches scratching and fidgeting and gives a soft nudge.
-- **People First:** no camera, no audio kept, and only gesture events ever leave the laptop.
+## 4. Four challenges, one sonar
+- **Health:** Care. Hands-free help and pain calls for people who cannot reach a button, with no camera in bathrooms or hospital rooms.
+- **Undo Button:** a double tap in the air deletes the last sign anywhere in ECHØ, and Lock lets a parent undo a kid's bad screen habit.
+- **Touch Grass:** Habit nudges you off a screen habit, and Lock makes blocked sites look unreachable, so the kid goes outside.
+- **Agent Solution:** efficient compute. A 128 KB model runs on the laptop's CPU in the browser: no server, no GPU to use it, $0 cloud cost, about 3 minutes of training per calibration. The explainer shows how it works.
 
 ## 5. Live demo: the secret lock
 1. Open a blocked site. It looks like a normal "This site can't be reached" page.
 2. Do the 4 hand signs in the air. Only tiny dots show the progress, so nobody watching learns the code.
-3. On the fourth sign the page opens.
+3. Double tap to undo a wrong sign.
+4. On the fourth sign the page opens.
 - Backup: the recorded video if the room is too loud.
 
-## 6. How we built it, honest limits, the team
-- **Agent:** 4 humans and 5 AI agents (three Claude Code, one QA, one Codex) on one GitHub issue board. Git hooks enforced folder ownership, and every agent acknowledged each new spec version.
-- **Limits:** a brand-new person gets about 45% of gestures right (5 people, 3 laptop models). On a presenter's own laptop with a few minutes of their own recordings it reaches about 71-77%. Habit caught 6 of 7 scratches live, but only about 22% on people the model never saw. PUSH and PULL still get confused at times.
+## 6. How we built it, honest numbers, the team
+- 4 humans and 5 AI agents (three Claude Code, one QA, one Codex) on one GitHub issue board; git hooks enforced folder ownership, and every agent acknowledged each spec version.
+- **Numbers:** about 45% of gestures for a person the model never saw (5 people, 3 laptop models); on our demo MacBook Pro 66% rising to about 77% with the presenter's calibration; Habit caught 6 of 7 scratches live.
 - Team: Ian (lead, app, Chrome extension, integration), Yahya (sonar engine and ML model), EJ (UI, Habit, pitch, dataset), Michael (Supabase backend and caregiver dashboard).
 - Close: "Your laptop can hear your hands."

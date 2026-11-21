@@ -1,31 +1,35 @@
 import './pitch.css'
 
-// Home pitch section: the three apps on one sonar engine, one card each with its category.
-const APPS = [
+// Home pitch section: the four CodeJam challenges ECHØ answers, one card each, in the organisers' words.
+const CHALLENGES = [
   {
-    name: 'Care', category: 'Health and accessibility',
-    line: 'A hands-free help call for hospital beds and bathrooms, where cameras are not allowed. Wave to call a nurse, even in the dark.',
+    name: 'Health', apps: 'Care',
+    line: 'Hands-free help and pain calls for people who cannot reach a button, with no camera in bathrooms or hospital rooms.',
   },
   {
-    name: 'Lock', category: 'Digital wellbeing and parenting',
-    line: 'Blocked sites look like "This site can\'t be reached", so to a kid the Wi-Fi is just broken. Only your secret hand signs open them.',
+    name: 'Undo Button', apps: 'Undo gesture · Lock',
+    line: 'A double tap in the air deletes the last sign anywhere in ECHØ, and Lock lets a parent undo a kid\'s bad screen habit.',
   },
   {
-    name: 'Habit', category: 'Healthy habits',
-    line: 'Notices repeated scratching while you work and gives a soft nudge. Double tap to snooze it.',
+    name: 'Touch Grass', apps: 'Habit · Lock',
+    line: 'Habit nudges you off a screen habit. Lock makes blocked sites look unreachable, so the kid goes outside.',
+  },
+  {
+    name: 'Agent Solution', apps: 'How we built it',
+    line: 'A 128 KB model that runs on the laptop\'s own CPU, in the browser: no server, no cloud cost. The explainer shows how it works.',
   },
 ]
 
 export default function Apps() {
   return (
     <section className="pz" aria-labelledby="pz-apps">
-      <h2 id="pz-apps" className="pz__title">Three apps, one sonar</h2>
-      <div className="pz__cards">
-        {APPS.map((a, i) => (
-          <article key={a.name} className="pz__card">
-            <div className="pz__cardhead"><span className="pz__idx">0{i + 1}</span>{a.name}</div>
-            <div className="pz__cat">{a.category}</div>
-            <p className="pz__line">{a.line}</p>
+      <h2 id="pz-apps" className="pz__title">Four challenges, one sonar</h2>
+      <div className="pz__cards pz__cards--4">
+        {CHALLENGES.map((c, i) => (
+          <article key={c.name} className="pz__card">
+            <div className="pz__cardhead"><span className="pz__idx">0{i + 1}</span>{c.name}</div>
+            <div className="pz__cat">{c.apps}</div>
+            <p className="pz__line">{c.line}</p>
           </article>
         ))}
       </div>

@@ -26,3 +26,10 @@
   .pz__cards, .pz__stats { grid-template-columns: 1fr; }
   .pz__closing { font-size: 48px; }
 }
+
+.pz__cards--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.pz__compute { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: baseline; margin-top: 48px; border-top: 1px dotted var(--ink); padding-top: 18px; font-size: 23px; }
+.pz__compute b { font-weight: 400; color: var(--ink-strong); background: var(--ink); color: var(--bg); padding: 0 5px; }
+.pz__computehead { font-size: 20px; letter-spacing: .08em; text-transform: uppercase; }
+@media (max-width: 1200px) { .pz__cards--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .pz__cards--4 { grid-template-columns: 1fr; } }
