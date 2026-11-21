@@ -314,8 +314,13 @@ describe('createEngineWith', () => {
       expect(got.filter((e) => e.type === 'PUSH' || e.type === 'PULL')).toEqual([])
     })
 
-    it('turns the model\'s PUSH into a PULL when the Doppler shift just before it points away', async () => {
-      const { got, send } = await engineWith(loaded(modelSaying('PUSH')))
+    const withSignOverride = (runner: ModelRunner): (() => Promise<LoadedClassifier>) => async () => ({
+      runner,
+      decoder: { ...DEFAULT_DECODER, signOverride: true },
+    })
+
+    it('turns the model\'s PUSH into a PULL when the Doppler shift just before it points away (override switched on)', async () => {
+      const { got, send } = await engineWith(withSignOverride(modelSaying('PUSH')))
       await send(makeStream(null), 70)
       await send(makeStream(19883, 5), 14) // echo 117 Hz below the tone: moving away
       await send(makeStream(null, 9), 30)
@@ -323,8 +328,8 @@ describe('createEngineWith', () => {
       expect(fromModel.some((e) => e.type === 'PULL')).toBe(true)
     })
 
-    it('keeps a PUSH when the Doppler shift points toward the laptop', async () => {
-      const { got, send } = await engineWith(loaded(modelSaying('PUSH')))
+    it('keeps a PUSH when the Doppler shift points toward the laptop (override switched on)', async () => {
+      const { got, send } = await engineWith(withSignOverride(modelSaying('PUSH')))
       await send(makeStream(null), 70)
       await send(makeStream(20117, 5), 14)
       await send(makeStream(null, 9), 30)
@@ -333,9 +338,8 @@ describe('createEngineWith', () => {
       expect(fromModel.every((e) => e.type === 'PUSH')).toBe(true)
     })
 
-    it('does not touch the model\'s class when the override is switched off in gesture.json', async () => {
-      const off = async () => ({ runner: modelSaying('PUSH'), decoder: { ...DEFAULT_DECODER, signOverride: false } })
-      const { got, send } = await engineWith(off)
+    it('does not touch the model\'s class by default: the override is off unless gesture.json switches it on', async () => {
+      const { got, send } = await engineWith(loaded(modelSaying('PUSH')))
       await send(makeStream(null), 70)
       await send(makeStream(19883, 5), 14)
       await send(makeStream(null, 9), 30)

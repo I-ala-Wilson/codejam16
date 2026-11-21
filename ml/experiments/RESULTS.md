@@ -196,3 +196,23 @@ Measured when the gate was first applied (levels only, no rate): Ian's 10 bpm ta
 takes are rejected (the tone level swings 8.8 dB and 19.8 dB), his hold take is cropped to 16-60 s (the tone drops by about
 15-20 dB at 15 s and is then steady, still 67-88 dB above the noise in a 5 s window), and Yahya's 10 bpm take is cropped to
 0-49 s. So, as of now, 2 usable paced takes from 2 people: INSUFFICIENT DATA until more takes arrive.
+
+### Round 3b result: the Doppler-sign override is REFUSED (leave-one-person-out, 5 people, 2 seeds)
+| seed | variant | macro recall | PUSH | PULL | PUSH cued, answered PULL | PULL cued, answered PUSH |
+|---|---|---|---|---|---|---|
+| 0 | model alone | 0.433 | 0.47 | 0.53 | 28 | 48 |
+| 0 | with override | 0.416 | 0.47 | 0.43 | 31 | 82 |
+| 1 | model alone | 0.416 | 0.45 | 0.50 | 51 | 57 |
+| 1 | with override | 0.400 | n/a | lower | n/a | n/a |
+Both seeds lose macro recall (-0.017, -0.016) against the required gain of more than 0.02, and PULL recall is lower on both
+(PUSH too on seed 0), so the pre-registered rule refuses it. False alarms are unchanged, as designed. Full table:
+`round3/sign/SIGN.md`, raw numbers `round3/sign/sign.json`.
+What went wrong with the premise: I wrote that the rule detector gets the direction right in about 90-100% of cues. That
+number counted a cue as a hit when ANY event in its window had the right label, and the same windows also contain the
+opposite-direction event from the wind-up or the recoil (the strays reported next to it, for example PUSHx26 PULLx7 on a
+push take). So it said the right direction is present, not that it is the strongest or the last one. The override takes the
+largest-magnitude shift in the last second, and that is often the recoil, so it turned correct PULLs into PUSHes
+(48 to 82). Consequence: the engine's `signOverride` was pushed on by default (38c5f07) per the lead's 10:30 order before this
+evaluation finished; it is now OFF by default and can be switched on in gesture.json. Not tried and not claimed: using the rule
+detector's own stroke logic (the primary stroke after wind-up and recoil are dropped) as the tie-break. That would be a new
+candidate under a new pre-registered rule.

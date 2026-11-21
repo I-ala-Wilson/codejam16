@@ -30,7 +30,11 @@ export interface DecoderConfig {
   readonly waveRefractoryMs: number
   /** A habit goes on for seconds, so it holds off for longer still (ml/evaluate.py HABIT_REFRACTORY_S). */
   readonly habitRefractoryMs: number
-  /** When the model says PUSH or PULL, let the sign of the Doppler shift decide which (see DopplerSign). */
+  /**
+   * When the model says PUSH or PULL, let the sign of the strongest Doppler shift in the last second decide which (see
+   * DopplerSign). OFF by default: leave-one-person-out evaluation refused it (macro recall -0.017 and -0.016 on two seeds,
+   * PULL recall lower; ml/experiments/round3/sign/SIGN.md), because the strongest shift is often the recoil stroke.
+   */
   readonly signOverride: boolean
 }
 
@@ -42,7 +46,7 @@ export const DEFAULT_DECODER: DecoderConfig = {
   refractoryMs: 600,
   waveRefractoryMs: 1200,
   habitRefractoryMs: 3000,
-  signOverride: true,
+  signOverride: false,
 }
 
 const isClassList = (v: unknown): v is string[] =>

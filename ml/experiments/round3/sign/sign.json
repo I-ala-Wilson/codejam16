@@ -1,0 +1,74 @@
+{
+  "accepted": false,
+  "reasons": [
+    "seed 0: macro recall gain -0.017 does not clear 0.02",
+    "seed 0: PUSH recall is lower with the override",
+    "seed 0: PULL recall is lower with the override",
+    "seed 1: macro recall gain -0.016 does not clear 0.02",
+    "seed 1: PULL recall is lower with the override"
+  ],
+  "seeds": [
+    {
+      "seed": 0,
+      "plain": {
+        "macro_recall": 0.43345641314391314,
+        "class_recall": {
+          "OPEN_CLOSE": 0.434375,
+          "PULL": 0.525,
+          "PUSH": 0.47435897435897434,
+          "REPETITIVE": 0.22916666666666666,
+          "UNDO": 0.44054054054054054,
+          "WAVE": 0.4972972972972973
+        },
+        "false_alarms_per_minute": 1.8857815162040077,
+        "push_as_pull": 28,
+        "pull_as_push": 48
+      },
+      "sign": {
+        "macro_recall": 0.4164336211211211,
+        "class_recall": {
+          "OPEN_CLOSE": 0.434375,
+          "PULL": 0.4305555555555556,
+          "PUSH": 0.4666666666666667,
+          "REPETITIVE": 0.22916666666666666,
+          "UNDO": 0.44054054054054054,
+          "WAVE": 0.4972972972972973
+        },
+        "false_alarms_per_minute": 1.8857815162040077,
+        "push_as_pull": 31,
+        "pull_as_push": 82
+      }
+    },
+    {
+      "seed": 1,
+      "plain": {
+        "macro_recall": 0.41591459247709245,
+        "class_recall": {
+          "OPEN_CLOSE": 0.428125,
+          "PULL": 0.49722222222222223,
+          "PUSH": 0.4461538461538462,
+          "REPETITIVE": 0.2375,
+          "UNDO": 0.44054054054054054,
+          "WAVE": 0.44594594594594594
+        },
+        "false_alarms_per_minute": 1.8654039408980865,
+        "push_as_pull": 51,
+        "pull_as_push": 57
+      },
+      "sign": {
+        "macro_recall": 0.3996752762377762,
+        "class_recall": {
+          "OPEN_CLOSE": 0.428125,
+          "PULL": 0.3972222222222222,
+          "PUSH": 0.44871794871794873,
+          "REPETITIVE": 0.2375,
+          "UNDO": 0.44054054054054054,
+          "WAVE": 0.44594594594594594
+        },
+        "false_alarms_per_minute": 1.8654039408980865,
+        "push_as_pull": 50,
+        "pull_as_push": 93
+      }
+    }
+  ]
+}

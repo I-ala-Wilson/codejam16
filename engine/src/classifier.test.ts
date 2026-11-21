@@ -333,10 +333,10 @@ describe('DopplerSign: the direction of a push or pull from the sign of the Dopp
 })
 
 describe('the sign override setting in gesture.json', () => {
-  it('is on by default and can be switched off', () => {
-    expect(DEFAULT_DECODER.signOverride).toBe(true)
-    expect(decoderFromConfig({}).signOverride).toBe(true)
-    expect(decoderFromConfig({ signOverride: false }).signOverride).toBe(false)
-    expect(decoderFromConfig({ signOverride: 'no' }).signOverride).toBe(true) // anything but a boolean keeps the default
+  it('is off by default (its leave-one-person-out evaluation refused it) and can be switched on', () => {
+    expect(DEFAULT_DECODER.signOverride).toBe(false)
+    expect(decoderFromConfig({}).signOverride).toBe(false)
+    expect(decoderFromConfig({ signOverride: true }).signOverride).toBe(true)
+    expect(decoderFromConfig({ signOverride: 'yes' }).signOverride).toBe(false) // anything but a boolean keeps the default
   })
 })
