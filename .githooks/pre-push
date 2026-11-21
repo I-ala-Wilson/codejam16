@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Hard stop: no pushes at/after the hackathon cutoff (pushing at 12:00 or later disqualifies us).
+source "$(git rev-parse --show-toplevel)/scripts/lib.sh"
+if past_cutoff; then
+  echo "BLOCKED: it is past the hackathon cutoff ($(cutoff_label)). Do not push anything, or we are disqualified."
+  exit 1
+fi
+exit 0

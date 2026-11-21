@@ -85,6 +85,7 @@ scripts/board acks             # lead: who has ACKed the current spec
 - A fresh agent with no memory runs `/recover` (Codex: "recover") before anything else.
 
 ## 5. Git (everyone works on main)
+- **HARD CUTOFF: Sun 22 Nov 11:30 Montreal.** No commits or pushes at or after it (a push at 12:00 or later disqualifies the team). The pre-commit and pre-push hooks block it; never try to get around them. Plan to have everything pushed by 11:00.
 - Before starting a task and before every push: `git pull --rebase`.
 - Small commits, one task each, message `<area>: <what> (#issue)`. Push as soon as a task works so other agents can build on it.
 - Commit only your own files (`git add <paths>`, never `git add -A` blindly). Never `--no-verify`, never force-push, never rewrite history, never `reset --hard`.

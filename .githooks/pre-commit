@@ -4,6 +4,11 @@ set -euo pipefail
 source "$(git rev-parse --show-toplevel)/scripts/lib.sh"
 cd "$ROOT"
 
+if past_cutoff; then
+  echo "BLOCKED: it is past the hackathon cutoff ($(cutoff_label)). Nothing may be committed now, or we are disqualified."
+  exit 1
+fi
+
 files="$(git diff --cached --name-only --diff-filter=ACMRD)"
 [[ -z "$files" ]] && exit 0
 fail=0

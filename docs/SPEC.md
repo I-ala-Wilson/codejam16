@@ -1,4 +1,4 @@
-SPEC_VERSION: 4
+SPEC_VERSION: 5
 
 # SPEC: Echo (sonar gesture engine, three apps)
 
@@ -112,12 +112,14 @@ See `contracts/`:
 | Target | Sat 22:00 | Should items |
 | Nightly QA | Sat 23:30 | full pass before sleep |
 | Freeze | Sun 09:00 | demo-path fixes only |
+| **HARD CUTOFF** | **Sun 11:30** | **last commit AND last push. Anything pushed at/after 12:00 disqualifies us. Git hooks block commits and pushes from 11:30** |
 | Submit | ⚠️ confirm on the Discord | Devpost, video, repo public |
 | Final QA | 1 h before submit | 3 clean demo runs |
 | Judging | Sun 13:00–15:30 | |
 | Closing | Sun 16:30 | one of us present for the prize cheque |
 
 ## Changes
+- v5 (Fri 23:30): HARD CUTOFF Sun 22 Nov 11:30 Montreal: no commits or pushes after it (hooks enforce; pushing at 12:00+ = disqualified).
 - v4 (Fri 22:28): UNDO is a DOUBLE TAP TOWARD: two quick small taps toward the screen within ~600 ms (contracts/engine.ts). Replaces v3's flick away.
 - v2 (Fri 22:10): recordings are 16-bit WAV committed to `data/recordings/<login>/` (contracts/recording.md); Record page added to app.
 

@@ -54,3 +54,10 @@ owner_of() {
   done < <(jq -r '.shared[]' "$TEAM")
   echo ""
 }
+
+# Hackathon cutoff: nothing may be committed or pushed at/after this instant (UTC epoch, timezone-proof).
+past_cutoff() {
+  local c; c="$(jq -r '.cutoff_epoch // empty' "$BOARD_CFG")"
+  [[ -n "$c" && "$(date -u +%s)" -ge "$c" ]]
+}
+cutoff_label() { jq -r '.cutoff_label // "the cutoff"' "$BOARD_CFG"; }
