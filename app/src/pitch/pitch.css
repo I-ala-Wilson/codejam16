@@ -51,6 +51,10 @@
 .pz__gestures span { text-transform: uppercase; letter-spacing: .06em; }
 .pz__line--lead { font-size: 28px; color: var(--ink-strong); margin-bottom: 20px; }
 .pz__split .pz__line { margin: 0 0 22px; max-width: 44ch; }
+.pz__gestures--under { margin: 20px 0 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 24px; }
+.pz__gestures--under li { flex-direction: column; gap: 4px; border-bottom: 0; border-top: 1px dotted var(--ink); padding: 12px 0 0; }
+.pz__gestures--under li.pz__gestures-head { grid-column: 1 / -1; flex-direction: row; gap: 28px; border-top: 0; padding: 0 0 4px; }
+.pz__gestures--under b { min-width: 0; }
 .pz__btn { font: 400 24px/1 var(--pixel); letter-spacing: .04em; color: var(--bg); background: var(--ink); border: 1px solid var(--ink); border-radius: 0; padding: 11px 20px 12px; margin-top: 6px; cursor: pointer; }
 .pz__btn:hover:not(:disabled) { background: transparent; color: var(--ink); }
 

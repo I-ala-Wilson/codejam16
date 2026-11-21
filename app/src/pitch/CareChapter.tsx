@@ -21,14 +21,16 @@ export default function CareChapter({ go }: { go: (page: string) => void }) {
               <div key={s.big} className="pz__stat"><div className="pz__big">{s.big}</div><div className="pz__label">{s.label}</div></div>
             ))}
           </div>
-          <ul className="pz__gestures">
-            <li className="pz__gestures-head"><b>Hand gesture</b><span>Function</span></li>
-            {GESTURES.map(([g, a]) => <li key={g}><b>{g}</b><span>{a}</span></li>)}
-          </ul>
           <p className="pz__line">ECHØ has no lens and stores no audio. Only the event leaves the room.</p>
           <button className="pz__btn" onClick={() => go('care')}>Open live demo</button>
         </div>
-        <div className="pz__frame"><DitherCanvas scene={careScene3D} label="A patient in bed waves; sound arcs travel from a bedside laptop to the hand and back, and the caregiver's phone lights up with HELP." /></div>
+        <div>
+          <div className="pz__frame"><DitherCanvas scene={careScene3D} label="A patient in bed waves; sound arcs travel from a bedside laptop to the hand and back, and the caregiver's phone lights up with HELP." /></div>
+          <ul className="pz__gestures pz__gestures--under">
+            <li className="pz__gestures-head"><b>Hand gesture</b><span>Function</span></li>
+            {GESTURES.map(([g, a]) => <li key={g}><b>{g}</b><span>{a}</span></li>)}
+          </ul>
+        </div>
       </div>
     </section>
   )
