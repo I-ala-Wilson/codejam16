@@ -6,7 +6,7 @@ import { Window } from '@ui/index.ts'
 const MOVE_HZ = 40      // a real hand push/pull shifts the echo by roughly 50-130 Hz
 const REPS = 5
 const REP_WINDOW_MS = 1500 // ends early as soon as the move is detected
-const REST_MS = 900
+const REST_MS = 700
 
 type Dist = 'near' | 'far'
 type Move = 'push' | 'pull'
@@ -66,8 +66,9 @@ export default function RoomTest() {
       const peak = peakRef.current
       const ok = move === 'push' ? peak >= MOVE_HZ : peak <= -MOVE_HZ
       setResults((r) => [...r, { move, dist: reps, peak, ok }])
-      if (rep < REPS) setStep({ reps, move, rep: rep + 1, resting: true })
-      else if (move === 'push') setStep({ reps, move: 'pull', rep: 1, resting: true })
+      // alternate PUSH, PULL, PUSH, PULL...: the pull is the natural return from a push
+      if (move === 'push') setStep({ reps, move: 'pull', rep, resting: true })
+      else if (rep < REPS) setStep({ reps, move: 'push', rep: rep + 1, resting: true })
       else if (reps === 'near') setStep({ reps: 'far', move: 'push', rep: 1, resting: true })
       else setStep('results')
     }
@@ -155,17 +156,12 @@ export default function RoomTest() {
           {step.resting ? (
             <>
               <Big>Get ready...</Big>
-              <p>
-                <b>Slowly</b> move your hand back to the start ({step.move === 'push'
-                  ? (step.reps === 'near' ? 'about 30 cm' : 'about 60 cm')
-                  : (step.reps === 'near' ? 'about 15 cm' : 'about 45 cm')} from the screen) and hold it still.
-                Next: {step.move === 'push' ? 'PUSH' : 'PULL'} {step.rep} of {REPS}.
-              </p>
+              <p>Hold still. Next: {step.move === 'push' ? 'PUSH' : 'PULL'} ({step.rep} of {REPS}).</p>
             </>
           ) : (
             <>
               <Big>{step.move === 'push' ? 'PUSH toward the screen' : 'PULL away from the screen'}</Big>
-              <p>One brisk move of about 15 cm (like pressing a doorbell), then stop and hold.</p>
+              <p>One brisk move of about 15 cm, then stop. {step.move === 'push' ? 'Next you pull back the same way.' : 'Next you push again.'}</p>
               <p>Rep {step.rep} of {REPS}: moves on as soon as it sees your move</p>
             </>
           )}
