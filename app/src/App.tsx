@@ -3,7 +3,6 @@ import RoomTest from './RoomTest.tsx'
 import Home from './Home.tsx'
 import { useGuardian } from './lock/guardian.ts'
 import { keepSonarOn } from './sonar.ts'
-import Record from './Record.tsx'
 import Lock from './Lock.tsx'
 import Gestures from './Gestures.tsx'
 import Dataset from './Dataset.tsx'
@@ -14,8 +13,11 @@ import HabitPage from './habit/HabitPage.tsx'
 import HabitWatch from './habit/HabitWatch.tsx'
 import CalibBanner from './CalibBanner.tsx'
 
-const PAGES = { home: 'ECHØ', lock: 'Lock', care: 'Care', caregiver: 'Caregiver', 'habit-app': 'Habit', room: 'Room test', calib: 'Calibration', dataset: 'Dataset recording', habit: 'Habit recording', gestures: 'Gesture test', live: 'Live test (cued)', record: 'Pilot record (old)' } as const
+const PAGES = { home: 'ECHØ', lock: 'Lock', care: 'Care', caregiver: 'Caregiver', 'habit-app': 'Habit', room: 'Room test', calib: 'Calibration', dataset: 'Dataset recording', habit: 'Habit recording', gestures: 'Gesture test', live: 'Live test (cued)' } as const
 type Page = keyof typeof PAGES
+// Pitch mode: only the product is in the nav. The recording and test tabs still work by URL and appear with ?dev.
+const PRODUCT: Page[] = ['home', 'lock', 'care', 'caregiver', 'habit-app']
+const DEV = new URLSearchParams(location.search).has('dev')
 
 export default function App() {
   useGuardian()
@@ -27,11 +29,11 @@ export default function App() {
   return (
     <div>
       <nav className="top">
-        {(Object.keys(PAGES) as Page[]).map((p) => (
+        {(Object.keys(PAGES) as Page[]).filter((p) => DEV || PRODUCT.includes(p) || p === page).map((p) => (
           <button key={p} onClick={() => go(p)} className={page === p ? 'on' : ''}>{PAGES[p]}</button>
         ))}
       </nav>
-      {page === 'home' ? <Home go={(p) => go(p as Page)} /> : page === 'room' ? <RoomTest /> : page === 'gestures' ? <Gestures /> : page === 'live' ? <LiveTest /> : page === 'dataset' ? <Dataset key="main" only="main" /> : page === 'habit' ? <Dataset key="habit" only="habit" /> : page === 'calib' ? <Dataset key="calib" only="calib" /> : page === 'record' ? <Record />  : page === 'care' ? <Care /> : page === 'caregiver' ? <Caregiver /> : page === 'habit-app' ? <HabitPage /> : <Lock />}
+      {page === 'home' ? <Home go={(p) => go(p as Page)} /> : page === 'room' ? <RoomTest /> : page === 'gestures' ? <Gestures /> : page === 'live' ? <LiveTest /> : page === 'dataset' ? <Dataset key="main" only="main" /> : page === 'habit' ? <Dataset key="habit" only="habit" /> : page === 'calib' ? <Dataset key="calib" only="calib" /> : page === 'care' ? <Care /> : page === 'caregiver' ? <Caregiver /> : page === 'habit-app' ? <HabitPage /> : <Lock />}
       <HabitWatch />
       <CalibBanner button={page !== 'home'} />
     </div>
