@@ -306,7 +306,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
 
   // Rigged person: a Ready Player Me young man (three.js example, Mixamo bone names), seated once on load; the right arm is solved every frame
   type Arm = { up: THREE.Vector3; fore: THREE.Vector3; hand: THREE.Vector3; bend: THREE.Vector3; palm: THREE.Vector3; across: THREE.Vector3 }
-  type Rig = { bone: (n: string) => THREE.Bone; q0: (n: string) => THREE.Quaternion; l1: number; l2: number; arm: Record<'Left' | 'Right', Arm>; curl: { b: THREE.Bone; q: THREE.Quaternion; axis: THREE.Vector3; k: number; spread: THREE.Vector3; ks: number; index: boolean; thumb: boolean }[] }
+  type Rig = { bone: (n: string) => THREE.Bone; q0: (n: string) => THREE.Quaternion; l1: number; l2: number; arm: Record<'Left' | 'Right', Arm>; curl: { b: THREE.Bone; q: THREE.Quaternion; axis: THREE.Vector3; k: number; spread: THREE.Vector3; ks: number; finger: 'Index' | 'Middle' | 'Ring' | 'Pinky' | 'Thumb' }[] }
   let rig: Rig | null = null
   let disposed = false
   const SEAT_Y = 0.52, HIP_Z = 0.62
@@ -449,8 +449,6 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       const rx = (a: number) => new THREE.Quaternion().setFromAxisAngle(X, a)
       setWorld(bone('Spine'), q0('Spine'), rx(-0.08))
       setWorld(bone('Spine1'), q0('Spine1'), rx(-0.16))
-      setWorld(bone('Neck'), q0('Neck'), rx(-0.2))
-      setWorld(bone('Head'), q0('Head'), rx(-0.42))
       for (const [s, k] of [['Left', -1], ['Right', 1]] as const) {
         const thighA = dir(s + 'UpLeg', s + 'Leg'), shinA = dir(s + 'Leg', s + 'Foot')
         orient(bone(s + 'UpLeg'), q0(s + 'UpLeg'), thighA, ortho(X, thighA), new V(k * 0.06, 0.05, -1).normalize(), X)
@@ -478,7 +476,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
           const ref = f === 'Thumb' ? 'RightHandIndex1' : 'RightHandMiddle1'
           const fan = i === 0 && f !== 'Middle' ? new V().crossVectors(along, ortho(at(n).sub(at(ref)), along)).normalize().applyQuaternion(inv) : new V(1, 0, 0)
           const ks2 = i === 0 ? ({ Index: 0.1, Middle: 0, Ring: 0.08, Pinky: 0.2, Thumb: 0.35 } as const)[f] : 0
-          r.curl.push({ b: bone(n), q: bone(n).quaternion.clone(), axis, k: ks[i], spread: fan, ks: ks2, index: f === 'Index', thumb: f === 'Thumb' })
+          r.curl.push({ b: bone(n), q: bone(n).quaternion.clone(), axis, k: ks[i], spread: fan, ks: ks2, finger: f })
         }
       }
 
@@ -488,12 +486,11 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
         const axis = new V().crossVectors(dir(n, 'LeftHand' + f + (i + 2)), arms.Left.palm).normalize().applyQuaternion(q0(n).clone().invert())
         bone(n).quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(axis, [0.15, 0.25, 0.15][i]))
       }
-      solveArm(r, 'Left', new V(-0.3, 0.8, 0.27), new V(-0.8, -0.6, 0.4), new V(0.1, 0, -1).normalize(), new V(0, -1, 0))
       rig = r
       scene.remove(person)
       person.traverse(free)
       prevAvg = -1
-      placeHand()
+      placeHand(0)
       Hp.copy(Hn)
     } catch (e) {
       scene.remove(root)
@@ -551,29 +548,49 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
 
   // Gesture timeline
   const FAR = new V(0.07, 0.93, 0.25), NEAR = new V(0.07, 0.93, 0.08)
-  const pose = (g: number, u: number, out: THREE.Vector3) => {
-    out.copy(FAR)
+  const cr = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * clamp01(x)) // cosine ramp 0 -> 1
+  // Targets for one gesture at time u: hand position, wave roll, UNDO pointing, finger fan, and a curl per finger
+  // (index, middle, ring, pinky, thumb). OPEN/CLOSE folds the fingers as a wave from pinky to index, 40 ms apart.
+  type Pose = { pos: THREE.Vector3; tilt: number; point: number; spread: number; f: number[] }
+  const fist = (u: number) => 0.5 - 0.5 * Math.cos((2 * Math.PI * Math.max(0, u)) / 2)
+  const pose = (g: number, u: number, out: Pose) => {
+    const o = out.pos.copy(FAR)
     let curl = 0.12, tilt = 0, spread = 0, point = 0
-    if (g === 0) { out.y += 0.0015 * Math.sin(u * 2.1); out.z += 0.001 * Math.sin(u * 1.3) }
-    else if (g === 1) { out.z = THREE.MathUtils.lerp(FAR.z, NEAR.z, ss((u - 0.5) / 2.2)); curl = 0; spread = 1 }
-    else if (g === 2) { out.z = THREE.MathUtils.lerp(NEAR.z, FAR.z, ss((u - 0.5) / 2.2)); curl = 0; spread = 1 }
+    if (g === 0) { o.y += 0.0015 * Math.sin(u * 2.1); o.z += 0.001 * Math.sin(u * 1.3) }
+    else if (g === 1) { o.z = THREE.MathUtils.lerp(FAR.z, NEAR.z, cr((u - 0.4) / 2.4)); curl = 0; spread = 1 }
+    else if (g === 2) { o.z = THREE.MathUtils.lerp(NEAR.z, FAR.z, cr((u - 0.4) / 2.4)); curl = 0; spread = 1 }
     else if (g === 3) {
-      const env = ss(u / 0.4) * ss((4 - u) / 0.4), ph = (2 * Math.PI * u) / 1.3
-      out.x += 0.085 * Math.sin(ph) * env
-      out.z -= 0.045 * Math.sin(ph) * env
+      // a soft figure-8: side to side, a little toward the screen on each swing, dipping twice per cycle
+      const env = cr(u / 0.6) * cr((4 - u) / 0.6), ph = (2 * Math.PI * u) / 1.3
+      o.x += 0.085 * Math.sin(ph) * env
+      o.z -= 0.04 * Math.sin(ph) * env
+      o.y += 0.018 * Math.sin(2 * ph) * env
       tilt = -0.35 * Math.cos(ph) * env
-    } else if (g === 4) curl = 0.5 - 0.5 * Math.cos((2 * Math.PI * u) / 2) // open hand to full fist and back
-    else {
+    } else if (g === 5) {
       // UNDO: double-tapping a vertical touchscreen. The hand turns to point a straight index level at the laptop
       // screen, then jabs straight forward ~3.5 cm and back twice (0.15 s each, 0.2 s apart), then a pause
-      point = ss(u / 0.45) * ss((3 - u) / 0.45)
-      out.y += 0.06 * point // lift the pointing hand clear of the keyboard
+      point = cr(u / 0.45) * cr((3 - u) / 0.45)
+      o.y += 0.06 * point // lift the pointing hand clear of the keyboard
       curl = 0.12 + 0.58 * point // the other three fingers curl to ~70%, the thumb rests on the middle finger
-      for (const t0 of [0.8, 1.15]) if (u > t0 && u < t0 + 0.15) {
-        out.z -= 0.035 * Math.sin((Math.PI * (u - t0)) / 0.15)
-      }
+      for (const t0 of [0.8, 1.15]) if (u > t0 && u < t0 + 0.15) o.z -= 0.035 * Math.sin((Math.PI * (u - t0)) / 0.15)
     }
-    return { curl, tilt, spread, point }
+    out.tilt = tilt; out.point = point; out.spread = spread
+    if (g === 4) out.f = [fist(u - 0.12), fist(u - 0.08), fist(u - 0.04), fist(u), fist(u - 0.08)]
+    else out.f = [THREE.MathUtils.lerp(curl, 0, point), curl, curl, curl, Math.max(curl, point)]
+    return out
+  }
+  const newPose = (): Pose => ({ pos: new V(), tilt: 0, point: 0, spread: 0, f: [0, 0, 0, 0, 0] })
+
+  // Critically damped (or slightly under-damped) springs smooth every target, so nothing jumps
+  type Spr = { x: number; v: number }
+  const spr = (x: number): Spr => ({ x, v: 0 })
+  const drive = (sp: Spr, goal: number, w: number, z: number, dt: number) => {
+    for (let k = 0; k < 2; k++) {
+      const h = dt / 2
+      sp.v += (w * w * (goal - sp.x) - 2 * z * w * sp.v) * h
+      sp.x += sp.v * h
+    }
+    return sp.x
   }
 
   let gi = 0, gu = 0, simT = 0, camT = 0
@@ -583,31 +600,74 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   const CAM_W = 1.7 // spring stiffness: a big move settles in about 3 s
   let handXs = 0.07
   let paused = false, orbit = true, dither = true
-  let blendT = 1
-  const blendFrom = new V()
-  const Hn = new V(), Hp = new V(), Ht = new V(), wrist = new V(), elbow = new V()
-  let curl = 0.12, curlPrev = 0.12, tilt = 0, spread = 0
+  // Gesture switches cross-fade the targets over 0.8 s from where the old gesture left them
+  let fadeT = 1
+  const fadeFrom = newPose(), cur = newPose(), goal = newPose()
+  const Hn = new V(), Hp = new V(), wrist = new V(), elbow = new V()
+  let curl = 0.12, curlPrev = 0.12
+  const sH = [spr(FAR.x), spr(FAR.y), spr(FAR.z)], sTilt = spr(0), sPoint = spr(0), sSpread = spr(0)
+  const sF = [0.12, 0.12, 0.12, 0.12, 0.12].map(spr)
+  const sLean = spr(0), sYaw = spr(0), sPitch = spr(0)
+  const switchTo = (g: number) => {
+    pose(gi, gu, fadeFrom)
+    gi = g; gu = 0; fadeT = 0
+  }
   let vSm = 0, prevAvg = -1
   let nextEmit = 0
 
   // UNDO hand: index level toward the screen, palm turned sideways and ~30° down
   const POINT_F = new V(0, 0, -1), POINT_N = new V(-Math.cos(Math.PI / 6), -Math.sin(Math.PI / 6), 0)
-  const Hgoal = new V(), qTilt = new THREE.Quaternion(), qC = new THREE.Quaternion(), eTilt = new THREE.Euler(), fDir = new V(), pN = new V(), mid = new V()
-  const placeHand = () => {
-    const p = pose(gi, gu, Ht)
-    if (blendT < 1) Hgoal.lerpVectors(blendFrom, Ht, ss(blendT)); else Hgoal.copy(Ht)
-    curl = p.curl; tilt = p.tilt; spread = p.spread
-    const point = p.point
+  const XA = new V(1, 0, 0), YA = new V(0, 1, 0), ZA = new V(0, 0, 1)
+  const qA = new THREE.Quaternion(), qB = new THREE.Quaternion()
+  const rot = (axis: THREE.Vector3, a: number, then?: THREE.Quaternion) => {
+    qA.setFromAxisAngle(axis, a)
+    return then ? qA.premultiply(then) : qA
+  }
+  const lw = new V(), LW = new V(-0.3, 0.8, 0.27)
+  const qTilt = new THREE.Quaternion(), qC = new THREE.Quaternion(), eTilt = new THREE.Euler(), fDir = new V(), pN = new V(), mid = new V()
+  const placeHand = (dt: number) => {
+    pose(gi, gu, cur)
+    const k = cr(fadeT / 0.8)
+    goal.pos.lerpVectors(fadeFrom.pos, cur.pos, k)
+    goal.tilt = THREE.MathUtils.lerp(fadeFrom.tilt, cur.tilt, k)
+    goal.point = THREE.MathUtils.lerp(fadeFrom.point, cur.point, k)
+    goal.spread = THREE.MathUtils.lerp(fadeFrom.spread, cur.spread, k)
+    for (let i = 0; i < 5; i++) goal.f[i] = THREE.MathUtils.lerp(fadeFrom.f[i], cur.f[i], k)
+    // The hand follows through slightly; UNDO's jabs use stiffer springs so the double tap stays quick
+    const crisp = gi === 5
+    const hw = crisp ? 20 : 10, hz = crisp ? 0.9 : 0.8
+    const H = new V(drive(sH[0], goal.pos.x, hw, hz, dt), drive(sH[1], goal.pos.y, hw, hz, dt), drive(sH[2], goal.pos.z, hw, hz, dt))
+    const tilt = drive(sTilt, goal.tilt, 12, 1, dt) // lags the swing a touch, so the wrist trails the forearm
+    const point = clamp01(drive(sPoint, goal.point, 12, 1, dt))
+    const spread = drive(sSpread, goal.spread, 12, 1, dt)
+    const fw = crisp ? 20 : 12
+    const f = goal.f.map((g, i) => Math.max(-0.05, drive(sF[i], g, fw, 1, dt)))
+    curl = (f[1] + f[2] + f[3]) / 3
     if (rig) {
+      // Upper body: leans forward with a push and back on a pull on a slow lagging spring, breathes about 1° every
+      // 4 s with a slow weight shift, and the head follows the hand a few degrees
+      const prog = (FAR.z - H.z) / (FAR.z - NEAR.z)
+      const lean = drive(sLean, clamp01(prog) * 0.05 - THREE.MathUtils.clamp(sH[2].v * 0.15, -0.03, 0.03), 3, 1, dt)
+      const breath = 0.009 * Math.sin((simT * 2 * Math.PI) / 4)
+      const shift = 0.012 * Math.sin((simT * 2 * Math.PI) / 9)
+      const yaw = drive(sYaw, THREE.MathUtils.clamp(-(H.x - 0.07) * 1.2, -0.13, 0.13), 4, 1, dt)
+      const pitch = drive(sPitch, THREE.MathUtils.clamp((H.y - 0.93) * 1.5, -0.13, 0.13), 4, 1, dt)
+      setWorld(rig.bone('Spine'), rig.q0('Spine'), rot(XA, -0.08 - breath * 0.5, qB.setFromAxisAngle(ZA, shift)).clone())
+      setWorld(rig.bone('Spine1'), rig.q0('Spine1'), rot(XA, -0.16 - lean - breath, qB.setFromAxisAngle(ZA, shift * 0.6)).clone())
+      setWorld(rig.bone('Neck'), rig.q0('Neck'), rot(XA, -0.2 - lean * 0.5).clone())
+      setWorld(rig.bone('Head'), rig.q0('Head'), rot(XA, -0.42 + pitch, qB.setFromAxisAngle(YA, yaw)).clone())
+      lw.copy(LW).add(new V(0, 0.002 * Math.sin((simT * 2 * Math.PI) / 4), 0.004 * Math.sin((simT * 2 * Math.PI) / 4)))
+      solveArm(rig, 'Left', lw, new V(-0.8, -0.6, 0.4), new V(0.1, 0, -1).normalize(), new V(0, -1, 0))
+
       // Palm to the laptop, fingers up, rolled by the wave tilt; the echo then reflects off the real palm
-      wrist.copy(Hgoal).add(new V(0, -0.055, 0.012))
+      wrist.copy(H).add(new V(0, -0.055, 0.012))
       qTilt.setFromEuler(eTilt.set(-0.45, 0, tilt))
       fDir.set(0, 1, 0).applyQuaternion(qTilt).lerp(POINT_F, point)
       pN.set(0, 0, -1).applyQuaternion(qTilt).lerp(POINT_N, point)
       solveArm(rig, 'Right', wrist, new V(0.45, -1, 0.35), fDir, pN)
+      const order = { Index: 0, Middle: 1, Ring: 2, Pinky: 3, Thumb: 4 } as const
       for (const c of rig.curl) {
-        const cu = c.index ? THREE.MathUtils.lerp(curl, 0, point) : c.thumb ? Math.max(curl, point) : curl
-        c.b.quaternion.copy(c.q).multiply(qC.setFromAxisAngle(c.axis, cu * c.k)).multiply(qC.setFromAxisAngle(c.spread, spread * c.ks))
+        c.b.quaternion.copy(c.q).multiply(qC.setFromAxisAngle(c.axis, f[order[c.finger]] * c.k)).multiply(qC.setFromAxisAngle(c.spread, spread * c.ks))
       }
       const h = rig.bone('RightHand')
       h.updateMatrixWorld(true)
@@ -616,27 +676,27 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       if (point > 0) Hn.lerp(rig.bone('RightHandIndex4').getWorldPosition(mid), point) // UNDO reflects off the fingertip
       return
     }
-    Hn.copy(Hgoal)
+    Hn.copy(H)
     hand.position.copy(Hn)
     hand.rotation.set(-0.15, 0, tilt)
-    for (const f of fingers) { f.a.rotation.x = -curl * 1.5; f.b.rotation.x = -curl * 1.8 }
-    thumb.rotation.set(-curl * 0.9, 0, 0.6 - curl * 1.1)
+    for (const fg of fingers) { fg.a.rotation.x = -curl * 1.5; fg.b.rotation.x = -curl * 1.8 }
+    thumb.rotation.set(-f[4] * 0.9, 0, 0.6 - f[4] * 1.1)
     wrist.copy(Hn).add(new V(0, -0.055, 0.012))
     solveElbow(rShoulder, wrist, L1, L2, new V(0.45, -1, 0.35), elbow)
     setLimb(rUpper, rShoulder, elbow)
     setLimb(rFore, elbow, wrist)
   }
-  placeHand()
+  placeHand(0)
   Hp.copy(Hn)
 
   const step = (dt: number) => {
     const tPrev = simT
     simT += dt
     gu += dt
-    if (gu >= GESTURES[gi].dur) { gu -= GESTURES[gi].dur; gi = (gi + 1) % GESTURES.length }
-    if (blendT < 1) blendT = Math.min(1, blendT + dt / 0.5)
+    if (gu >= GESTURES[gi].dur) { const over = gu - GESTURES[gi].dur; gu = GESTURES[gi].dur; switchTo((gi + 1) % GESTURES.length); gu = over }
+    fadeT = Math.min(1, fadeT + dt)
     Hp.copy(Hn); curlPrev = curl
-    placeHand()
+    placeHand(dt)
 
     // Signed speed toward the laptop: rate the speaker->hand->mic path shortens, halved
     const avg = (Hn.distanceTo(S) + Hn.distanceTo(M)) / 2
@@ -744,7 +804,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   raf = requestAnimationFrame(frame)
 
   return {
-    jump: (g) => { blendFrom.copy(Hgoal); blendT = 0; gi = g; gu = 0 },
+    jump: (g) => switchTo(g),
     togglePause: () => (paused = !paused),
     toggleOrbit: () => (orbit = !orbit),
     toggleDither: () => (dither = !dither),
