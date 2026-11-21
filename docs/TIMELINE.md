@@ -24,3 +24,4 @@ Append-only, newest at the bottom. The lead's agent adds a line for every milest
 | Fri 20 Nov 22:33 | Pilot data quarantined in data/pilot/ (never trained on); a trained classifier becomes the main detector, dataset collected per ml/PROTOCOL.md | Ian: data so far is bad, needs proper training |
 | Fri 20 Nov 23:30 | SPEC v5: HARD CUTOFF Sun 11:30, enforced by pre-commit + pre-push hooks | Anything pushed at 12:00+ disqualifies the team |
 | Sat 21 Nov 00:45 | Night wrap: 5 people of data, model v1 in app, QA M1 triggered overnight, Michael Dell tone too weak | End of Friday |
+| Sat 21 Nov 00:58 | Lock hand-sign password (#12): set 4 signs, show + confirm, unlock in order with UNDO = delete last, 3 fails = alarm + 30 s lockout, return to blocked URL, unlock lasts until relocked | Ian spec |
