@@ -1,0 +1,143 @@
+{
+  "person": "I-ala-wilson",
+  "gesture": "OPEN_CLOSE",
+  "laptop": "macbook-pro",
+  "note": "OPEN_CLOSE at 15 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 240384,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 312320,
+      "end": 408320,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 480256,
+      "end": 576256,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 648192,
+      "end": 744192,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 817152,
+      "end": 913152,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 985088,
+      "end": 1081088,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1153024,
+      "end": 1249024,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 1320960,
+      "end": 1416960,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1488896,
+      "end": 1584896,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 1657856,
+      "end": 1753856,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1825792,
+      "end": 1921792,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 1993728,
+      "end": 2089728,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2161664,
+      "end": 2257664,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 2329600,
+      "end": 2425600,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2497536,
+      "end": 2593536,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 2666496,
+      "end": 2762496,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2834432,
+      "end": 2930432,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 3002368,
+      "end": 3098368,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3170304,
+      "end": 3266304,
+      "label": "OPEN_CLOSE",
+      "speed": "natural"
+    },
+    {
+      "start": 3338240,
+      "end": 3434240,
+      "label": "OPEN_CLOSE",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T00:32:41-05:00",
+  "takeKind": "gesture",
+  "battery": "main",
+  "distanceCm": 15,
+  "cueWindowMs": 2000,
+  "periodMs": 3500,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "L",
+  "volumePct": 70,
+  "laptopModel": "Macbook Pro",
+  "protocol": "ml/PROTOCOL.md"
+}
