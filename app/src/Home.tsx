@@ -3,6 +3,10 @@ import DitherFlower from './art/DitherFlower.tsx'
 import Explainer from './explainer/Explainer.tsx'
 import HowWeBuilt from './HowWeBuilt.tsx'
 import Apps from './pitch/Apps.tsx'
+import CameraLimits from './pitch/CameraLimits.tsx'
+import CareChapter from './pitch/CareChapter.tsx'
+import LockChapter from './pitch/LockChapter.tsx'
+import HabitChapter from './pitch/HabitChapter.tsx'
 import Results from './pitch/Results.tsx'
 import Close from './pitch/Close.tsx'
 import { engine } from './engine.ts'
@@ -41,10 +45,14 @@ export default function Home({ go }: { go: (page: string) => void }) {
         <button className="dot-btn" onClick={() => go('habit-app')}>Habit</button>
       </div>
       </section>
+      <section><CameraLimits go={go} /></section>
       <section className="home__how">
         <Explainer embedded />
       </section>
       <section><Apps /></section>
+      <section><CareChapter go={go} /></section>
+      <section><LockChapter go={go} /></section>
+      <section><HabitChapter go={go} /></section>
       <section>
         <HowWeBuilt />
       </section>
