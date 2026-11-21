@@ -357,13 +357,13 @@ export const agents: Scene = {
 // ---------- 4. The trade-offs ----------
 // What sound gives up: the same gestures in a quiet room, a noisy room and on a weaker laptop. What it gains: three tags.
 const ROOMS = [
-  { name: 'QUIET ROOM', word: 'READ', conf: 0.95, noise: 0.06, speck: 0, bursts: 0, carrier: 0.92, strength: 1 },
-  { name: 'NOISY ROOM', word: 'UNSURE', conf: 0.5, noise: 0.12, speck: 0.7, bursts: 0.55, carrier: 0.92, strength: 0.8 },
-  { name: 'WEAKER LAPTOP', word: 'MISSED', conf: 0.15, noise: 0.08, speck: 0, bursts: 0, carrier: 0.4, strength: 0.32 },
+  { name: 'QUIET ROOM', word: 'READ', conf: 0.95, noise: 0.06, speck: 0, bursts: 0, carrier: 0.92, strength: 1, other: 0 },
+  { name: 'NOISY ROOM', word: 'UNSURE', conf: 0.5, noise: 0.12, speck: 0.7, bursts: 0.55, carrier: 0.92, strength: 0.8, other: 0 },
+  { name: 'SECOND ECHØ NEARBY', word: 'CONFUSED', conf: 0.3, noise: 0.06, speck: 0, bursts: 0, carrier: 0.92, strength: 0.9, other: 0.85 },
 ]
 const RB = { xs: [16, 228, 440], w: 184, y0: 40, y1: 140 }
 const GAINS = [
-  { name: '$0 HARDWARE', sub: 'speaker and mic built in' },
+  { name: '$0 HARDWARE', sub: 'runs on what you own' },
   { name: 'WORKS IN THE DARK', sub: 'no light needed' },
   { name: 'NO IMAGE, EVER', sub: 'only echoes, no pictures' },
 ]
@@ -388,6 +388,12 @@ export const tradeoffs: Scene = {
           if (s.on > 0) {
             v += s.on * r.strength * Math.exp(-(((fy - s.shift) / 0.07) ** 2))
             v += s.on * r.strength * 0.3 * Math.exp(-(((fy - s.shift * 0.55) / 0.2) ** 2))
+          }
+          if (r.other) {
+            // another laptop's tone a little higher up, with its own user's gestures crossing ours
+            const o = streak(col / SCROLL + 1.7)
+            v += r.other * Math.exp(-(((fy - 0.45) / 0.035) ** 2))
+            if (o.on > 0) v += o.on * r.other * Math.exp(-(((fy - 0.45 - o.shift * 0.7) / 0.07) ** 2))
           }
           g.fillStyle = gray(v)
           g.fillRect(x0 + c, y, cell, cell)

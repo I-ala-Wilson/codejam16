@@ -27,8 +27,8 @@ const PANELS = [
   },
   {
     title: 'The trade-offs', big: '$0', scene: tradeoffs,
-    alt: 'The same gestures as echo spectrograms in a quiet room, a noisy room and on a weaker laptop, with how sure the model is in each, above three gains: no hardware cost, works in the dark, never an image.',
-    caption: 'Sound costs nothing extra, works in the dark and never captures an image. In exchange it is less precise than a camera in noisy rooms and on weaker laptops, and it is a proof of concept rather than a medical device.',
+    alt: 'The same gestures as echo spectrograms in a quiet room, a noisy room and next to a second ECHØ laptop, with how sure the model is in each, above three gains: no hardware cost, works in the dark, never an image.',
+    caption: 'Sound costs nothing because it runs on hardware you already own, works in the dark and never captures an image. In exchange it needs a fairly quiet room to calibrate, that room has to stay the same afterwards, and two ECHØ laptops a few metres apart can interfere with each other.',
   },
 ]
 
