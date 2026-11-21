@@ -8,7 +8,8 @@ import './habit.css'
 
 // Habit mode runs app-wide, like the lock guardian: when the sonar hears repetitive hand motion (scratching,
 // nail-biting) it plays a soft chime and shows a tiny corner note; the first nudge each hour also shows a gentle
-// bar along the bottom for 2 s. A double tap right after a nudge snoozes it for 10 minutes.
+// bar along the bottom for 2 s. A double tap (UNDO) snoozes it for 10 minutes at any time; a second one within 6 s
+// cancels the snooze.
 // Live test (EJ, MacBook Air): 14/15 scratches caught, but 5 false nudges in 2 min of typing, and the double tap never
 // snoozed because the engine reports a natural double tap as PUSH, PUSH (issue #22). So: an UNDO or two PUSHes
 // close together count as the snooze tap; REPETITIVE is ignored while the keyboard or trackpad is in use on this
@@ -60,7 +61,8 @@ export default function HabitWatch() {
       lastSnooze.current = 0; cancelSnooze(); show('snooze off')
       return
     }
-    if (doubleTap && t - lastNudge.current < UNDO_WINDOW_MS) {
+    // UNDO starts the snooze at any time; a PUSH,PUSH pair only counts right after a nudge (too easy to hit by accident).
+    if ((g.type === 'UNDO' && snoozedUntil() <= t) || (doubleTap && t - lastNudge.current < UNDO_WINDOW_MS)) {
       lastNudge.current = 0; lastSnooze.current = t
       snooze(SNOOZE_MS); show('snoozed 10 min'); sendEvent('habit', 'snoozed', {}, 'UNDO')
       return
@@ -80,7 +82,7 @@ export default function HabitWatch() {
     <>
       <Toast text={note} visible={noteOn} />
       <div className={`hb-bar${bar ? ' hb-bar--on' : ''}`} role="status" aria-hidden={!bar}>
-        Hands down for a moment. Double tap to snooze.
+        Hands down for a moment. Double tap any time to snooze for 10 minutes.
       </div>
     </>
   )

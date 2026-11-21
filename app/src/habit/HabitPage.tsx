@@ -71,7 +71,7 @@ export default function HabitPage() {
         </div>
         <p className="lk__how">
           Leave this on while you work. When the sonar hears scratching or nail-biting it plays a soft chime and shows a
-          small note in the corner. Double tap right after a nudge to snooze it for 10 minutes.
+          small note in the corner. Double tap toward the screen any time to snooze it for 10 minutes; double tap again to cancel.
         </p>
         {failed && <p className="hb-warn">The sonar did not start. Allow the microphone and try again.</p>}
 
