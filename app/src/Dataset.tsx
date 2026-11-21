@@ -177,6 +177,9 @@ export default function Dataset() {
               </>
             )}
             {' '}<button onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}>Redo last take</button>
+            {' '}Jump to take: <select value={Math.min(idx, BATTERY.length - 1)} onChange={(e) => setIdx(Number(e.target.value))}>
+              {BATTERY.map((b, i) => <option key={i} value={i}>{i + 1}. {takeName(b)}</option>)}
+            </select>
             {' '}<button onClick={() => setIdx(0)}>Restart battery</button>
           </Box>
         </>
