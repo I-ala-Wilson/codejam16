@@ -220,7 +220,7 @@ function aim(bone: THREE.Object3D, q0: THREE.Quaternion, a: THREE.Vector3, b: TH
 const perpTo = (v: THREE.Vector3, along: THREE.Vector3) => v.clone().addScaledVector(along, -v.dot(along)).normalize()
 
 const SOFT = (hex: number) => new THREE.MeshLambertMaterial({ color: hex })
-const PHONE_GLOW = new THREE.MeshLambertMaterial({ color: 0x111111, emissive: 0x000000 })
+const PHONE_GLOW = new THREE.MeshBasicMaterial({ color: 0x0a0a0a })
 
 export const careScene3D = make3D(() => {
   // softer, darker lighting than the camera tiles, like the explainer
@@ -242,15 +242,15 @@ export const careScene3D = make3D(() => {
   }
   pillow(-0.92, MT + 0.12, 0.2); pillow(-0.78, MT + 0.3, 0.9)
   const blanket = new THREE.Mesh(new THREE.CapsuleGeometry(1, 2, 8, 24), soft)
-  blanket.rotation.x = Math.PI / 2; blanket.scale.set(0.38, 0.36, 0.16); blanket.position.set(0, MT + 0.09, 0.45); scene.add(blanket)
+  blanket.rotation.x = Math.PI / 2; blanket.scale.set(0.36, 0.38, 0.2); blanket.position.set(0, MT + 0.09, 0.5); scene.add(blanket)
 
   // bedside table with the laptop (the patient's right), caregiver phone further out
   const table = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.55, 0.45), bedMat); table.position.set(-0.85, 0.28, -0.55); scene.add(table)
   const lap = laptop(); lap.scale.setScalar(0.17); lap.position.set(-0.85, 0.565, -0.55); lap.rotation.y = Math.PI * 0.62; scene.add(lap)
   const lapScreen = new THREE.Object3D(); lapScreen.position.set(0, 0.75, -0.6); lap.add(lapScreen)
-  const phone = new THREE.Group(); phone.position.set(0.55, 0.95, 1.25); scene.add(phone); phone.lookAt(camera.position)
-  phone.add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.31, 0.02), SOFT(0x2a2a2a)))
-  const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.135, 0.26), PHONE_GLOW); glass.position.z = 0.011; phone.add(glass)
+  const phone = new THREE.Group(); phone.position.set(1.0, 0.35, 0.9); scene.add(phone); phone.lookAt(camera.position)
+  phone.add(new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.5, 0.03), new THREE.MeshBasicMaterial({ color: 0xf2f2f0 })))
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.23, 0.42), PHONE_GLOW); glass.position.z = 0.017; phone.add(glass)
   const handAnchor = new THREE.Object3D(); handAnchor.position.set(-0.3, MT + 0.5, -0.2); scene.add(handAnchor)
 
   // the explainer's rigged mannequin, reclined about 35 degrees on the pillows, legs straight under the blanket
@@ -280,9 +280,10 @@ export const careScene3D = make3D(() => {
     const X = new V3(1, 0, 0)
     // legs straight along the bed, under the blanket
     for (const s of ['Left', 'Right']) {
-      const thigh = dir(s + 'UpLeg', s + 'Leg'), shin = dir(s + 'Leg', s + 'Foot')
+      const thigh = dir(s + 'UpLeg', s + 'Leg'), shin = dir(s + 'Leg', s + 'Foot'), toe = dir(s + 'Foot', s + 'ToeBase')
       aim(bone(s + 'UpLeg'), q0(s + 'UpLeg'), thigh, perpTo(X, thigh), new V3(s === 'Left' ? 0.04 : -0.04, -0.06, 1).normalize(), X)
       aim(bone(s + 'Leg'), q0(s + 'Leg'), shin, perpTo(X, shin), new V3(0, -0.05, 1).normalize(), X)
+      aim(bone(s + 'Foot'), q0(s + 'Foot'), toe, perpTo(X, toe), new V3(0, 0.3, 1).normalize(), X) // relaxed: toes along the bed, not up
     }
     // left arm resting on the blanket
     const lUp = dir('LeftArm', 'LeftForeArm'), lFore = dir('LeftForeArm', 'LeftHand')
@@ -308,7 +309,7 @@ export const careScene3D = make3D(() => {
     update(t) {
       careT = t
       const u = careAt(t)
-      PHONE_GLOW.emissive.setScalar(careCall(u) ? 0.95 : 0.04)
+      PHONE_GLOW.color.setScalar(careCall(u) ? 1 : 0.04)
       const r = rig
       if (!r) return
       const sh = r.bone('RightArm').getWorldPosition(pA)
@@ -342,7 +343,7 @@ export const careScene3D = make3D(() => {
   const call = careCall(careAt(careT))
   const [px, py] = at('glass'), [qx, qy] = at('phone')
   if (call) chip(g, call, px, py)
-  label(g, 'CAREGIVER', Math.min(qx, DW - 70), qy + 62)
+  label(g, 'CAREGIVER', Math.min(qx, DW - 70), qy + 74)
 }, (g, at, t) => {
   const u = careAt(t)
   const [hx, hy] = at('hand'), [lx, ly] = at('lapScreen'), [px, py] = at('glass')
@@ -356,14 +357,27 @@ export const careScene3D = make3D(() => {
       g.beginPath(); g.arc(hx, hy, 10 + p * (d - 10), dir - 0.35, dir + 0.35); g.stroke()
     }
   }
-  // the event leaves ECHØ: a dotted path from the laptop to the phone, and a bright pulse travelling along it
-  g.setLineDash([2, 6]); g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 1.4
-  const mx = (lx + px) / 2, my = Math.min(ly, py) - 40
-  g.beginPath(); g.moveTo(lx, ly); g.quadraticCurveTo(mx, my, px, py); g.stroke(); g.setLineDash([])
+  // the event leaves ECHØ as a wireless broadcast: arcs ripple out of the laptop toward the phone, and a wave packet
+  // travels along a path that drops below the bed and comes up at the phone, so it never crosses the patient
+  const mx = (lx + px) / 2, my = Math.max(ly, py) + 70
+  const bez = (q: number): [number, number] => [(1 - q) * (1 - q) * lx + 2 * (1 - q) * q * mx + q * q * px, (1 - q) * (1 - q) * ly + 2 * (1 - q) * q * my + q * q * py]
+  g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = 1.2
+  g.beginPath(); g.moveTo(lx, ly); g.quadraticCurveTo(mx, my, px, py); g.stroke()
   const p = carePulse(u)
   if (p !== null) {
-    const x = (1 - p) * (1 - p) * lx + 2 * (1 - p) * p * mx + p * p * px, y = (1 - p) * (1 - p) * ly + 2 * (1 - p) * p * my + p * p * py
-    const glow = g.createRadialGradient(x, y, 0, x, y, 14); glow.addColorStop(0, 'rgba(255,255,255,1)'); glow.addColorStop(1, 'rgba(255,255,255,0)')
-    g.fillStyle = glow; g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 2); g.fill()
+    const toward = Math.atan2(my - ly, mx - lx)
+    for (let k = 0; k < 4; k++) {
+      const q = p * 1.6 - k * 0.16
+      if (q <= 0 || q >= 1) continue
+      g.strokeStyle = `rgba(255,255,255,${(0.9 * (1 - q)).toFixed(3)})`; g.lineWidth = 2.4
+      g.beginPath(); g.arc(lx, ly, 10 + q * 70, toward - 0.55, toward + 0.55); g.stroke()
+    }
+    const [x, y] = bez(p), [x2, y2] = bez(Math.min(1, p + 0.02)), a = Math.atan2(y2 - y, x2 - x)
+    const glow = g.createRadialGradient(x, y, 0, x, y, 16); glow.addColorStop(0, 'rgba(255,255,255,1)'); glow.addColorStop(1, 'rgba(255,255,255,0)')
+    g.fillStyle = glow; g.beginPath(); g.arc(x, y, 16, 0, Math.PI * 2); g.fill()
+    for (let k = 1; k <= 3; k++) {
+      g.strokeStyle = `rgba(255,255,255,${(1 - k * 0.25).toFixed(2)})`; g.lineWidth = 2
+      g.beginPath(); g.arc(x - Math.cos(a) * 6, y - Math.sin(a) * 6, 6 + k * 7, a - 0.7, a + 0.7); g.stroke()
+    }
   }
 })
