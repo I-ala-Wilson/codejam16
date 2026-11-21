@@ -35,7 +35,7 @@ export default function Lock() {
     if (!listening) return
     let timer = 0
     const off = engine.onGesture((g) => {
-      if (g.type === 'HOLD') return
+      if (g.type === 'HOLD' || g.type === 'REPETITIVE') return // habit motion is not a password sign
       setHeard(g.type === 'UNDO' ? 'double tap: last sign deleted' : `heard ${g.type.replace('_', '/').toLowerCase()}`)
       clearTimeout(timer); timer = window.setTimeout(() => setHeard(''), 1400)
     })
@@ -196,7 +196,15 @@ function SonarMeter() {
     const ctx = c.getContext('2d')!
     const hist = new Float32Array(W)
     let level = 0
-    const off = engine.onFrame((f) => { level = Math.max(level * 0.8, Math.min(1, (Math.max(0, f.energyToward) + Math.max(0, f.energyAway)) / 30)) })
+    // volume-independent level: how far the echo energy is above the room's learned normal, in units of its jitter
+    let mean = 0, dev = 1, n = 0
+    const off = engine.onFrame((f) => {
+      const e = Math.max(0, f.energyToward) + Math.max(0, f.energyAway)
+      const z = (e - mean) / (dev + 1e-6), moving = n > 60 && z > 4
+      const k = n < 60 ? 0.1 : moving ? 0.002 : 0.02
+      mean += (e - mean) * k; dev += (Math.abs(e - mean) - dev) * k; n++
+      level = Math.max(level * 0.85, n > 60 ? Math.min(1, Math.max(0, (z - 3) / 10)) : 0)
+    })
     const id = setInterval(() => {
       hist.copyWithin(0, 1); hist[W - 1] = level
       const img = ctx.createImageData(W, H)
