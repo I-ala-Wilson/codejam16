@@ -76,3 +76,25 @@ Pooled rep recall for an unseen person: PUSH 49%, PULL 53%, WAVE 49%, OPEN_CLOSE
 - Things not tried because the 8-candidate budget was spent: per-take input normalisation (SNR reference), a longer
   window, per-class thresholds, hard-negative mining from the live-test false alarms. The Saturday live-test false
   alarms are the right hard negatives to add.
+
+## Is a short per-user calibration worth it? (Ian's MacBook Pro, `calibration.py`, 2 seeds)
+Ian recorded one session with each hand. Train on the 4 other people plus the first N cues of every take of one hand,
+test on the other hand's session (both directions averaged). Table: `calibration/CALIBRATION.md`.
+
+| training data | macro recall | false alarms/min | PUSH | PULL | WAVE | OPEN_CLOSE | UNDO | HABIT |
+|---|---|---|---|---|---|---|---|---|
+| the 4 others only | 0.558 | 2.72 | 0.51 | 0.30 | 0.76 | 0.84 | 0.88 | 0.07 |
+| + 5 cues per take (about 5 min of recording) | 0.648 | 2.35 | 0.53 | 0.51 | 0.78 | 0.92 | 0.80 | 0.35 |
+| + 5 cues per take, repeated 5x | 0.638 | 2.64 | 0.53 | 0.46 | 0.76 | 0.88 | 0.84 | 0.36 |
+| + 20 cues per take (a whole battery, about 17 min) | 0.679 | 2.56 | 0.51 | 0.64 | 0.77 | 0.93 | 0.86 | 0.36 |
+| + 20 cues per take, repeated 5x | 0.711 | 2.72 | 0.62 | 0.64 | 0.82 | 0.92 | 0.83 | 0.44 |
+
+- Five minutes of the demo person's own recording lifts macro recall by about 0.09, a whole battery by 0.12 to 0.15,
+  with no extra false alarms. PULL and HABIT gain most; PUSH barely moves (it stays confused with PULL).
+- Without any calibration Ian's MacBook Pro already scores 0.56, well above the 0.43 for an unseen person overall, because
+  two other MacBook Pro people (Naomi, Michael) are in the training set: the same laptop model has the same strong echo.
+- Caveats: one person, 2 seeds, and the test hand differs from the calibration hand, so a same-hand calibration should
+  help more, not less. The numbers carry the selection caveats above.
+- Recommendation: do not build in-app fine-tuning (onnxruntime-web cannot train). The cheap version needs no new code:
+  record about 5 cues per gesture on the demo laptop right before the demo with the existing Dataset recording tab, add
+  the takes to `data/recordings`, run `ml/run.py final data/recordings` (about 3 minutes on the GPU) and ship the model.
