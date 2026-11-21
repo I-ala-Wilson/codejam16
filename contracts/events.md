@@ -19,6 +19,7 @@ alter publication supabase_realtime add table public.events;
 | app | kind | when | payload |
 |---|---|---|---|
 | care | `help` | patient does the help gesture (WAVE >= 2 s) | `{confidence}` |
+| care | `help_cancelled` | double tap (UNDO) within 5 s of a help | `{}` |
 | care | `inactive` | no motion for N s (demo: 30 s) | `{seconds}` |
 | care | `activity` | every 10 s while running | `{level: 0..1, gestures: n}` |
 | lock | `unlock_ok` | correct secret sequence | `{}` |
