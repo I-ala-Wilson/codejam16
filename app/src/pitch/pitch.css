@@ -27,6 +27,11 @@
 }
 
 .pz__cards--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+/* each card spans three shared rows, so titles, categories and text line up even when a title wraps */
+.pz__cards--4 { row-gap: 0; }
+.pz__cards--4 .pz__card { display: grid; grid-row: span 3; grid-template-rows: subgrid; margin-bottom: 32px; }
+.pz__cards--4 .pz__cardhead { align-items: flex-start; }
+.pz__cards--4 .pz__idx { top: 6px; }
 @media (max-width: 1200px) { .pz__cards--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .pz__cards--4 { grid-template-columns: 1fr; } }
 
