@@ -553,7 +553,7 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   const FAR = new V(0.07, 0.93, 0.25), NEAR = new V(0.07, 0.93, 0.08)
   const pose = (g: number, u: number, out: THREE.Vector3) => {
     out.copy(FAR)
-    let curl = 0.12, tilt = 0, spread = 0, point = 0, tap = 0
+    let curl = 0.12, tilt = 0, spread = 0, point = 0
     if (g === 0) { out.y += 0.0015 * Math.sin(u * 2.1); out.z += 0.001 * Math.sin(u * 1.3) }
     else if (g === 1) { out.z = THREE.MathUtils.lerp(FAR.z, NEAR.z, ss((u - 0.5) / 2.2)); curl = 0; spread = 1 }
     else if (g === 2) { out.z = THREE.MathUtils.lerp(NEAR.z, FAR.z, ss((u - 0.5) / 2.2)); curl = 0; spread = 1 }
@@ -564,18 +564,16 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
       tilt = -0.35 * Math.cos(ph) * env
     } else if (g === 4) curl = 0.5 - 0.5 * Math.cos((2 * Math.PI * u) / 2) // open hand to full fist and back
     else {
-      // UNDO: hand turns palm down and points the index at the screen, then double-clicks the air with that finger
-      // (two 0.15 s knuckle flexes 0.2 s apart, the wrist nudging forward ~1.5 cm with each), then a pause
+      // UNDO: double-tapping a vertical touchscreen. The hand turns to point a straight index level at the laptop
+      // screen, then jabs straight forward ~3.5 cm and back twice (0.15 s each, 0.2 s apart), then a pause
       point = ss(u / 0.45) * ss((3 - u) / 0.45)
       out.y += 0.06 * point // lift the pointing hand clear of the keyboard
       curl = 0.12 + 0.58 * point // the other three fingers curl to ~70%, the thumb rests on the middle finger
       for (const t0 of [0.8, 1.15]) if (u > t0 && u < t0 + 0.15) {
-        const b = Math.sin((Math.PI * (u - t0)) / 0.15)
-        tap = b
-        out.z -= 0.015 * b
+        out.z -= 0.035 * Math.sin((Math.PI * (u - t0)) / 0.15)
       }
     }
-    return { curl, tilt, spread, point, tap }
+    return { curl, tilt, spread, point }
   }
 
   let gi = 0, gu = 0, simT = 0, camT = 0
@@ -592,21 +590,23 @@ export function createExplainer(host: HTMLElement, hooks: Hooks): Controls {
   let vSm = 0, prevAvg = -1
   let nextEmit = 0
 
+  // UNDO hand: index level toward the screen, palm turned sideways and ~30° down
+  const POINT_F = new V(0, 0, -1), POINT_N = new V(-Math.cos(Math.PI / 6), -Math.sin(Math.PI / 6), 0)
   const Hgoal = new V(), qTilt = new THREE.Quaternion(), qC = new THREE.Quaternion(), eTilt = new THREE.Euler(), fDir = new V(), pN = new V(), mid = new V()
   const placeHand = () => {
     const p = pose(gi, gu, Ht)
     if (blendT < 1) Hgoal.lerpVectors(blendFrom, Ht, ss(blendT)); else Hgoal.copy(Ht)
     curl = p.curl; tilt = p.tilt; spread = p.spread
-    const point = p.point, tap = p.tap
+    const point = p.point
     if (rig) {
       // Palm to the laptop, fingers up, rolled by the wave tilt; the echo then reflects off the real palm
       wrist.copy(Hgoal).add(new V(0, -0.055, 0.012))
-      qTilt.setFromEuler(eTilt.set(-0.45 - point * (Math.PI / 2 - 0.75), 0, tilt))
-      fDir.set(0, 1, 0).applyQuaternion(qTilt)
-      pN.set(0, 0, -1).applyQuaternion(qTilt)
+      qTilt.setFromEuler(eTilt.set(-0.45, 0, tilt))
+      fDir.set(0, 1, 0).applyQuaternion(qTilt).lerp(POINT_F, point)
+      pN.set(0, 0, -1).applyQuaternion(qTilt).lerp(POINT_N, point)
       solveArm(rig, 'Right', wrist, new V(0.45, -1, 0.35), fDir, pN)
       for (const c of rig.curl) {
-        const cu = c.index ? THREE.MathUtils.lerp(curl, 0.05 + 0.32 * tap, point) : c.thumb ? Math.max(curl, point) : curl
+        const cu = c.index ? THREE.MathUtils.lerp(curl, 0, point) : c.thumb ? Math.max(curl, point) : curl
         c.b.quaternion.copy(c.q).multiply(qC.setFromAxisAngle(c.axis, cu * c.k)).multiply(qC.setFromAxisAngle(c.spread, spread * c.ks))
       }
       const h = rig.bone('RightHand')
