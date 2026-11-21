@@ -56,8 +56,12 @@ export default function BreathRecord() {
     try {
       const rec = await engine.stopRecording()
       const name = `breath-${k.id}-${rec.filename}`
+      // The recorder marks a take's reps from motion energy, and gentle breathing barely moves the echo, so its rep can
+      // be a fraction of a second. A breathing take is one continuous recording: its single rep spans all of it
+      // (the engine's WAV is float32 mono with a 44-byte header).
+      const wholeTake = [{ start: 0, end: Math.floor((rec.wav.size - 44) / 4), label: 'FREE' }]
       download(await toPcm16(rec.wav), name)
-      download(new Blob([JSON.stringify({ ...rec.meta, breath: { take: k.id, paced_bpm: k.rate, hold: k.id === 'hold' ? [20, 40] : null, inhale_starts_s: inhales } }, null, 2)], { type: 'application/json' }), name.replace(/\.wav$/, '.json'))
+      download(new Blob([JSON.stringify({ ...rec.meta, reps: wholeTake, breath: { take: k.id, paced_bpm: k.rate, hold: k.id === 'hold' ? [20, 40] : null, inhale_starts_s: inhales } }, null, 2)], { type: 'application/json' }), name.replace(/\.wav$/, '.json'))
       setDone((d) => [...d, k.id])
     } catch (e) { setError(String(e)) }
     setTake(null)
