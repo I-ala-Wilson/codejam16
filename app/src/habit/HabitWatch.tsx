@@ -3,7 +3,7 @@ import { Toast } from '@ui/index.ts'
 import { engine } from '../engine.ts'
 import { sendEvent } from '../events.ts'
 import { chime, ensureSonar } from '../sonar.ts'
-import { firstNudgeThisHour, habitOn, logHabit, snooze, snoozedUntil, today } from './store.ts'
+import { habitOn, logHabit, snooze, snoozedUntil } from './store.ts'
 import './habit.css'
 
 // Habit mode runs app-wide, like the lock guardian: when the sonar hears repetitive hand motion (scratching,
@@ -69,10 +69,7 @@ export default function HabitWatch() {
     if (t - lastInput.current < INPUT_QUIET_MS || t - lastNudge.current < COOLDOWN_MS) return
     lastNudge.current = t
     logHabit(t); chime(true, 0.02)
-    show(`hands · ${today().length} today`)
-    if (firstNudgeThisHour()) {
-      setBar(true); clearTimeout(hideBar.current); hideBar.current = window.setTimeout(() => setBar(false), BAR_MS)
-    }
+    setBar(true); clearTimeout(hideBar.current); hideBar.current = window.setTimeout(() => setBar(false), BAR_MS)
     sendEvent('habit', 'habit_detected', { seconds: 1.5, habit: 'scratching', confidence: g.confidence }, 'REPETITIVE')
   }), [])
 
