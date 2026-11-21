@@ -1,5 +1,5 @@
 import DitherCanvas from '../hwb/DitherCanvas.tsx'
-import { careScene } from './scenes.ts'
+import { careScene3D } from './scenes3d.ts'
 import './pitch.css'
 
 // Home pitch chapter: Care, the Health challenge. Figures supplied by the lead from the team's pitch document.
@@ -27,7 +27,7 @@ export default function CareChapter({ go }: { go: (page: string) => void }) {
           <p className="pz__line">ECHØ has no lens and stores no audio. Only the event leaves the room.</p>
           <button className="pz__btn" onClick={() => go('care')}>Open live demo</button>
         </div>
-        <div className="pz__frame"><DitherCanvas scene={careScene} label="A patient in bed waves; sound arcs travel from a bedside laptop to the hand and back, and the caregiver's phone lights up with HELP." /></div>
+        <div className="pz__frame"><DitherCanvas scene={careScene3D} label="A patient in bed waves; sound arcs travel from a bedside laptop to the hand and back, and the caregiver's phone lights up with HELP." /></div>
       </div>
     </section>
   )

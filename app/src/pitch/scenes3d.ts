@@ -183,3 +183,66 @@ function noSign(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
   const a = Math.PI / 4
   g.beginPath(); g.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r); g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); g.stroke()
 }
+
+// ---------- Care: a hospital bed in 3/4 view, a waving hand, the bedside laptop and the caregiver's phone ----------
+const CARE_PERIOD = 3.2 // s per call: arcs travel for the first half, the phone shows HELP for the second
+const careLit = (t: number) => (t % CARE_PERIOD) > CARE_PERIOD * 0.5
+let careT = 0 // the scene clock, shared with the overlay (which gets no time argument)
+const PHONE_GLOW = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0x000000, roughness: 0.3 })
+
+export const careScene3D = make3D(() => {
+  const scene = stage(), camera = new THREE.PerspectiveCamera(30, DW / DH, 0.1, 100)
+  camera.position.set(2.5, 2.7, 6.3); camera.lookAt(0.55, -0.35, 0)
+  // bed: frame, mattress, pillow, blanket over the patient, head on the pillow
+  const bed = new THREE.Group(); bed.position.set(-1.3, -1.2, 0); scene.add(bed)
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.25, 1.6), GREY); frame.position.y = 0.2; bed.add(frame)
+  for (const [x, z] of [[-1.7, -0.7], [1.7, -0.7], [-1.7, 0.7], [1.7, 0.7]]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), GREY); leg.position.set(x, -0.15, z); bed.add(leg)
+  }
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.1, 1.6), GREY); head.position.set(-1.8, 0.75, 0); bed.add(head)
+  const mattress = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.3, 1.5), WHITE); mattress.position.y = 0.47; bed.add(mattress)
+  const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 1.0), WHITE); pillow.position.set(-1.35, 0.72, 0); bed.add(pillow)
+  const person = new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 16), GREY); person.position.set(-1.25, 0.98, 0); bed.add(person)
+  const blanket = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.28, 1.45), GREY); blanket.position.set(0.35, 0.75, 0); bed.add(blanket)
+  // forearm raised out of the blanket, hand at the top, pivoting at the elbow for a gentle wave
+  const elbow = new THREE.Group(); elbow.position.set(-0.3, 0.88, 0.45); bed.add(elbow)
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.1, 12), WHITE); arm.position.y = 0.55; elbow.add(arm)
+  const hand = new THREE.Group(); hand.position.y = 1.18; elbow.add(hand)
+  hand.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.36, 0.1), WHITE))
+  for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.28, 0.08), WHITE); f.position.set(-0.12 + i * 0.08, 0.31, 0); hand.add(f) }
+  const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.2, 0.08), WHITE); thumb.position.set(0.21, 0.02, 0); thumb.rotation.z = -0.6; hand.add(thumb)
+  // bedside table with the laptop
+  const table = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.0, 0.9), DARK); table.position.set(1.35, -1.0, 0.2); scene.add(table)
+  const lap = laptop(); lap.scale.setScalar(0.42); lap.position.set(1.35, -0.48, 0.2); lap.rotation.y = -0.9; scene.add(lap)
+  const lapScreen = new THREE.Object3D(); lapScreen.position.set(0, 0.7, -0.6); lap.add(lapScreen)
+  // caregiver phone, standing on the right, screen lights when the call arrives
+  const phone = new THREE.Group(); phone.position.set(3.25, -0.2, 0.6); phone.rotation.y = -0.45; scene.add(phone)
+  phone.add(new THREE.Mesh(new THREE.BoxGeometry(0.62, 1.2, 0.08), DARK))
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.52, 1.02), PHONE_GLOW); glass.position.z = 0.045; phone.add(glass)
+  return {
+    scene, camera, anchors: { hand, lapScreen, glass, phone },
+    update(t) {
+      careT = t
+      elbow.rotation.z = Math.sin(t * 4.2) * 0.32
+      PHONE_GLOW.emissive.setScalar(careLit(t) ? 0.95 : 0.05)
+    },
+  }
+}, (g, at) => {
+  const [px, py] = at('glass'), [qx, qy] = at('phone', 46)
+  if (careLit(careT)) chip(g, 'HELP', px, py)
+  label(g, 'CAREGIVER', qx, qy + 16)
+}, (g, at, t) => {
+  // thin flower-style arcs leaving the hand toward the laptop, fading as they travel; none while the phone shows HELP
+  const [hx, hy] = at('hand'), [lx, ly] = at('lapScreen')
+  const dir = Math.atan2(ly - hy, lx - hx), d = Math.hypot(lx - hx, ly - hy)
+  const p0 = (t % CARE_PERIOD) / (CARE_PERIOD * 0.5)
+  g.lineCap = 'round'
+  for (let i = 0; i < 3; i++) {
+    const p = p0 - i * 0.18
+    if (p < 0 || p > 1) continue
+    const a = 1 - p
+    g.strokeStyle = `rgba(255,255,255,${(0.35 + a * 0.6).toFixed(3)})`
+    g.lineWidth = 2.2
+    g.beginPath(); g.arc(hx, hy, 14 + p * (d - 14), dir - 0.42, dir + 0.42); g.stroke()
+  }
+})
