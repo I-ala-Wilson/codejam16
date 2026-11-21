@@ -5,8 +5,8 @@ import { Window } from '@ui/index.ts'
 
 const MOVE_HZ = 40      // a real hand push/pull shifts the echo by roughly 50-130 Hz
 const REPS = 5
-const REP_WINDOW_MS = 3000
-const REST_MS = 1500
+const REP_WINDOW_MS = 1500 // ends early as soon as the move is detected
+const REST_MS = 900
 
 type Dist = 'near' | 'far'
 type Move = 'push' | 'pull'
@@ -59,8 +59,10 @@ export default function RoomTest() {
       return () => clearTimeout(t)
     }
     const started = Date.now()
-    const tick = setInterval(() => setCountdown(Math.max(0, Math.ceil((REP_WINDOW_MS - (Date.now() - started)) / 1000))), 200)
-    const done = setTimeout(() => {
+    let finished = false
+    const finish = () => {
+      if (finished) return
+      finished = true
       const peak = peakRef.current
       const ok = move === 'push' ? peak >= MOVE_HZ : peak <= -MOVE_HZ
       setResults((r) => [...r, { move, dist: reps, peak, ok }])
@@ -68,8 +70,14 @@ export default function RoomTest() {
       else if (move === 'push') setStep({ reps, move: 'pull', rep: 1, resting: true })
       else if (reps === 'near') setStep({ reps: 'far', move: 'push', rep: 1, resting: true })
       else setStep('results')
-    }, REP_WINDOW_MS)
-    return () => { clearInterval(tick); clearTimeout(done) }
+    }
+    const tick = setInterval(() => {
+      const elapsed = Date.now() - started
+      setCountdown(Math.max(0, Math.ceil((REP_WINDOW_MS - elapsed) / 1000)))
+      const hit = move === 'push' ? peakRef.current >= MOVE_HZ : peakRef.current <= -MOVE_HZ
+      if ((hit && elapsed > 250) || elapsed >= REP_WINDOW_MS) finish()
+    }, 50)
+    return () => { finished = true; clearInterval(tick) }
   }, [step])
 
   const start = async () => {
@@ -158,7 +166,7 @@ export default function RoomTest() {
             <>
               <Big>{step.move === 'push' ? 'PUSH toward the screen' : 'PULL away from the screen'}</Big>
               <p>One brisk move of about 15 cm (like pressing a doorbell), then stop and hold.</p>
-              <p>Rep {step.rep} of {REPS} · {countdown}s left</p>
+              <p>Rep {step.rep} of {REPS}: moves on as soon as it sees your move</p>
             </>
           )}
           <p>

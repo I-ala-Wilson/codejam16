@@ -4,8 +4,8 @@ import { Window } from '@ui/index.ts'
 import { engine } from './engine.ts'
 
 const REPS = 20
-const GO_MS = 1300
-const REST_MS = 1200
+const GO_MS = 1000
+const REST_MS = 900
 
 type Item = { gesture: GestureType | 'FREE'; how: string }
 const GESTURES: Item[] = [
@@ -106,7 +106,7 @@ export default function Record() {
             {running ? '✓ Sonar is on.' : <button onClick={startSonar} disabled={!ready}>Start sonar and calibrate (keep still 3 s)</button>}
             {!ready && ' Fill in step 1 first.'}
           </Box>
-          <Box title={`3. Record each gesture (${REPS} reps, about 50 s each)`}>
+          <Box title={`3. Record each gesture (${REPS} reps, about 40 s each)`}>
             <p>Sit in front of the laptop, hand about 20 cm from the screen. Press a gesture, then do the move every time the screen says <b>GO</b>. Two files download per gesture (a .wav and a .json). When you've done all of them, tell your agent: <b>"move my Echo recordings from Downloads into data/recordings/&lt;my GitHub login&gt;/ and push them"</b>.</p>
             {GESTURES.map((g) => (
               <div key={g.gesture} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0' }}>
