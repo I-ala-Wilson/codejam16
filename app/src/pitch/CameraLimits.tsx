@@ -4,7 +4,7 @@ import './pitch.css'
 
 // Home pitch chapter: why gesture sensing should not rely on a camera. Three dithered tiles, one fact each.
 const TILES = [
-  { name: 'Cost', scene: costTile, alt: 'A camera or lidar rig on a tripod marked $$$ beside an ordinary laptop marked $0.', line: 'Camera and lidar rigs cost money to buy and install. A speaker and a microphone are already in every laptop, at no extra cost.' },
+  { name: 'Cost', scene: costTile, alt: 'A camera or lidar rig on a tripod marked $$$ beside an ordinary laptop marked $0.', line: 'Camera and lidar rigs cost money to buy and install. A speaker and a microphone are already in almost every smart device, at no extra cost.' },
   { name: 'Privacy', scene: privacyTile, alt: 'A restroom door and a crossed-out camera; a laptop sends sound instead.', line: 'Privacy regulators keep cameras out of hospital bathrooms, and patient rooms require consent. Sound carries no image.' },
   { name: 'Darkness', scene: darkTile, alt: 'A moon, a blind camera with a cross, and sound waves that still reach a hand.', line: 'Every camera fails in the dark. Sound works the same with the lights off.' },
 ]

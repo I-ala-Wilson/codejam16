@@ -60,11 +60,13 @@ function videoCamera(): THREE.Group {
 
 function tripod(): THREE.Group {
   const g = new THREE.Group()
+  const L = 1.9, spread = 0.75
   for (let i = 0; i < 3; i++) {
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.9, 8), GREY)
-    const a = (i / 3) * Math.PI * 2
-    leg.position.set(Math.cos(a) * 0.35, -0.95, Math.sin(a) * 0.35)
-    leg.rotation.set(Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35)
+    const a = (i / 3) * Math.PI * 2 + 0.5
+    const top = new THREE.Vector3(0, -0.4, 0), foot = new THREE.Vector3(Math.cos(a) * spread, -0.4 - L, Math.sin(a) * spread)
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, top.distanceTo(foot), 8), GREY)
+    leg.position.copy(top).add(foot).multiplyScalar(0.5)
+    leg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), top.clone().sub(foot).normalize())
     g.add(leg)
   }
   return g
@@ -86,7 +88,7 @@ function shells(n: number, dir: THREE.Vector3): { group: THREE.Group; update: (t
   const group = new THREE.Group()
   const rings: THREE.Mesh[] = []
   for (let i = 0; i < n; i++) {
-    const m = new THREE.Mesh(new THREE.TorusGeometry(1, 0.03, 6, 72), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true }))
+    const m = new THREE.Mesh(new THREE.TorusGeometry(1, 0.022, 6, 96), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true }))
     m.lookAt(dir)
     group.add(m); rings.push(m)
   }
@@ -122,54 +124,42 @@ export const costTile3D = make3D(() => {
 
 export const privacyTile3D = make3D(() => {
   const scene = stage(), camera = cam()
-  const door = new THREE.Group(); door.position.set(-1.9, 0, 0); scene.add(door)
-  door.add(new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.9, 0.12), WHITE))
-  for (const y of [0.6, -0.6]) { const p = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.95, 0.04), GREY); p.position.set(0, y, 0.08); door.add(p) }
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.05), DARK); plate.position.set(0, 1.15, 0.1); door.add(plate)
-  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 12), GREY); knob.position.set(0.55, -0.05, 0.12); door.add(knob)
-  const vc = videoCamera(); vc.scale.setScalar(0.65); vc.position.set(1.9, 0.9, 0); scene.add(vc)
-  const lap = laptop(); lap.scale.setScalar(0.75); lap.position.set(1.9, -1.15, 0); scene.add(lap)
+  const door = new THREE.Group(); door.position.set(0, -0.1, 0); door.scale.setScalar(0.85); scene.add(door)
+  door.add(new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.6, 0.12), WHITE))
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.8, 0.06), DARK); frame.position.z = -0.08; door.add(frame)
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.32, 0.05), DARK); plate.position.set(0, 0.75, 0.09); door.add(plate)
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 12), GREY); knob.position.set(0.55, -0.1, 0.12); door.add(knob)
+  const vc = videoCamera(); vc.scale.setScalar(0.45); vc.position.set(0.15, 1.45, 0.2); door.add(vc)
   return {
-    scene, camera, anchors: { door, vc, lap },
+    scene, camera, anchors: { door, vc, plate },
     update(t) {
-      door.rotation.y = 0.45 + Math.sin(t * 0.5) * 0.25
-      vc.rotation.y = -0.4 + Math.sin(t * 0.7) * 0.4
-      lap.rotation.y = -0.4 + Math.sin(t * 0.5 + 1) * 0.25
+      door.rotation.y = Math.sin(t * 0.5) * 0.45
+      vc.rotation.y = 0.9
     },
   }
 }, (g, at) => {
-  const [dx] = at('door'), [vx, vy] = at('vc'), [lx] = at('lap')
-  label(g, 'NO LENS', vx, vy - 52)
-  cross(g, vx, vy, 44)
-  label(g, 'HOSPITAL BATHROOM', dx, 312); label(g, 'SOUND ONLY', lx, 312)
+  const [vx, vy] = at('vc'), [px, py] = at('plate')
+  cross(g, vx, vy, 34)
+  label(g, 'WC', px, py)
+  label(g, 'NO CAMERAS IN HERE', DW / 2, 312)
 })
 
 export const darkTile3D = make3D(() => {
-  const scene = stage(0.55), camera = cam()
-  const moon = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 24), WHITE); moon.position.set(-2.7, 1.25, -1); scene.add(moon)
-  const moonLight = new THREE.DirectionalLight(0xffffff, 3); moonLight.position.set(-2.7, 1.25, -9); moonLight.target = moon; scene.add(moonLight)
-  const vc = videoCamera(); vc.scale.setScalar(0.7); vc.position.set(-1.0, -0.2, 0); scene.add(vc)
-  const lap = laptop(); lap.scale.setScalar(0.8); lap.position.set(1.7, -1.2, 0); scene.add(lap)
-  const hand = new THREE.Group(); hand.position.set(2.3, 0.9, 0.4); scene.add(hand)
-  hand.add(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.65, 0.16), WHITE))
-  for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.36, 4, 8), WHITE); f.position.set(-0.2 + i * 0.135, 0.56, 0); hand.add(f) }
-  const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.28, 4, 8), WHITE); thumb.position.set(0.34, 0.05, 0); thumb.rotation.z = -0.9; hand.add(thumb)
-  const s = shells(4, new THREE.Vector3(0, 1.1, 6.6)); s.group.position.set(1.7, -0.3, 0); scene.add(s.group)
+  // the room is dark: the laptop is barely lit, and only its sound is bright
+  const scene = stage(0.35), camera = cam()
+  const lap = laptop(); lap.scale.setScalar(1.05); lap.position.set(0.3, -1.1, 0); scene.add(lap)
+  const s = shells(3, new THREE.Vector3(0, 1.1, 6.6)); s.group.position.set(0.3, -0.15, 0.2); scene.add(s.group)
   return {
-    scene, camera, anchors: { vc, hand, lap },
+    scene, camera, anchors: { lap },
     update(t) {
       s.update(t)
-      hand.position.z = 0.4 + Math.sin(t * 2.2) * 0.35
-      hand.rotation.y = -0.4
-      vc.rotation.y = -0.5 + Math.sin(t * 0.5) * 0.3
-      lap.rotation.y = -0.35
+      lap.rotation.y = -0.35 + Math.sin(t * 0.4) * 0.2
     },
   }
 }, (g, at) => {
-  const [vx, vy] = at('vc'), [hx, hy] = at('hand'), [lx] = at('lap')
-  cross(g, vx, vy, 40)
-  label(g, 'CAMERA: BLIND', vx, 312); label(g, 'SONAR: HEARS', lx, 312)
-  void hx; void hy
+  const [lx] = at('lap')
+  moon(g, 110, 70, 30)
+  label(g, 'LIGHTS OFF, STILL LISTENING', lx, 312)
 })
 
 function label(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
@@ -184,4 +174,8 @@ function chip(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
 function cross(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
   g.strokeStyle = INK; g.lineWidth = 3
   g.beginPath(); g.moveTo(x - r, y - r * 0.7); g.lineTo(x + r, y + r * 0.7); g.moveTo(x + r, y - r * 0.7); g.lineTo(x - r, y + r * 0.7); g.stroke()
+}
+function moon(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  g.fillStyle = INK; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill()
+  g.fillStyle = '#000'; g.beginPath(); g.arc(x + r * 0.45, y - r * 0.25, r * 0.9, 0, Math.PI * 2); g.fill()
 }
