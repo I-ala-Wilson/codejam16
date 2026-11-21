@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { DH, DW, type Scene } from '../hwb/DitherCanvas.tsx'
+import { habitScene } from './scenes.ts'
 
 // 3D versions of the "Why not a camera" tiles: small lit three.js scenes rendered at low resolution, then ordered-
 // dithered by DitherCanvas exactly like the flower and the explainer. Labels stay crisp in the overlay.
@@ -156,6 +157,111 @@ export const darkTile3D = make3D(() => {
 function price(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
   g.font = '40px VT323, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = INK; g.fillText(s, x, y)
 }
+const scratchingHand = make3D(() => {
+  const scene = stage(), camera = cam()
+  camera.position.set(0, 3.9, 5.9)
+  camera.lookAt(0, 0, 0)
+  const lap = laptop()
+  lap.scale.setScalar(0.85)
+  lap.position.set(-2.45, -0.55, -0.95)
+  lap.rotation.y = 0.6
+  scene.add(lap)
+
+  // Partial rings leave the hand visible as each pulse crosses the gap.
+  const waveShape = new THREE.TorusGeometry(1, 0.045, 8, 40, Math.PI * 1.2)
+  const waves = Array.from({ length: 3 }, () => {
+    const wave = new THREE.Mesh(waveShape, new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, depthWrite: false,
+    }))
+    wave.rotation.set(0, 1.02, -Math.PI * 0.6)
+    scene.add(wave)
+    return wave
+  })
+
+  const sphere = new THREE.SphereGeometry(1, 32, 20)
+  function oval(parent: THREE.Object3D, material: THREE.Material, position: number[], scale: number[]) {
+    const part = new THREE.Mesh(sphere, material)
+    part.position.fromArray(position); part.scale.fromArray(scale)
+    parent.add(part)
+    return part
+  }
+  const arm = new THREE.Group()
+  arm.position.set(1, -0.5, 0)
+  arm.rotation.y = 0.34
+  scene.add(arm)
+  oval(arm, GREY, [0.28, 0, 0], [1.26, 0.35, 0.43])
+  oval(arm, DARK, [1.3, 0, 0], [0.8, 0.39, 0.47])
+  const restingHand = new THREE.Group()
+  restingHand.position.set(-0.85, 0.01, 0)
+  restingHand.rotation.x = 0.48
+  arm.add(restingHand)
+  oval(restingHand, new THREE.MeshBasicMaterial({ color: 0xffffff }), [0, 0, 0], [0.4, 0.17, 0.24])
+  // Cross sections widen from the heel to the knuckles, with a shallow crown on the back.
+  function palm(parent: THREE.Group) {
+    const shape = new THREE.Shape()
+    shape.moveTo(0.16, -0.16)
+    shape.bezierCurveTo(-0.06, -0.19, -0.30, -0.40, -0.69, -0.35)
+    shape.quadraticCurveTo(-0.96, -0.05, -0.82, 0.33)
+    shape.bezierCurveTo(-0.55, 0.40, -0.25, 0.29, 0.16, 0.15)
+    shape.closePath()
+    const mesh = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, {
+      depth: 0.09, bevelEnabled: true, bevelSize: 0.055, bevelThickness: 0.055, bevelSegments: 3,
+    }), WHITE)
+    mesh.rotation.x = Math.PI / 2
+    mesh.position.y = 0.05
+    parent.add(mesh)
+  }
+  palm(restingHand)
+  for (const [i, length] of [0.58, 0.76, 0.82, 0.72].entries()) {
+    const z = (i - 1.5) * 0.195
+    const spread = z * 0.53
+    const root = -0.83 + Math.abs(z - 0.08) * 0.35
+    finger(restingHand, [[root, 0, z], [root - length * 0.50, 0.015, z + spread * 0.55],
+      [root - length, -0.065, z + spread]], i === 0 ? 0.066 : 0.075)
+  }
+  finger(restingHand, [[-0.17, 0, 0.18], [-0.35, -0.01, 0.37], [-0.55, -0.03, 0.55], [-0.74, -0.055, 0.60]], 0.09)
+
+  const hand = new THREE.Group()
+  scene.add(hand)
+  oval(hand, WHITE, [0.18, 0.37, 0], [0.52, 0.18, 0.39])
+  oval(hand, GREY, [0.85, 0.59, -0.04], [0.65, 0.19, 0.22]).rotation.z = 0.32
+  function finger(parent: THREE.Group, points: number[][], radius: number) {
+    const path = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3().fromArray(p)))
+    parent.add(new THREE.Mesh(new THREE.TubeGeometry(path, 18, radius, 10, false), WHITE))
+    oval(parent, WHITE, points[points.length - 1], [radius, radius, radius])
+  }
+  for (const [i, length] of [0.86, 0.92, 0.82, 0.66].entries()) {
+    const z = 0.22 - i * 0.15
+    finger(hand, [[-0.08, 0.39, z], [-length * 0.65, 0.41, z], [-length, 0.23, z], [-length + 0.09, 0.02, z]], 0.069)
+  }
+  finger(hand, [[0.32, 0.36, 0.18], [0.12, 0.30, 0.32], [-0.12, 0.22, 0.39], [-0.25, 0.20, 0.36]], 0.085)
+  return { scene, camera, update(t) {
+    const pause = Math.min(1, Math.max(0, (t % 5 - 2.2) * 4), Math.max(0, (4.7 - t % 5) * 3))
+    hand.position.set(1.18 + 0.23 * Math.sin(t * 15) * (1 - pause), -0.13 + 0.57 * pause, 0.02)
+    hand.rotation.y = -0.4
+      waves.forEach((wave, i) => {
+        const progress = (t * 0.55 + i / waves.length) % 1
+        wave.position.set(-1.88 + progress * 1.65, -0.26 + progress * 0.16, -0.66 + progress * 0.53)
+        wave.scale.setScalar(0.22 + progress * 0.53)
+        wave.material.opacity = Math.min(1, progress * 12, (1 - progress) * 5)
+      })
+  } }
+}, () => {})
+
+let habitWebGL = true
+export const habitScene3D: Scene = {
+  draw(g, t) {
+    if (habitWebGL) {
+      try { scratchingHand.draw(g, t); return } catch { habitWebGL = false }
+    }
+    habitScene.draw(g, t)
+  },
+  overlay(g, t) {
+    if (!habitWebGL) { habitScene.overlay?.(g, t); return }
+    if (t % 5 > 2.2 && t % 5 < 4.2) chip(g, 'Hands down for a moment.', DW / 2, 295)
+  },
+}
+
 function label(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
   g.font = '26px VT323, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = INK; g.fillText(s, x, y)
 }
