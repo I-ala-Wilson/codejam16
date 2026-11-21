@@ -66,6 +66,11 @@ export default function Dataset({ only }: { only: BatteryName }) {
   const frames = useRef(0)
   const leadInMotion = useRef(false)
   const phaseRef = useRef<Phase>('idle')
+  const aborted = useRef(false)
+  // Leaving this tab mid-take: stop and discard the recording (its labels would be wrong), never wedge the page.
+  useEffect(() => () => {
+    if (phaseRef.current !== 'idle') { aborted.current = true; engine.stopRecording().catch(() => {}) }
+  }, [])
 
   useEffect(() => {
     // a different person starts their own battery at take 1
@@ -102,9 +107,10 @@ export default function Dataset({ only }: { only: BatteryName }) {
     for (let s = 2; s > 0; s--) { setCount(s); await sleep(1000) }
     try {
       engine.startRecording({ person, gesture: t.kind === 'gesture' ? t.gesture : 'FREE', laptop, note: takeName(t) })
-    } catch (e) { setError(String(e)); return }
+    } catch (e) { setError(String(e)); setP('idle'); return }
     frames.current = 0
     leadInMotion.current = false
+    aborted.current = false
 
     // 3 s hands-off lead-in (still-room floor + NONE examples)
     setP('leadin')
@@ -128,6 +134,7 @@ export default function Dataset({ only }: { only: BatteryName }) {
       while (Date.now() < end) { setCount(Math.ceil((end - Date.now()) / 1000)); await sleep(250) }
     }
 
+    if (aborted.current) return
     setP('saving')
     try {
       const s = await engine.stopRecording()
@@ -243,3 +250,4 @@ function beep() {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+// note: an aborted take finishes its timers silently and is never saved (see the aborted check before saving)

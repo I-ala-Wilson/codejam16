@@ -10,7 +10,7 @@ const DEFAULT_SITES = ['youtube.com', 'tiktok.com', 'roblox.com']
 const MAX_FAILS = 3
 const LOCKOUT_MS = 30000
 
-type Mode = 'home' | 'set' | 'confirm' | 'unlock'
+type Mode = 'home' | 'verify' | 'set' | 'confirm' | 'unlock'
 
 export default function Lock() {
   const params = new URLSearchParams(location.search)
@@ -28,7 +28,7 @@ export default function Lock() {
   const [lockedUntil, setLockedUntil] = useState(0)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const listening = (mode === 'set' || mode === 'unlock') && running && Date.now() >= lockedUntil
+  const listening = (mode === 'set' || mode === 'unlock' || mode === 'verify') && running && Date.now() >= lockedUntil
   const { signs, reset } = useSignInput(listening)
 
   useEffect(() => { localStorage.setItem('echo.lock.sites', sites) }, [sites])
@@ -54,9 +54,14 @@ export default function Lock() {
 
   // Unlocking: the 4th sign is checked.
   useEffect(() => {
-    if (mode !== 'unlock' || signs.length !== LENGTH || !password) return
+    if ((mode !== 'unlock' && mode !== 'verify') || signs.length !== LENGTH || !password) return
     const attempt = signs
     reset()
+    if (mode === 'verify') {
+      if (matches(attempt, password)) { setFails(0); setMessage('✓ Current password OK. Now do the new one.'); setMode('set') }
+      else { setMessage('✗ That is not the current password.'); setMode('home') }
+      return
+    }
     if (matches(attempt, password)) {
       setFails(0); setMessage('✓ Correct. Unlocked.')
       sendEvent('lock', 'unlock_ok')
@@ -98,7 +103,7 @@ export default function Lock() {
         <>
           <Box title="1. Set the hand-sign password">
             <p>Do {LENGTH} hand signs in a row (PUSH, PULL, WAVE, OPEN/CLOSE). A double tap deletes the last one. You'll see what it read and confirm.</p>
-            <button onClick={() => { reset(); setMessage(''); setMode('set') }} disabled={!running}>
+            <button onClick={() => { reset(); setMessage(password ? 'Do the CURRENT password first.' : ''); setMode(password ? 'verify' : 'set') }} disabled={!running}>
               {password ? 'Change password' : 'Set password'}
             </button>
             {!running && ' Start the sonar first.'}
@@ -115,6 +120,14 @@ export default function Lock() {
             <p>Load <code>codejam16/extension</code> unpacked at chrome://extensions (Developer mode), then paste its ID here.</p>
           </Box>
         </>
+      )}
+
+      {mode === 'verify' && (
+        <Box title="Do the current password first">
+          <Slots signs={signs} />
+          <p>Only someone who knows the current hand signs can change them.</p>
+          <button onClick={() => { reset(); setMode('home') }}>Cancel</button>
+        </Box>
       )}
 
       {mode === 'set' && (
@@ -171,7 +184,9 @@ function Box({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-const siteList = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean)
+// accept 'youtube.com', 'www.youtube.com', 'https://www.youtube.com/watch?v=x' alike: keep only the bare host
+const siteList = (s: string) => [...new Set(s.split(',').map((x) => x.trim().toLowerCase())
+  .map((x) => x.replace(/^[a-z]+:\/\//, '').replace(/^www\./, '').split(/[/?#:]/)[0]).filter(Boolean))]
 const hostOf = (u: string) => { try { return new URL(u).hostname } catch { return u } }
 
 let actx: AudioContext | null = null

@@ -16,8 +16,9 @@ async function applyRules(sites) {
   })
 }
 
+let queue = Promise.resolve() // handle one message at a time: no LOCK/UNLOCK race
 chrome.runtime.onMessageExternal.addListener((msg, _sender, reply) => {
-  (async () => {
+  queue = queue.then(async () => {
     const st = await chrome.storage.local.get({ locked: false, sites: [] })
     if (msg.type === 'LOCK') {
       await chrome.storage.local.set({ locked: true, sites: msg.sites, appUrl: msg.appUrl || null })
@@ -29,6 +30,6 @@ chrome.runtime.onMessageExternal.addListener((msg, _sender, reply) => {
     } else if (msg.type === 'STATUS') {
       reply({ locked: st.locked, sites: st.sites, until: null })
     } else reply({ ok: false, error: 'unknown type' })
-  })()
+  }).catch((e) => reply({ ok: false, error: String(e) }))
   return true
 })
