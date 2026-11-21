@@ -288,11 +288,6 @@ export const agents: Scene = {
       g.strokeStyle = gray(1); g.lineWidth = 1.6
       const sx0 = n.who === 'YAHYA' ? n.x + 18 : n.x + ux * 20, sy0 = n.who === 'YAHYA' ? n.y : n.y + uy * 20 // Yahya's links leave from the tile's right side, clear of the labels
       g.beginPath(); g.moveTo(sx0, sy0); g.lineTo(h.x - ux * 15, h.y - uy * 15); g.stroke()
-      g.fillStyle = gray(0.3)
-      g.beginPath(); g.arc(h.x, h.y, 14, 0, TAU); g.fill(); g.stroke()
-      g.fillStyle = gray(1)
-      g.beginPath(); g.arc(h.x, h.y - 4, 4, 0, TAU); g.fill()
-      g.beginPath(); g.arc(h.x, h.y + 10, 7.5, Math.PI, TAU); g.fill()
     }
     // the board itself pulses when a message lands
     const land = u > 0.4 && u < 0.6 ? 1 - Math.abs(u - 0.5) * 10 : 0
@@ -316,6 +311,18 @@ export const agents: Scene = {
         g.beginPath(); g.moveTo(n.x + 2, n.y + 7); g.lineTo(n.x + 10, n.y + 7); g.stroke()
       }
       g.lineCap = 'butt'; g.lineJoin = 'miter'
+    }
+    // people drawn crisp too: a ring with a head and shoulders (Yahya once, for both of his agents)
+    for (const n of NODES) {
+      if (n.key === 'qa') continue
+      const h = humanAt(n)
+      g.fillStyle = BG; g.strokeStyle = INK; g.lineWidth = 1.5
+      g.beginPath(); g.arc(h.x, h.y, 14, 0, Math.PI * 2); g.fill(); g.stroke()
+      g.save(); g.beginPath(); g.arc(h.x, h.y, 13, 0, Math.PI * 2); g.clip()
+      g.fillStyle = INK
+      g.beginPath(); g.arc(h.x, h.y - 4, 4.2, 0, Math.PI * 2); g.fill()
+      g.beginPath(); g.ellipse(h.x, h.y + 11, 8.5, 6.5, 0, Math.PI, Math.PI * 2); g.fill()
+      g.restore()
     }
     // labels sit under each chip and each person, clear of the spokes that leave the chips toward the board
     for (const n of NODES) {
