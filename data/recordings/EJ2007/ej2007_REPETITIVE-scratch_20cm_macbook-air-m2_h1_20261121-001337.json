@@ -1,0 +1,144 @@
+{
+  "person": "EJ2007",
+  "gesture": "REPETITIVE",
+  "laptop": "macbook-air-m2",
+  "note": "SCRATCH at 20 cm",
+  "sampleRate": 48000,
+  "toneHz": 20000,
+  "toneDbfs": -36,
+  "reps": [
+    {
+      "start": 144384,
+      "end": 288384,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 385024,
+      "end": 529024,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 625664,
+      "end": 769664,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 865280,
+      "end": 1009280,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1105920,
+      "end": 1249920,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1345536,
+      "end": 1489536,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 1586176,
+      "end": 1730176,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 1825792,
+      "end": 1969792,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2066432,
+      "end": 2210432,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 2306048,
+      "end": 2450048,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 2546688,
+      "end": 2690688,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 2786304,
+      "end": 2930304,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3026944,
+      "end": 3170944,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3266560,
+      "end": 3410560,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3506176,
+      "end": 3650176,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 3746816,
+      "end": 3890816,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 3987456,
+      "end": 4131456,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 4227072,
+      "end": 4371072,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    },
+    {
+      "start": 4467712,
+      "end": 4611712,
+      "label": "REPETITIVE",
+      "speed": "natural"
+    },
+    {
+      "start": 4707328,
+      "end": 4851328,
+      "label": "REPETITIVE",
+      "speed": "brisk"
+    }
+  ],
+  "createdAt": "2026-11-21T00:13:37-05:00",
+  "takeKind": "gesture",
+  "battery": "habit",
+  "variant": "scratch",
+  "distanceCm": 20,
+  "cueWindowMs": 3000,
+  "periodMs": 5000,
+  "leadInMs": 3000,
+  "leadInMotion": true,
+  "hand": "R",
+  "volumePct": 70,
+  "laptopModel": "MacBook Air M2",
+  "protocol": "ml/PROTOCOL.md"
+}
