@@ -123,25 +123,16 @@ export const costTile3D = make3D(() => {
 })
 
 export const privacyTile3D = make3D(() => {
+  // the universal no-cameras sign: one large camera, turning, inside a prohibition circle
   const scene = stage(), camera = cam()
-  const door = new THREE.Group(); door.position.set(0, -0.1, 0); door.scale.setScalar(0.85); scene.add(door)
-  door.add(new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.6, 0.12), WHITE))
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.8, 0.06), DARK); frame.position.z = -0.08; door.add(frame)
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.32, 0.05), DARK); plate.position.set(0, 0.75, 0.09); door.add(plate)
-  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 12), GREY); knob.position.set(0.55, -0.1, 0.12); door.add(knob)
-  const vc = videoCamera(); vc.scale.setScalar(0.45); vc.position.set(0.15, 1.45, 0.2); door.add(vc)
+  const vc = videoCamera(); vc.scale.setScalar(1.25); vc.position.set(-0.3, 0.05, 0); scene.add(vc)
   return {
-    scene, camera, anchors: { door, vc, plate },
-    update(t) {
-      door.rotation.y = Math.sin(t * 0.5) * 0.45
-      vc.rotation.y = 0.9
-    },
+    scene, camera, anchors: { vc },
+    update(t) { vc.rotation.y = -0.5 + Math.sin(t * 0.6) * 0.6 },
   }
-}, (g, at) => {
-  const [vx, vy] = at('vc'), [px, py] = at('plate')
-  cross(g, vx, vy, 34)
-  label(g, 'WC', px, py)
-  label(g, 'NO CAMERAS IN HERE', DW / 2, 312)
+}, (g) => {
+  noSign(g, DW / 2, 150, 118)
+  label(g, 'NOT ALLOWED IN BATHROOMS', DW / 2, 300)
 })
 
 export const darkTile3D = make3D(() => {
@@ -171,11 +162,13 @@ function chip(g: CanvasRenderingContext2D, s: string, x: number, y: number) {
   g.fillStyle = INK; g.fillRect(x - w / 2, y - 14, w, 28)
   g.fillStyle = '#000'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(s, x, y + 0.5)
 }
-function cross(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
-  g.strokeStyle = INK; g.lineWidth = 3
-  g.beginPath(); g.moveTo(x - r, y - r * 0.7); g.lineTo(x + r, y + r * 0.7); g.moveTo(x + r, y - r * 0.7); g.lineTo(x - r, y + r * 0.7); g.stroke()
-}
 function moon(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
   g.fillStyle = INK; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill()
   g.fillStyle = '#000'; g.beginPath(); g.arc(x + r * 0.45, y - r * 0.25, r * 0.9, 0, Math.PI * 2); g.fill()
+}
+function noSign(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
+  g.strokeStyle = INK; g.lineWidth = 9
+  g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke()
+  const a = Math.PI / 4
+  g.beginPath(); g.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r); g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); g.stroke()
 }
