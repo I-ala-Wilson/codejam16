@@ -247,6 +247,7 @@ const NODES: AgentNode[] = [
   { key: 'dash', agent: 'CODEX', role: 'dashboard', who: 'MICHAEL', x: 320, y: 270 },
 ]
 const HUB = { x: 320, y: 128, w: 150, h: 92 }
+const humanAt = (n: AgentNode) => (Math.abs(n.x - HUB.x) < 40 ? { x: n.x - 64, y: n.y } : { x: n.x + (n.x < HUB.x ? -58 : 58), y: n.y })
 const node = (k: string) => NODES.find((n) => n.key === k)!
 const MSGS: { from: string; to: string[]; text: string }[] = [
   { from: 'qa', to: ['lead'], text: 'BUG FOUND' },
@@ -283,6 +284,15 @@ export const agents: Scene = {
       const lit = live ? 0.9 : 0.45
       g.fillStyle = gray(lit); g.strokeStyle = gray(1); g.lineWidth = 1.6
       g.beginPath(); g.roundRect(n.x - 18, n.y - 18, 36, 36, 6); g.fill(); g.stroke()
+      // the person who drives this agent, joined by a short solid line
+      const h = humanAt(n), dir = Math.sign(h.x - n.x)
+      g.strokeStyle = gray(1); g.lineWidth = 1.6
+      g.beginPath(); g.moveTo(n.x + dir * 19, n.y); g.lineTo(h.x - dir * 15, h.y); g.stroke()
+      g.fillStyle = gray(0.3)
+      g.beginPath(); g.arc(h.x, h.y, 14, 0, TAU); g.fill(); g.stroke()
+      g.fillStyle = gray(1)
+      g.beginPath(); g.arc(h.x, h.y - 4, 4, 0, TAU); g.fill()
+      g.beginPath(); g.arc(h.x, h.y + 10, 7.5, Math.PI, TAU); g.fill()
     }
     // the board itself pulses when a message lands
     const land = u > 0.4 && u < 0.6 ? 1 - Math.abs(u - 0.5) * 10 : 0
@@ -297,7 +307,8 @@ export const agents: Scene = {
       const al: CanvasTextAlign = center ? 'left' : right ? 'right' : 'left'
       const yy = center ? n.y : n.y
       label(g, n.agent, x, yy - 9, 16, al)
-      label(g, `${n.role} · ${n.who}`, x, yy + 8, 13, al)
+      label(g, n.role, x, yy + 8, 13, al)
+      const h = humanAt(n); label(g, n.who, h.x, h.y + 24, 13, 'center')
     }
     // the board is drawn crisp on top (no dither) so its log stays readable
     { const land = u > 0.4 && u < 0.6 ? 1 - Math.abs(u - 0.5) * 10 : 0
@@ -319,7 +330,7 @@ export const agents: Scene = {
     const tagAt = (a: { x: number; y: number }, b: { x: number; y: number }, p: number) => tag(g, m.text, a.x + (b.x - a.x) * p, a.y + (b.y - a.y) * p, 13)
     if (u < 0.42) tagAt(nodeEdge(from), hubEdge(from), 0.22 + 0.78 * smooth(u / 0.42)) // starts clear of the sender's label
     else if (u > 0.58) for (const key of m.to) { const n = node(key); tagAt(hubEdge(n), nodeEdge(n), 0.78 * smooth((u - 0.58) / 0.42)) }
-    label(g, 'Agents never talk directly: every task, bug and update goes through the board.', 320, 308, 13, 'center')
+    label(g, 'Each of us drives an agent. Agents never talk directly: every task, bug and update goes through the board.', 320, 310, 12, 'center')
   },
 }
 
