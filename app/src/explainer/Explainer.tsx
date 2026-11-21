@@ -105,6 +105,7 @@ export default function Explainer({ embedded = false, children }: { embedded?: b
       <div className="ex__readout">
         <div className="ex__label">Doppler shift</div>
         <div className="ex__formula" ref={formulaEl} />
+        <div className="ex__legend">v = hand speed · f₀ = 20 kHz tone · c = speed of sound (343 m/s)</div>
         <div className="ex__sub-tex" ref={subEl} />
         <div className="ex__result" ref={dfEl} />
         <div className="ex__echo" ref={echoEl} />
