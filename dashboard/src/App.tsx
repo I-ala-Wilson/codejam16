@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertScreen, Rule, Timeline, Window } from '@ui/index.ts'
+import { Rule, Window } from '@ui/index.ts'
+import Care from './views/Care'
+import Parent from './views/Parent'
 import { supabase } from './supabase.ts'
 
-interface EventRow {
+export interface EventRow {
   id: number
   created_at: string
   device_id: string
@@ -67,13 +69,15 @@ function useRepeatingAlert(active: boolean) {
 }
 
 export default function App() {
+  const [view, setView] = useState<'care' | 'lock'>('care')
+  const [alarm, setAlarm] = useState<EventRow | null>(null)
   const [events, setEvents] = useState<EventRow[]>([])
   const [activityEvents, setActivityEvents] = useState<EventRow[]>([])
   const [activeHelp, setActiveHelp] = useState<EventRow | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useRepeatingAlert(activeHelp !== null)
+  useRepeatingAlert(view === 'care' ? activeHelp !== null : alarm !== null)
 
   useEffect(() => {
     let active = true
@@ -100,6 +104,7 @@ export default function App() {
         setEvents(rows)
         setActivityEvents(((activityResult.data ?? []) as EventRow[]).reverse())
         setActiveHelp(findActiveHelp(rows))
+        setAlarm(rows.find(row => row.app === 'lock' && row.kind === 'alarm') ?? null)
       }
       setLoading(false)
 
@@ -115,6 +120,7 @@ export default function App() {
               setActivityEvents((current) => [...current.slice(-59), event])
             }
             setActiveHelp(current => applyAlert(current, event))
+            if (event.app === 'lock' && event.kind === 'alarm') setAlarm(event)
           },
         )
         .subscribe((status) => {
@@ -131,13 +137,16 @@ export default function App() {
     }
   }, [])
 
-  const feed = useMemo(() => events.filter((event) => visibleKinds.has(event.kind)), [events])
+  const feed = useMemo(() => events.filter(event => event.app === view && (view === 'lock' || visibleKinds.has(event.kind))), [events, view])
   const latestInactive = events.find((event) => event.app === 'care' && event.kind === 'inactive')
-  const inactiveSeconds = numericPayload(latestInactive, 'seconds')
 
   return (
     <>
-      <Window title="ECHØ caregiver dashboard">
+      <Window title="ECHØ dashboard">
+        <nav className="dashboard-views" aria-label="Dashboard view">
+          <button aria-pressed={view === 'care'} onClick={() => setView('care')}>Care</button>
+          <button aria-pressed={view === 'lock'} onClick={() => setView('lock')}>Parent{alarm ? ' · ALARM' : ''}</button>
+        </nav>
         <div className="dashboard-status" aria-live="polite">
           <span className="dashboard-status__dot" /> Live · {events.length} recent events
         </div>
@@ -145,28 +154,15 @@ export default function App() {
         {loading && <p>Loading events…</p>}
         {error && <p role="alert">Unable to load events: {error}</p>}
 
-        {latestInactive && (
-          <section className="inactive-notice" aria-label="Inactivity alert">
-            <span>Inactivity</span>
-            <strong>No movement for {inactiveSeconds ?? '—'}s</strong>
-            <small>{latestInactive.device_id}</small>
-          </section>
-        )}
-
-        <section aria-labelledby="activity-heading">
-          <h2 id="activity-heading">Restlessness · last 60 samples</h2>
-          {activityEvents.length === 0 ? (
-            <p className="activity-empty">Awaiting activity</p>
-          ) : (
-            <Timeline values={activityEvents.map((event) => numericPayload(event, 'level') ?? 0)} />
-          )}
-        </section>
+        {view === 'care'
+          ? <Care inactive={latestInactive} activity={activityEvents.map(event => numericPayload(event, 'level') ?? 0)} />
+          : <Parent events={feed} alarm={alarm} acknowledge={() => setAlarm(null)} />}
 
         <Rule />
 
         <section aria-labelledby="feed-heading">
           <h2 id="feed-heading">Live feed</h2>
-          {!loading && !error && feed.length === 0 && <p>No care, habit, or lock events yet.</p>}
+          {!loading && !error && feed.length === 0 && <p>No recent {view} events.</p>}
           {feed.length > 0 && (
             <ol className="event-feed" aria-label="Recent events">
               {feed.map((event) => (
@@ -182,12 +178,12 @@ export default function App() {
         </section>
       </Window>
 
-      {activeHelp && (
-        <AlertScreen
-          title={`${activeHelp.kind.toUpperCase()} · ${activeHelp.device_id}`}
-          sub={`Care alert · ${new Date(activeHelp.created_at).toLocaleTimeString()} · tap to silence`}
-          onDismiss={() => setActiveHelp(null)}
-        />
+      {view === 'care' && activeHelp && (
+        <div role="alert" className="echo-alert care-alert" onClick={() => setActiveHelp(null)}>
+          <div className="echo-alert__title">{activeHelp.kind.toUpperCase()} requested</div>
+          <div className="echo-alert__sub">{activeHelp.device_id} · {new Date(activeHelp.created_at).toLocaleTimeString()}</div>
+          <button autoFocus onClick={() => setActiveHelp(null)}>Acknowledge</button>
+        </div>
       )}
     </>
   )

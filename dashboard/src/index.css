@@ -64,6 +64,15 @@ body {
   border-top: var(--rule);
 }
 
+.dashboard-views { display: flex; gap: 8px; margin-bottom: 16px; }
+.dashboard-views button, .parent-alarm button { font: 24px var(--pixel); padding: 8px 16px; }
+.dashboard-views [aria-pressed="true"] { text-decoration: underline; }
+.parent-alarm { background: #921e28; color: white; padding: 16px; overflow-wrap: anywhere; }
+.echo-alert.care-alert { background: #921e28; color: white; }
+.care-alert button { font: 26px var(--pixel); padding: 10px 18px; }
+.inactive-notice { border-color: #e6af51; color: #e6af51; }
+.event-feed__row--unlock_ok strong { color: #8ae3a1; }
+
 .event-feed__row {
   display: grid;
   grid-template-columns: 105px minmax(150px, 1fr) minmax(120px, 1fr) auto;
