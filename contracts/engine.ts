@@ -45,6 +45,7 @@ export interface EngineOptions {
   sensitivityDb?: number; // default 2.5
   useClassifier?: boolean; // default false until ml/ ships a model
   modelUrl?: string;    // ONNX model path when useClassifier is true
+  ruleAssist?: GestureType[]; // with the model on, these rule-detected gestures are also reported (the model can miss them)
 }
 
 export interface Engine {

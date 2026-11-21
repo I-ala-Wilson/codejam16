@@ -1,7 +1,7 @@
 import { createEngine } from '@engine/index.ts'
 
 // One engine for the whole app so every page shares the same mic + tone.
-export const engine = createEngine({ useClassifier: true, modelUrl: '/models/gesture.onnx' })
+export const engine = createEngine({ useClassifier: true, modelUrl: '/models/gesture.onnx', ruleAssist: ['WAVE', 'OPEN_CLOSE'] })
 
 // While the engine learns the room it treats everything it hears as "still". A hand moving then raises that bar and
 // later gestures never clear it, so every calibration is announced on screen (CalibBanner) and can be redone.

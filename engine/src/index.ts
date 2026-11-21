@@ -26,6 +26,8 @@ const CALIBRATION_TIMEOUT_SLACK_MS = 2000
 /** The onnxruntime-web .wasm file, which the app publishes (app/copy-ort.sh). Only the wasm: see OnnxRunnerOptions. */
 /** The rule habit stays quiet this long after the engine reported any other gesture. */
 const HABIT_AFTER_GESTURE_MS = 2000
+/** A rule-assisted gesture is dropped when the model reported any gesture this recently. */
+const RULE_ASSIST_GAP_MS = 1200
 
 const ORT_WASM_PATHS = { wasm: '/ort/ort-wasm-simd-threaded.wasm' }
 
@@ -108,6 +110,9 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
   let lastHabitMs = -Infinity
   /** When a deliberate gesture was last reported. A wave, an undo or a push is also back-and-forth motion, so the rule habit waits. */
   let lastGestureMs = -Infinity
+  const ruleAssist = new Set(opts.ruleAssist ?? [])
+  /** The last rule-assisted gesture, so the model reporting the same one a moment later is not counted twice. */
+  let lastAssist = { type: '', t: -Infinity }
   const emit = (gesture: GestureEvent): void => {
     if (gesture.type === 'REPETITIVE') {
       if (gesture.t - lastHabitMs < habitHoldMs) return
@@ -135,7 +140,16 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
       else classifier.reset() // no floor yet, or it is being re-learned
     }
     // With the model on, the rules keep HOLD and the habit: the model is weak at habits, so the two are OR-ed.
-    for (const gesture of ruleGestures) if (!classifier || gesture.type === 'HOLD' || gesture.type === 'REPETITIVE') emit(gesture)
+    for (const gesture of ruleGestures) {
+      if (!classifier || gesture.type === 'HOLD' || gesture.type === 'REPETITIVE') { emit(gesture); continue }
+      // Rule assist: the model misses some gestures live (WAVE, OPEN_CLOSE); the rules may report them too, unless the
+      // model just reported that gesture (no double count) or a different one (the model wins a disagreement).
+      if (!ruleAssist.has(gesture.type)) continue
+      if (gesture.type === 'OPEN_CLOSE' && (gesture.count ?? 0) < 2) continue // one pulse is any small movement
+      if (gesture.t - lastGestureMs < RULE_ASSIST_GAP_MS) continue
+      lastAssist = { type: gesture.type, t: gesture.t }
+      emit(gesture)
+    }
   }
 
   const attachClassifier = async (myGeneration: number): Promise<void> => {
@@ -149,7 +163,9 @@ export function createEngineWith(deps: EngineDeps, opts: EngineOptions = {}): En
         decoder: loaded.decoder,
         onEvent: (event) => {
           const cls = loaded.decoder.signOverride ? resolveDirection(event.cls, event.tMs, dopplerSign) : event.cls
-          emit(toGestureEvent({ ...event, cls }))
+          const gesture = toGestureEvent({ ...event, cls })
+          if (gesture.type === lastAssist.type && gesture.t - lastAssist.t < RULE_ASSIST_GAP_MS) return
+          emit(gesture)
         },
         onError: reportAsync,
       })
