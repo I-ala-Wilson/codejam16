@@ -119,15 +119,22 @@ function buildField(img: HTMLImageElement, W: number, H: number) {
 
 export default function DitherFlower() {
   const canvas = useRef<HTMLCanvasElement>(null)
-  const energy = useRef({ toward: 0, away: 0, floorT: 1e9, floorA: 1e9 })
+  const energy = useRef({ toward: 0, away: 0, mT: 0, dT: 1, mA: 0, dA: 1, n: 0 })
 
   useEffect(() => engine.onFrame((f) => {
     const e = energy.current
-    // subtract a slowly rising floor so a still room reads as zero and only a moving hand counts
+    // Volume-independent motion: learn the room's normal level and jitter (slow averages), and count only energy
+    // well above that (z-score), so max speaker volume or a noisy room reads as still until a hand really moves.
     const rt = Math.max(0, f.energyToward), ra = Math.max(0, f.energyAway)
-    e.floorT = Math.min(rt, e.floorT * 0.997 + rt * 0.003); e.floorA = Math.min(ra, e.floorA * 0.997 + ra * 0.003)
-    e.toward = e.toward * 0.8 + Math.max(0, rt - e.floorT * 1.3) * 0.2
-    e.away = e.away * 0.8 + Math.max(0, ra - e.floorA * 1.3) * 0.2
+    const zT = (rt - e.mT) / (e.dT + 1e-6), zA = (ra - e.mA) / (e.dA + 1e-6)
+    const moving = e.n > 60 && (zT > 4 || zA > 4)
+    const k = e.n < 60 ? 0.1 : moving ? 0.002 : 0.02 // learn fast at first, barely while a hand moves
+    e.mT += (rt - e.mT) * k; e.dT += (Math.abs(rt - e.mT) - e.dT) * k
+    e.mA += (ra - e.mA) * k; e.dA += (Math.abs(ra - e.mA) - e.dA) * k
+    e.n++
+    const sT = e.n > 60 ? Math.min(1, Math.max(0, (zT - 4) / 8)) : 0, sA = e.n > 60 ? Math.min(1, Math.max(0, (zA - 4) / 8)) : 0
+    e.toward = e.toward * 0.75 + sT * 0.25
+    e.away = e.away * 0.75 + sA * 0.25
   }), [])
 
   useEffect(() => {
@@ -161,7 +168,7 @@ export default function DitherFlower() {
       const f = field, px = new Uint32Array(frame!.data.buffer)
       const e = energy.current
       const t = now / 1000
-      const toward = Math.min(1, e.toward / 12), away = Math.min(1, e.away / 12)
+      const toward = Math.min(1, e.toward), away = Math.min(1, e.away)
       // lean with the hand: a push bends the head one way, a pull the other, on a damped spring
       const leanGoal = (toward - away) * LEAN * f.s
       leanV += ((leanGoal - lean) * 18 - leanV * 8.5) * Math.min(0.05, Math.max(0.001, t - lastT)); lean += leanV * Math.min(0.05, Math.max(0.001, t - lastT))
