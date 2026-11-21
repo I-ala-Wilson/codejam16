@@ -81,7 +81,6 @@ export default function Record() {
     } catch (e) { setError(String(e)); return }
     setCurrent(item)
     for (let i = 1; i <= (item.alternate ? REPS * item.alternate.length : REPS); i++) {
-      // PUSH/PULL/UNDO need time to drift back to the start slowly between reps
       setRep(i); setPhase('rest'); await sleep(REST_MS)
       setPhase('go'); await sleep(GO_MS)
     }
