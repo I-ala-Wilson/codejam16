@@ -62,6 +62,8 @@ export default function Care() {
     if (g.type !== 'HOLD') { setHeard(`heard ${g.type.replace('_', '/').toLowerCase()} ${Math.round(g.confidence * 100)}%`); setTimeout(() => setHeard(''), 1500) }
     const h = helpRef.current
     const canCancel = h && !h.cancelled && t - h.at < CANCEL_MS
+    // Treat repeated detections during the cancellation window as one help call.
+    if (g.type === 'WAVE' && canCancel && h.kind === 'help') return
     if (canCancel && (g.type === 'UNDO' || (g.type === 'PUSH' && pendingPush.current !== null))) {
       clearPush()
       helpRef.current = { ...h, cancelled: true }; setHelp(helpRef.current)
