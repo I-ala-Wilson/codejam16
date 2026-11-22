@@ -515,8 +515,9 @@ const LIMITS = [
   { name: 'RECALIBRATE OFTEN', sub: ['redo calibration whenever the', 'room or laptop position changes'], x: 107, y: 74 },
   { name: 'SMALL DATASET', sub: ['only 5 people trained it, so new', 'users are read less reliably'], x: 320, y: 74 },
   { name: 'HANDS VARY', sub: ['people do the same sign', 'differently, open/close most'], x: 533, y: 74 },
-  { name: 'ECHØS CLASH', sub: ['two laptops running ECHØ a few', 'metres apart interfere'], x: 213, y: 214 },
-  { name: 'TUNED CUTOFFS', sub: ['weaker signs needed their own', 'confidence threshold to work'], x: 427, y: 214 },
+  { name: 'ECHØS CLASH', sub: ['two laptops running ECHØ a few', 'metres apart interfere'], x: 107, y: 214 },
+  { name: 'TUNED CUTOFFS', sub: ['weaker signs needed their own', 'confidence threshold to work'], x: 320, y: 214 },
+  { name: 'PROOF OF CONCEPT', sub: ['built in 36 hours, not a', 'finished medical device'], x: 533, y: 214 },
 ]
 
 function miniLaptop(g: CanvasRenderingContext2D, x: number, y: number) {
@@ -526,47 +527,56 @@ function miniLaptop(g: CanvasRenderingContext2D, x: number, y: number) {
 
 export const limits: Scene = {
   draw(g, t) {
+    // every icon starts at the same top line T, so a row reads as one clean band
     g.fillStyle = gray(1); g.strokeStyle = gray(1); g.lineWidth = 2.4
-    { // recalibrate often: a laptop under a refresh arrow that keeps turning
-      const { x, y } = LIMITS[0]
-      miniLaptop(g, x, y + 4)
-      const cx = x, cy = y - 34, r = 11, a0 = t * 2.2, a1 = a0 + Math.PI * 1.55
+    { // recalibrate often: a refresh arrow that keeps turning, over a laptop
+      const { x, y } = LIMITS[0], T = y - 40
+      const cx = x, cy = T + 13, r = 11, a0 = t * 2.2, a1 = a0 + Math.PI * 1.55
       g.beginPath(); g.arc(cx, cy, r, a0, a1); g.stroke()
       const hx = cx + r * Math.cos(a1), hy = cy + r * Math.sin(a1), tx = -Math.sin(a1), ty = Math.cos(a1), nx = Math.cos(a1), ny = Math.sin(a1)
       g.beginPath(); g.moveTo(hx + tx * 7, hy + ty * 7); g.lineTo(hx + nx * 6 - tx * 2, hy + ny * 6 - ty * 2); g.lineTo(hx - nx * 6 - tx * 2, hy - ny * 6 - ty * 2); g.closePath(); g.fill()
+      miniLaptop(g, x, T + 50)
     }
-    { // small dataset: five people, one bobbing at a time
-      const { x, y } = LIMITS[1]
+    { // small dataset: five people, one stepping forward at a time
+      const { x, y } = LIMITS[1], T = y - 40
       for (let k = 0; k < 5; k++) {
-        const px = x - 34 + k * 17, b = Math.floor(t * 1.2) % 5 === k ? 4 : 0
-        g.beginPath(); g.arc(px, y - 12 - b, 5, 0, TAU); g.fill()
-        g.beginPath(); g.arc(px, y + 8, 8, Math.PI, 0); g.fill()
+        const px = x - 40 + k * 20, b = Math.floor(t * 1.2) % 5 === k ? 4 : 0
+        g.beginPath(); g.arc(px, T + 8 + b, 6, 0, TAU); g.fill()
+        g.beginPath(); g.arc(px, T + 36 + b, 10, Math.PI, 0); g.fill()
       }
     }
-    { // hands vary: two open hands doing the same sign, each at its own angle and rhythm
-      const { x, y } = LIMITS[2]
-      // a left hand (mirrored) and a right hand, palms out, each rocking at its own angle and rhythm
-      for (const [dx, mirror, base, sp, ph] of [[-30, -1, -0.15, 1.6, 0], [30, 1, 0.15, 2.3, 1.3]]) {
-        g.save(); g.translate(x + dx, y + 2); g.scale(mirror, 1); g.rotate(base * mirror + 0.2 * Math.sin(t * sp + ph))
+    { // hands vary: a left hand (mirrored) and a right hand, palms out, each rocking at its own rhythm
+      const { x, y } = LIMITS[2], T = y - 40
+      for (const [dx, mirror, base, sp, ph] of [[-30, -1, -0.12, 1.6, 0], [30, 1, 0.12, 2.3, 1.3]]) {
+        g.save(); g.translate(x + dx, T + 34); g.scale(mirror, 1); g.rotate(base * mirror + 0.12 * Math.sin(t * sp + ph))
         hand(g, 0, 0, 0.66, 0)
         g.restore()
       }
     }
     { // echos clash: two laptops, waves crossing in the middle
-      const { x, y } = LIMITS[3]
-      miniLaptop(g, x - 44, y); miniLaptop(g, x + 44, y)
-      arcs(g, x - 44, y - 10, 0, 22, 70, t, { n: 2, speed: 14, spread: 0.45, width: 2 })
-      arcs(g, x + 44, y - 10, Math.PI, 22, 70, t + 0.4, { n: 2, speed: 14, spread: 0.45, width: 2, dashed: true })
+      const { x, y } = LIMITS[3], T = y - 40
+      miniLaptop(g, x - 44, T + 22); miniLaptop(g, x + 44, T + 22)
+      g.save(); g.beginPath(); g.rect(x - 100, T, 200, 31); g.clip()
+      arcs(g, x - 44, T + 12, 0, 22, 70, t, { n: 2, speed: 14, spread: 0.45, width: 2 })
+      arcs(g, x + 44, T + 12, Math.PI, 22, 70, t + 0.4, { n: 2, speed: 14, spread: 0.45, width: 2, dashed: true })
+      g.restore()
     }
     { // tuned cutoffs: four bars, each with its own threshold tick that settles
-      const { x, y } = LIMITS[4]
+      const { x, y } = LIMITS[4], T = y - 40
       for (let k = 0; k < 4; k++) {
-        const bx = x - 30 + k * 18, h = 34
-        g.lineWidth = 2.4; g.strokeRect(bx, y - 22, 10, h)
-        const lvl = [0.85, 0.45, 0.95, 0.7][k] + 0.06 * Math.sin(t * 0.9 + k)
-        g.fillRect(bx - 5, y - 22 + h * (1 - lvl) - 2, 20, 4)
+        const bx = x - 30 + k * 18, h = 46
+        g.strokeRect(bx, T + 2, 10, h)
+        const lvl = [0.85, 0.45, 0.92, 0.7][k] + 0.05 * Math.sin(t * 0.9 + k)
+        g.fillRect(bx - 5, T + 2 + h * (1 - lvl) - 2, 20, 4)
       }
-      g.lineWidth = 2.4
+    }
+    { // proof of concept: a medical cross whose outline is still being drawn
+      const { x, y } = LIMITS[5], T = y - 40, c = T + 25, a = 8, b = 23
+      g.setLineDash([5, 4]); g.lineDashOffset = -t * 10
+      g.beginPath()
+      g.moveTo(x - a, c - b); g.lineTo(x + a, c - b); g.lineTo(x + a, c - a); g.lineTo(x + b, c - a); g.lineTo(x + b, c + a); g.lineTo(x + a, c + a)
+      g.lineTo(x + a, c + b); g.lineTo(x - a, c + b); g.lineTo(x - a, c + a); g.lineTo(x - b, c + a); g.lineTo(x - b, c - a); g.lineTo(x - a, c - a); g.closePath()
+      g.stroke(); g.setLineDash([]); g.lineDashOffset = 0
     }
   },
   overlay(g, t) {
