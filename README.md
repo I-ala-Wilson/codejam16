@@ -67,14 +67,14 @@ About 15% of Canadian children live with eczema, where scratching that you do no
 
 <p align="center"><img src="docs/readme/model.gif" alt="The model: a spectrogram feeds a small CNN with seven outputs" width="100%"></p>
 
-| | |
-|---|---|
-| **Data** | 202 recordings from 5 people, labelled by on-screen cues, 134k training windows |
-| **Input** | 1 second of echo, 48 × 87 Doppler bins around 20 kHz |
-| **Model** | Small CNN, 3 conv blocks, 7 outputs, about 32k parameters, 128 KB |
-| **Training** | PyTorch on one laptop GPU, about 3 minutes a run, dozens of runs |
-| **Testing** | Every general score is on a person the model never saw |
-| **Runs** | In the browser with onnxruntime-web, on the laptop CPU, about 12 times a second |
+<table>
+  <tr><td><b>Data</b></td><td>202 recordings from 5 people, labelled by on-screen cues, 134k training windows</td></tr>
+  <tr><td><b>Input</b></td><td>1 second of echo, 48 × 87 Doppler bins around 20 kHz</td></tr>
+  <tr><td><b>Model</b></td><td>Small CNN, 3 conv blocks, 7 outputs, about 32k parameters, 128 KB</td></tr>
+  <tr><td><b>Training</b></td><td>PyTorch on one laptop GPU, about 3 minutes a run, dozens of runs</td></tr>
+  <tr><td><b>Testing</b></td><td>Every general score is on a person the model never saw</td></tr>
+  <tr><td><b>Runs</b></td><td>In the browser with onnxruntime-web, on the laptop CPU, about 12 times a second</td></tr>
+</table>
 
 <p align="center"><img src="docs/readme/agents.gif" alt="Four humans and five AI agents coordinating through one shared board" width="100%"></p>
 
