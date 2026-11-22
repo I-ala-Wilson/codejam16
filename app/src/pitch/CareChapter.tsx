@@ -7,7 +7,7 @@ const STATS = [
   { big: '108,000', label: 'stroke hospital or emergency department visits a year in Canada (approx.)' },
   { big: '56.6%', label: 'of stroke patients present with arm weakness on admission (2021 study)' },
 ]
-const GESTURES = [['Wave', 'help'], ['Open / close', 'pain'], ['Double tap', 'cancel']]
+const GESTURES = [['Wave', 'help'], ['Open / close', 'pain'], ['Push', 'yes'], ['Pull', 'no'], ['Double tap', 'cancel']]
 
 export default function CareChapter({ go }: { go: (page: string) => void }) {
   return (

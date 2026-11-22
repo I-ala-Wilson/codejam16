@@ -51,6 +51,8 @@ For patients who can move a hand but cannot reach a call button. A stroke often 
 |---|---|
 | Wave | Help |
 | Open / close | Pain |
+| Push | Yes |
+| Pull | No |
 | Double tap | Cancel |
 
 ### Lock: your favourite site is simply down
