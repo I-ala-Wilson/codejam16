@@ -512,11 +512,11 @@ export const pipeline: Scene = {
 // ---------- Honest numbers: where it falls short ----------
 // Five small pictograms in solid ink (3 on top, 2 below), each with a two-word tag and a short line.
 const LIMITS = [
-  { name: 'RECALIBRATE OFTEN', sub: ['redo calibration whenever the', 'room or laptop position changes'], x: 107, y: 64 },
-  { name: 'SMALL DATASET', sub: ['only 5 people trained it, so new', 'users are read less reliably'], x: 320, y: 64 },
-  { name: 'HANDS VARY', sub: ['people do the same sign', 'differently, open/close most'], x: 533, y: 64 },
-  { name: 'ECHØS CLASH', sub: ['two laptops running ECHØ a few', 'metres apart interfere'], x: 213, y: 206 },
-  { name: 'TUNED CUTOFFS', sub: ['weaker signs needed their own', 'confidence threshold to work'], x: 427, y: 206 },
+  { name: 'RECALIBRATE OFTEN', sub: ['redo calibration whenever the', 'room or laptop position changes'], x: 107, y: 74 },
+  { name: 'SMALL DATASET', sub: ['only 5 people trained it, so new', 'users are read less reliably'], x: 320, y: 74 },
+  { name: 'HANDS VARY', sub: ['people do the same sign', 'differently, open/close most'], x: 533, y: 74 },
+  { name: 'ECHØS CLASH', sub: ['two laptops running ECHØ a few', 'metres apart interfere'], x: 213, y: 214 },
+  { name: 'TUNED CUTOFFS', sub: ['weaker signs needed their own', 'confidence threshold to work'], x: 427, y: 214 },
 ]
 
 function miniLaptop(g: CanvasRenderingContext2D, x: number, y: number) {
@@ -545,9 +545,10 @@ export const limits: Scene = {
     }
     { // hands vary: two open hands doing the same sign, each at its own angle and rhythm
       const { x, y } = LIMITS[2]
-      for (const [dx, base, sp, ph] of [[-22, -0.25, 1.6, 0], [22, 0.2, 2.3, 1.3]]) {
-        g.save(); g.translate(x + dx, y + 2); g.rotate(base + 0.22 * Math.sin(t * sp + ph))
-        hand(g, 0, 0, 0.62, 0)
+      // a left hand (mirrored) and a right hand, palms out, each rocking at its own angle and rhythm
+      for (const [dx, mirror, base, sp, ph] of [[-30, -1, -0.15, 1.6, 0], [30, 1, 0.15, 2.3, 1.3]]) {
+        g.save(); g.translate(x + dx, y + 2); g.scale(mirror, 1); g.rotate(base * mirror + 0.2 * Math.sin(t * sp + ph))
+        hand(g, 0, 0, 0.66, 0)
         g.restore()
       }
     }
@@ -561,14 +562,15 @@ export const limits: Scene = {
       const { x, y } = LIMITS[4]
       for (let k = 0; k < 4; k++) {
         const bx = x - 30 + k * 18, h = 34
-        g.lineWidth = 1.6; g.strokeRect(bx, y - 22, 10, h)
+        g.lineWidth = 2.4; g.strokeRect(bx, y - 22, 10, h)
         const lvl = [0.85, 0.45, 0.95, 0.7][k] + 0.06 * Math.sin(t * 0.9 + k)
-        g.fillRect(bx - 4, y - 22 + h * (1 - lvl) - 1, 18, 3)
+        g.fillRect(bx - 5, y - 22 + h * (1 - lvl) - 2, 20, 4)
       }
       g.lineWidth = 2.4
     }
   },
   overlay(g, t) {
+    label(g, 'WHERE IT FALLS SHORT', 2, 7, 15)
     const a = Math.floor(t / 2.2) % LIMITS.length
     LIMITS.forEach((l, i) => {
       if (i === a) tag(g, l.name, l.x, l.y + 40, 17); else label(g, l.name, l.x, l.y + 40, 17, 'center')

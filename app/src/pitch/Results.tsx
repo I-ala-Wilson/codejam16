@@ -23,8 +23,7 @@ export default function Results() {
           ))}
         </div>
         <div>
-          <div className="pz__limitshead">Where it falls short</div>
-          <div className="pz__frame">
+          <div className="pz__frame pz__frame--flush">
             <DitherCanvas scene={limits} label="Five limits: it needs recalibrating whenever the room or laptop position changes; only five people trained it, so new users are read less reliably; the same sign varies from person to person; two ECHØ laptops a few metres apart interfere; each gesture needed its own tuned threshold." />
           </div>
         </div>

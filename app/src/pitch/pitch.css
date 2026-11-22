@@ -19,7 +19,7 @@
 .pz__honest .pz__stat { border-top: 0; padding-top: 0; }
 .pz__honest + .pz__small { border-top: 0; padding-top: 0; }
 @media (max-width: 900px) { .pz__honest { grid-template-columns: 1fr; gap: 36px; } }
-.pz__limitshead { font-size: 21px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+.pz__honest .pz__frame--flush { margin: 0; }
 .pz__small { font-size: 19px; line-height: 1.3; margin: 48px 0 0; max-width: 90ch; border-top: 1px dotted var(--ink); padding-top: 16px; }
 
 .pz--close { text-align: center; padding-top: 72px; padding-bottom: 80px; }
