@@ -12,8 +12,20 @@ This folder is a frozen copy of what his dev server was serving at that moment (
 | system volume at the time | 300% (`wpctl get-volume @DEFAULT_AUDIO_SINK@` printed 3.00); not lowered from the OS |
 | hand and distance | not recorded for the good run; earlier Katana takes were left hand at 20 cm |
 
-What was NOT recorded: what Yahya changed between the 15:25 failing live test (0/10 UNDO) and the good run; no take was saved from the good run,
-so its tone level could not be measured.
+## The good run, measured (Sat 21 Nov 16:29-16:33, six live-test takes found later in ~/Downloads)
+Live (cued test, shipped model): PUSH 10/10 and 10/10, PULL 9/10, UNDO 9/10, WAVE 10/10, OPEN_CLOSE 10/10 = 58/60 (97%).
+Offline replay of the same six takes: shipped calib-three PUSH/PULL/UNDO/WAVE 100%, OPEN_CLOSE 90%; calib-yahya OPEN_CLOSE 50%; katana-only
+PUSH 75, WAVE 70, OPEN_CLOSE 20. So the shipped model is the best Katana model; the candidates are not better.
+What differed from the failing sessions is the TONE LEVEL AT THE MIC, not the model:
+| session | carrier at mic | gap over noise | result |
+|---|---|---|---|
+| 16:29-16:33 good run | -52.7 to -53.7 dBFS | 80-83 dB | 97% live |
+| 15:25 failing live test | -58.4 dBFS | 75.6 dB | UNDO 0/10 |
+| 13:15-13:25 calib-1/livecheck-1 | -58.0 to -59.2 dBFS | 68-79 dB | held-out PULL 50, UNDO 30 |
+Rule of thumb for this laptop: aim for a received carrier of about -53 dBFS and a gap of 80 dB or more (the MacBook Pro runs about 80 dB). A
+louder-looking system volume did not give that: 200% and 300% both gave -58.4 dBFS. The volume setting and hand during the good run were NOT
+recorded, so what raised the level by about 5.5 dB is unknown (position or angle of the laptop, output device, or a different level control).
+Next time it is good, note it: system volume, laptop angle, and the tone health number shown on the Room test page.
 
 ## Volume history of this laptop (from `volumePct` in the take files)
 70% right hand (23:10), 70% left (23:42), 150% left (23:51-00:34, the main and habit batteries), 200% left (calib-1 and livecheck-1, 13:15-13:25),

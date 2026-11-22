@@ -577,3 +577,10 @@ Result `katana-only` (Yahya's 42 takes only, calib-1 x5; trained 44 s, 28045 win
 Pooled vs single-laptop on this laptop: `calib-yahya` (PUSH 100, PULL 70, UNDO 80, WAVE 100; live UNDO 50) beats `katana-only` on 3 of 4 gestures
 on livecheck-1; `katana-only` is better only on the single 15:25 UNDO take (70 vs 50). So other people's data helps on the Katana as long as
 his own calibration takes are added with weight; 42 takes alone are too few. Best Katana candidate: `calib-yahya`. Nothing shipped.
+
+## Katana good run found (Sat 21 Nov 16:29-16:33; written Sun 22 Nov about 00:30)
+Six live-test takes in Yahya's Downloads: 58/60 cues live (PUSH 10+10, PULL 9, UNDO 9, WAVE 10, OPEN_CLOSE 10) with the shipped calib-three.
+Offline on the same takes: shipped 100/100/100/100/90 (PUSH/PULL/UNDO/WAVE/OPEN_CLOSE), calib-yahya OPEN_CLOSE 50, katana-only PUSH 75 WAVE 70 OC 20.
+The candidates do not beat the shipped model. The difference from the failing sessions is the received tone: -53 dBFS and a 80-83 dB gap in the good
+run against -58 dBFS and 68-79 dB in the failing ones (details in `ml/models/katana/README.md`). Conclusion: the Katana problem was signal level,
+not the model; keep the shipped model and keep the received tone near -53 dBFS (gap 80 dB or more).
