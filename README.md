@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/readme/hero.gif" alt="ECHØ: your laptop can hear your hands" width="100%">
+  <img src="docs/readme/hero-v2.gif" alt="ECHØ: your laptop can hear your hands" width="100%">
 </p>
 
 <h1 align="center">ECHØ</h1>
