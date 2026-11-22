@@ -9,3 +9,6 @@ if [ ! -f "$src/ort-wasm-simd-threaded.wasm" ]; then
 fi
 mkdir -p public/ort
 cp "$src/ort-wasm-simd-threaded.mjs" "$src/ort-wasm-simd-threaded.wasm" public/ort/
+# The downloadable Echo Lock extension on the Lock page, rebuilt from extension/ so it never goes stale.
+rm -f public/echo-lock.zip
+(cd ../extension && zip -qr ../app/public/echo-lock.zip manifest.json background.js veil.js)
