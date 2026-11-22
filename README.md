@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/readme/hero.png" alt="ECHØ: your laptop can hear your hands" width="100%">
+  <img src="docs/readme/hero.gif" alt="ECHØ: your laptop can hear your hands" width="100%">
 </p>
 
 <h1 align="center">ECHØ</h1>
@@ -25,7 +25,7 @@ ECHØ plays a 20 kHz tone that most adults cannot hear and listens to its echo. 
 
 ## How it works
 
-<p align="center"><img src="docs/readme/explainer.png" alt="The Doppler explainer: a hand moves toward the laptop and the echo pitch rises" width="100%"></p>
+<p align="center"><img src="docs/readme/explainer.gif" alt="The Doppler explainer: a hand moves toward the laptop and the echo pitch rises" width="100%"></p>
 
 1. **The speaker plays a steady 20 kHz tone.**
 2. **Your hand reflects it back to the microphone.** Moving toward the screen raises the echo's pitch, moving away lowers it, and a still hand gives no shift at all. This is the Doppler effect, $\Delta f = 2 v f_0 / c$.
@@ -34,7 +34,7 @@ ECHØ plays a 20 kHz tone that most adults cannot hear and listens to its echo. 
 
 ## Why not a camera
 
-<p align="center"><img src="docs/readme/camera.png" alt="Cost, privacy and darkness: why sound instead of a camera" width="100%"></p>
+<p align="center"><img src="docs/readme/camera.gif" alt="Cost, privacy and darkness: why sound instead of a camera" width="100%"></p>
 
 Camera and lidar rigs cost money to buy and install, privacy rules keep cameras out of hospital bathrooms and require consent in patient rooms, and ordinary cameras need light to see. A speaker and a microphone are already in almost every smart device, they work in the dark, and they never capture an image of anyone.
 
@@ -43,7 +43,7 @@ Camera and lidar rigs cost money to buy and install, privacy rules keep cameras 
 All three share one gesture: a **double tap in the air is undo**.
 
 ### Care: a call button you do not have to reach
-<p align="center"><img src="docs/readme/care.png" alt="Care: a patient in bed waves, and the caregiver's phone receives HELP" width="100%"></p>
+<p align="center"><img src="docs/readme/care.gif" alt="Care: a patient in bed waves, and the caregiver's phone receives HELP" width="100%"></p>
 
 For patients who can move a hand but cannot reach a call button. A stroke often causes weakness on one side of the body, and a 2021 study found that 56.6% of stroke patients had arm weakness on admission.
 
@@ -54,18 +54,18 @@ For patients who can move a hand but cannot reach a call button. A stroke often 
 | Double tap | Cancel |
 
 ### Lock: your favourite site is simply down
-<p align="center"><img src="docs/readme/lock.png" alt="Lock: a blocked site that looks unreachable, unlocked with a hand code" width="100%"></p>
+<p align="center"><img src="docs/readme/lock.gif" alt="Lock: a blocked site that looks unreachable, unlocked with a hand code" width="100%"></p>
 
 A Chrome extension makes blocked sites look exactly like Chrome's own "This site can't be reached" page, so a child has nothing to argue with. Parents unlock it with a private sequence of hand gestures, and only four faint dots show progress, so nobody watching learns the code.
 
 ### Habit: notice the scratch you otherwise would not
-<p align="center"><img src="docs/readme/habit.png" alt="Habit: scratching sets off a gentle prompt while typing is ignored" width="100%"></p>
+<p align="center"><img src="docs/readme/habit.gif" alt="Habit: scratching sets off a gentle prompt while typing is ignored" width="100%"></p>
 
 About 15% of Canadian children live with eczema, where scratching that you do not notice keeps the skin from healing. Habit ignores typing, gives a gentle prompt when it hears scratching, and a double tap snoozes it for ten minutes.
 
 ## How we built it
 
-<p align="center"><img src="docs/readme/model.png" alt="The model: a spectrogram feeds a small CNN with seven outputs" width="100%"></p>
+<p align="center"><img src="docs/readme/model.gif" alt="The model: a spectrogram feeds a small CNN with seven outputs" width="100%"></p>
 
 | | |
 |---|---|
@@ -76,13 +76,13 @@ About 15% of Canadian children live with eczema, where scratching that you do no
 | **Testing** | Every general score is on a person the model never saw |
 | **Runs** | In the browser with onnxruntime-web, on the laptop CPU, about 12 times a second |
 
-<p align="center"><img src="docs/readme/agents.png" alt="Four humans and five AI agents coordinating through one shared board" width="100%"></p>
+<p align="center"><img src="docs/readme/agents.gif" alt="Four humans and five AI agents coordinating through one shared board" width="100%"></p>
 
 Four of us worked with **five AI coding agents**, each owning its own part of the code and coordinating through one shared GitHub issue that acted as a message board. Agents assigned each other tasks and checked each other's work, while we made the architecture decisions, recorded the training data and tested every feature live. Over the weekend the board carried 480 messages, and the repo grew to 379 commits and 29 issues. The full setup is in [docs/TEAM_SETUP.md](docs/TEAM_SETUP.md).
 
 ## Our figures
 
-<p align="center"><img src="docs/readme/figures.png" alt="96% of 48 of 50 live trials, 3 m detection, and where it falls short" width="100%"></p>
+<p align="center"><img src="docs/readme/figures.gif" alt="96% of 48 of 50 live trials, 3 m detection, and where it falls short" width="100%"></p>
 
 - **96%** of gestures recognised live (48 of 50 trials) on our calibrated demo MacBook Pro.
 - **3 m** highest observed detection range, although we only trained up to 50 cm.
@@ -121,11 +121,13 @@ npm run dev          # opens http://localhost:5173
 
 <p align="center"><img src="docs/readme/challenges.png" alt="The challenges we tackled: Health, Undo Button, Touch Grass and Agent Solution" width="100%"></p>
 
-| | |
-|---|---|
-| **Ian Wilson** | [ianwilson.dev](https://ianwilson.dev) |
-| **Yahya Hallani** | [yahya-hallani.dev](https://yahya-hallani.dev/) |
-| **EJ Ko** | [LinkedIn](https://www.linkedin.com/in/eunjunko/) |
-| **Michael Lulic** | [LinkedIn](https://www.linkedin.com/in/michael-lulic-401b65234/) |
+<table align="center">
+  <tr>
+    <td align="center" width="25%"><a href="https://ianwilson.dev"><img src="https://github.com/I-ala-Wilson.png" width="96" alt="Ian Wilson"><br><b>Ian Wilson</b></a><br><sub>Lead · app, Lock extension, integration</sub><br><a href="https://ianwilson.dev">ianwilson.dev</a></td>
+    <td align="center" width="25%"><a href="https://yahya-hallani.dev/"><img src="https://github.com/Yahya-github.png" width="96" alt="Yahya Hallani"><br><b>Yahya Hallani</b></a><br><sub>Sonar engine and machine learning</sub><br><a href="https://yahya-hallani.dev/">yahya-hallani.dev</a></td>
+    <td align="center" width="25%"><a href="https://www.linkedin.com/in/eunjunko/"><img src="https://github.com/EJ2007.png" width="96" alt="EJ Ko"><br><b>EJ Ko</b></a><br><sub>Interface, Habit and pitch</sub><br><a href="https://www.linkedin.com/in/eunjunko/">LinkedIn</a></td>
+    <td align="center" width="25%"><a href="https://www.linkedin.com/in/michael-lulic-401b65234/"><img src="https://github.com/Miguel982.png" width="96" alt="Michael Lulic"><br><b>Michael Lulic</b></a><br><sub>Backend and caregiver dashboard</sub><br><a href="https://www.linkedin.com/in/michael-lulic-401b65234/">LinkedIn</a></td>
+  </tr>
+</table>
 
 <p align="center"><sub>Built in one weekend at McGill CodeJam 16, November 2026.</sub></p>
