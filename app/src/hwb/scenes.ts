@@ -512,12 +512,12 @@ export const pipeline: Scene = {
 // ---------- Honest numbers: where it falls short ----------
 // Five small pictograms in solid ink (3 on top, 2 below), each with a two-word tag and a short line.
 const LIMITS = [
-  { name: 'RECALIBRATE OFTEN', sub: ['redo calibration whenever the', 'room or laptop position changes'], x: 107, y: 74 },
-  { name: 'SMALL DATASET', sub: ['only 5 people trained it, so new', 'users are read less reliably'], x: 320, y: 74 },
-  { name: 'HANDS VARY', sub: ['people do the same sign', 'differently, open/close most'], x: 533, y: 74 },
-  { name: 'ECHØS CLASH', sub: ['two laptops running ECHØ a few', 'metres apart interfere'], x: 107, y: 214 },
-  { name: 'TUNED CUTOFFS', sub: ['weaker signs needed their own', 'confidence threshold to work'], x: 320, y: 214 },
-  { name: 'PROOF OF CONCEPT', sub: ['built in 36 hours, not a', 'finished medical device'], x: 533, y: 214 },
+  { name: 'RECALIBRATE OFTEN', sub: ['redo calibration whenever the', 'room or laptop position changes'], x: 107, y: 44 },
+  { name: 'SMALL DATASET', sub: ['only 5 people trained it, so new', 'users are read less reliably'], x: 320, y: 44 },
+  { name: 'HANDS VARY', sub: ['people do the same sign', 'differently, open/close most'], x: 533, y: 44 },
+  { name: 'ECHØS CLASH', sub: ['two laptops running ECHØ a few', 'metres apart interfere'], x: 107, y: 190 },
+  { name: 'TUNED CUTOFFS', sub: ['weaker signs needed their own', 'confidence threshold to work'], x: 320, y: 190 },
+  { name: 'PROOF OF CONCEPT', sub: ['built in 36 hours, not a', 'finished medical device'], x: 533, y: 190 },
 ]
 
 function miniLaptop(g: CanvasRenderingContext2D, x: number, y: number) {
@@ -580,7 +580,6 @@ export const limits: Scene = {
     }
   },
   overlay(g, t) {
-    label(g, 'WHERE IT FALLS SHORT', 2, 7, 15)
     const a = Math.floor(t / 2.2) % LIMITS.length
     LIMITS.forEach((l, i) => {
       if (i === a) tag(g, l.name, l.x, l.y + 40, 17); else label(g, l.name, l.x, l.y + 40, 17, 'center')

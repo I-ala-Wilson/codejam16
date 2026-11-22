@@ -9,22 +9,27 @@ const STATS = [
   { big: '3 m', label: 'highest observed detection range, trained at 50 cm' },
 ]
 
+const LIMITS_ALT = 'Five limits: it needs recalibrating whenever the room or laptop position changes; only five people trained it, so new users are read less reliably; the same sign varies from person to person; two ECHØ laptops a few metres apart interfere; each gesture needed its own tuned threshold; it is a proof of concept built in 36 hours, not a finished medical device.'
+
 export default function Results() {
   return (
     <section className="pz" aria-labelledby="pz-results">
-      <h2 id="pz-results" className="pz__title">Our figures</h2>
       <div className="pz__honest">
-        <div className="pz__honeststats">
-          {STATS.map((s) => (
-            <div key={s.big} className="pz__stat">
-              <div className="pz__big">{s.big}</div>
-              <div className="pz__label">{s.label}</div>
-            </div>
-          ))}
-        </div>
         <div>
+          <h2 id="pz-results" className="pz__title">Our figures</h2>
+          <div className="pz__honeststats">
+            {STATS.map((s) => (
+              <div key={s.big} className="pz__stat">
+                <div className="pz__big">{s.big}</div>
+                <div className="pz__label">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="pz__honestright">
+          <h2 className="pz__title">Where it falls short</h2>
           <div className="pz__frame pz__frame--flush">
-            <DitherCanvas scene={limits} label="Five limits: it needs recalibrating whenever the room or laptop position changes; only five people trained it, so new users are read less reliably; the same sign varies from person to person; two ECHØ laptops a few metres apart interfere; each gesture needed its own tuned threshold; it is a proof of concept built in 36 hours, not a finished medical device." />
+            <DitherCanvas scene={limits} label={LIMITS_ALT} />
           </div>
         </div>
       </div>
