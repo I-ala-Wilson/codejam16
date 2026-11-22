@@ -512,11 +512,11 @@ export const pipeline: Scene = {
 // ---------- Honest numbers: where it falls short ----------
 // Five small pictograms in solid ink (3 on top, 2 below), each with a two-word tag and a short line.
 const LIMITS = [
-  { name: 'QUIET ROOM', sub: 'calibrate, then keep it', x: 107, y: 70 },
-  { name: 'SMALL DATASET', sub: 'may favour right hands', x: 320, y: 70 },
-  { name: 'HANDS VARY', sub: 'same sign, new motion', x: 533, y: 70 },
-  { name: 'ECHØS CLASH', sub: 'two laptops, metres apart', x: 213, y: 214 },
-  { name: 'TUNED CUTOFFS', sub: 'one threshold per sign', x: 427, y: 214 },
+  { name: 'RECALIBRATE OFTEN', sub: ['redo calibration whenever the', 'room or laptop position changes'], x: 107, y: 64 },
+  { name: 'SMALL DATASET', sub: ['only 5 people trained it, so new', 'users are read less reliably'], x: 320, y: 64 },
+  { name: 'HANDS VARY', sub: ['people do the same sign', 'differently, open/close most'], x: 533, y: 64 },
+  { name: 'ECHØS CLASH', sub: ['two laptops running ECHØ a few', 'metres apart interfere'], x: 213, y: 206 },
+  { name: 'TUNED CUTOFFS', sub: ['weaker signs needed their own', 'confidence threshold to work'], x: 427, y: 206 },
 ]
 
 function miniLaptop(g: CanvasRenderingContext2D, x: number, y: number) {
@@ -527,14 +527,13 @@ function miniLaptop(g: CanvasRenderingContext2D, x: number, y: number) {
 export const limits: Scene = {
   draw(g, t) {
     g.fillStyle = gray(1); g.strokeStyle = gray(1); g.lineWidth = 2.4
-    { // quiet room: a laptop calibrating, its bar filling, sound rising quietly
+    { // recalibrate often: a laptop under a refresh arrow that keeps turning
       const { x, y } = LIMITS[0]
-      miniLaptop(g, x, y)
-      g.strokeRect(x - 12, y - 8, 24, 5)
-      g.fillRect(x - 11, y - 7, 22 * smooth((t * 0.3) % 1.15), 3)
-      g.save(); g.beginPath(); g.rect(x - 40, y - 60, 80, 36); g.clip()
-      arcs(g, x, y - 22, -Math.PI / 2, 4, 34, t, { n: 2, speed: 8, spread: 0.7, width: 2 })
-      g.restore()
+      miniLaptop(g, x, y + 4)
+      const cx = x, cy = y - 34, r = 11, a0 = t * 2.2, a1 = a0 + Math.PI * 1.55
+      g.beginPath(); g.arc(cx, cy, r, a0, a1); g.stroke()
+      const hx = cx + r * Math.cos(a1), hy = cy + r * Math.sin(a1), tx = -Math.sin(a1), ty = Math.cos(a1), nx = Math.cos(a1), ny = Math.sin(a1)
+      g.beginPath(); g.moveTo(hx + tx * 7, hy + ty * 7); g.lineTo(hx + nx * 6 - tx * 2, hy + ny * 6 - ty * 2); g.lineTo(hx - nx * 6 - tx * 2, hy - ny * 6 - ty * 2); g.closePath(); g.fill()
     }
     { // small dataset: five people, one bobbing at a time
       const { x, y } = LIMITS[1]
@@ -578,8 +577,8 @@ export const limits: Scene = {
   overlay(g, t) {
     const a = Math.floor(t / 2.2) % LIMITS.length
     LIMITS.forEach((l, i) => {
-      if (i === a) tag(g, l.name, l.x, l.y + 42, 17); else label(g, l.name, l.x, l.y + 42, 17, 'center')
-      label(g, l.sub, l.x, l.y + 62, 13, 'center')
+      if (i === a) tag(g, l.name, l.x, l.y + 40, 17); else label(g, l.name, l.x, l.y + 40, 17, 'center')
+      l.sub.forEach((line, k) => label(g, line, l.x, l.y + 58 + k * 14, 12, 'center'))
     })
   },
 }
