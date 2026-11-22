@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { engine } from '../engine.ts'
+import { calibratingLeft, engine } from '../engine.ts'
 import { ensureSonar } from '../sonar.ts'
 import { sendEvent } from '../events.ts'
 import { sendToExtension } from '../extension.ts'
@@ -18,11 +18,39 @@ export function autostart(): Promise<void> {
   if (!loadPassword()) return Promise.resolve()
   return ensureSonar().then(() => undefined)
 }
-declare global { interface Window { echoAutostart?: () => Promise<void> } }
+declare global { interface Window { echoAutostart?: () => Promise<void>; echoRecalibrate?: () => Promise<void> } }
+
+const CALIB_MS = 3000
+const CALIB_DOTS = 5
+const CALIB_DONE_HOLD_MS = 500
+
+// R on a veiled page (the extension pokes this tab): relearn the room floor with the hands still, and report to the
+// extension so the veil can show five dots filling up (0 = five empty dots, 1..5 filled, -1 = hide). Ignored while a
+// calibration is already running.
+let recalibrating = false
+export async function recalibrate(): Promise<void> {
+  if (recalibrating || calibratingLeft() > 0) return
+  recalibrating = true
+  const tell = (n: number) => { sendToExtension({ type: 'CALIB', n }).catch(() => {}) }
+  const step = CALIB_MS / CALIB_DOTS
+  const timers: number[] = []
+  try {
+    await ensureSonar()
+    tell(0)
+    for (let i = 1; i < CALIB_DOTS; i++) timers.push(window.setTimeout(() => tell(i), i * step))
+    await engine.calibrate(CALIB_MS)
+  } finally {
+    timers.forEach(clearTimeout)
+    tell(CALIB_DOTS)
+    window.setTimeout(() => tell(-1), CALIB_DONE_HOLD_MS)
+    recalibrating = false
+  }
+}
 
 export function useGuardian() {
   useEffect(() => {
     window.echoAutostart = autostart
+    window.echoRecalibrate = recalibrate
     autostart()
   }, [])
   useEffect(() => {

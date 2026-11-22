@@ -25,7 +25,15 @@ chrome.runtime.onInstalled.addListener(async () => {
 // The app tab is opened pinned and in the background, then poked to start the sonar itself.
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.type === 'VEIL_UP') ensureListener()
+  if (msg?.type === 'RECALIBRATE') recalibrate()
 })
+// R on a veiled page: the app tab relearns the room (it reports 1..5 back as CALIB so the veil can show the dots)
+async function recalibrate() {
+  const { appUrl } = await chrome.storage.local.get({ appUrl: null })
+  const tab = appUrl && (await chrome.tabs.query({})).find((t) => t.url?.startsWith(`${appUrl}/`))
+  if (!tab) return ensureListener() // a freshly opened app tab calibrates itself on load
+  await chrome.scripting.executeScript({ target: { tabId: tab.id }, world: 'MAIN', func: () => window.echoRecalibrate?.() }).catch(() => {})
+}
 async function ensureListener() {
   const { appUrl } = await chrome.storage.local.get({ appUrl: null })
   if (!appUrl) return
@@ -55,6 +63,8 @@ chrome.runtime.onMessageExternal.addListener((msg, _sender, reply) => {
       await applyVeil([]); reply({ ok: true, locked: false, until: null })
     } else if (msg.type === 'PROGRESS') {
       await chrome.storage.local.set({ progress: Math.max(0, Math.min(8, msg.n | 0)), progressAt: Date.now() }); reply({ ok: true })
+    } else if (msg.type === 'CALIB') {
+      await chrome.storage.local.set({ calib: Math.max(-1, Math.min(5, msg.n | 0)) }); reply({ ok: true })
     } else if (msg.type === 'STATUS') {
       reply({ locked: st.locked, sites: st.sites, until: null })
     } else reply({ ok: false, error: 'unknown type' })

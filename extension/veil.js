@@ -1393,7 +1393,7 @@ html[dir='rtl'].offline .icon-offline {
       </div>
     
   </div>
-  <style>#echo-dots{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:5px}#echo-dots i{width:3px;height:3px;border-radius:50%;background:#5f6368;opacity:.7}</style><div id="echo-dots"></div></body></html>`
+  <style>#echo-dots{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:5px}#echo-dots i{width:3px;height:3px;border-radius:50%;background:#5f6368;opacity:.7}#echo-calib{position:fixed;left:14px;bottom:14px;display:flex;gap:5px}#echo-calib i{width:3px;height:3px;border-radius:50%;background:#5f6368;opacity:.25}#echo-calib i.on{opacity:.7}</style><div id="echo-dots"></div><div id="echo-calib"></div></body></html>`
   const paint = () => {
     // replace the whole document with the fake error page (document.write at document_start can leave no body)
     const doc = new DOMParser().parseFromString(html, 'text/html')
@@ -1407,8 +1407,14 @@ html[dir='rtl'].offline .icon-offline {
   chrome.runtime.sendMessage({ type: 'VEIL_UP' }).catch(() => {})
   const dots = (n) => { const d = document.getElementById('echo-dots'); if (d) d.innerHTML = '<i></i>'.repeat(n) }
   chrome.storage.local.get({ progress: 0, progressAt: 0 }).then(({ progress, progressAt }) => dots(Date.now() - progressAt < 8000 ? progress : 0))
+  // R on the veiled page recalibrates the sonar; five dots fill over the calibration (CALIB n: 0..5 filled, -1 = hidden)
+  const calib = (n) => { const d = document.getElementById('echo-calib'); if (d) d.innerHTML = n >= 0 ? Array.from({ length: 5 }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('') : '' }
+  document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) chrome.runtime.sendMessage({ type: 'RECALIBRATE' }).catch(() => {})
+  })
   chrome.storage.onChanged.addListener((ch) => {
     if (ch.locked && ch.locked.newValue === false) location.reload()
     if (ch.progress) dots(ch.progress.newValue)
+    if (ch.calib) calib(ch.calib.newValue)
   })
 })()
