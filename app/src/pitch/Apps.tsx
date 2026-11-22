@@ -23,7 +23,7 @@ const CHALLENGES = [
 export default function Apps() {
   return (
     <section className="pz" aria-labelledby="pz-apps">
-      <h2 id="pz-apps" className="pz__title">Four challenges, one sonar</h2>
+      <h2 id="pz-apps" className="pz__title">The challenges we tackled</h2>
       <div className="pz__cards pz__cards--4">
         {CHALLENGES.map((c, i) => (
           <article key={c.name} className="pz__card">
