@@ -1,83 +1,131 @@
-# codejam
+<p align="center">
+  <img src="docs/readme/hero.png" alt="ECHØ: your laptop can hear your hands" width="100%">
+</p>
 
-CodeJam 16 team repo (4 braincells).
+<h1 align="center">ECHØ</h1>
 
-## Setup (each of us, once, about 2 minutes)
+<p align="center">
+  <b>Your laptop can hear your hands.</b><br>
+  Touch-free gesture control from the speaker and microphone already in your laptop.<br>
+  No camera, no extra hardware, and no audio ever stored.
+</p>
 
-You need `git`, `gh` (logged in with `gh auth login`) and `jq` (`brew install gh jq`).
+<p align="center">
+  <a href="https://echo-codejam16.vercel.app"><b>Live site</b></a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#three-apps">Three apps</a> ·
+  <a href="#our-figures">Our figures</a> ·
+  <a href="#run-it-yourself">Run it</a> ·
+  <a href="#team">Team</a>
+</p>
 
-```bash
-gh repo clone I-ala-Wilson/codejam16 && cd codejam16
-scripts/setup
-```
+---
 
-Then start your agent in this folder:
-
-- **Claude Code** (Ian, Yahya, EJ): run `claude`, then type `/sync`. EJ: run `/model sonnet` first to save usage.
-- **Codex** (Michael): run `codex --sandbox danger-full-access` (it needs network for the board and write access for git), then say `sync`. Keep `scripts/board watch` running in a second terminal: it rings when your agent is tagged, and you then tell Codex "check the board".
-
-### Windows (Michael's Dell)
-
-Our scripts are bash, so everything runs inside **WSL** (Ubuntu inside Windows). Do it all in the Ubuntu terminal, never in PowerShell or Git Bash.
-
-1. **Install WSL once:** open PowerShell as Administrator, run `wsl --install`, reboot, then open "Ubuntu" from the Start menu and create a username and password.
-2. **In Ubuntu:**
-   ```bash
-   sudo apt update && sudo apt install -y git jq gh
-   curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
-   sudo npm i -g @openai/codex
-   gh auth login                      # GitHub.com, HTTPS, login with a web browser
-   cd ~ && gh repo clone I-ala-Wilson/codejam16 && cd codejam16    # keep it in ~, not /mnt/c (much slower)
-   scripts/setup
-   codex --sandbox danger-full-access  # sign in, then say: sync
-   ```
-3. **Second Ubuntu tab:** `cd ~/codejam16 && scripts/board watch` and leave it open.
-4. **Windows power settings:**
-   - Settings > System > Power: screen and sleep "Never" when plugged in.
-   - Control Panel > Power Options > "Choose what closing the lid does": "Do nothing" when plugged in.
-   - Battery saver off.
-   - The sleep guard also holds Windows awake while the scripts run.
-
-**Keep your laptop working the whole hackathon:** plugged in, lid open, Low Power Mode off, no restart/update prompts. Setup starts a sleep guard (`scripts/awake`) so the Mac never idles to sleep while your agent works; `scripts/awake stop` turns it off after the event.
-
-### Setup problems
-
-| Symptom | Fix |
-|---|---|
-| `brew: command not found` | Install Homebrew from brew.sh, then `brew install gh jq` |
-| Clone says repository not found / 404 | `gh auth login` with the GitHub account that is a collaborator, and accept the repo invite (github.com/I-ala-Wilson/codejam16/invitations) |
-| `jq: command not found` | `brew install jq` |
-| Setup says you're not in team.json | You're logged into the wrong GitHub account: `gh auth status`, then `gh auth login` |
-| Claude ignores the rules or commands | Open `claude` inside the codejam folder and accept the trust prompt |
-| Codex can't post to the board or push | Restart it with `codex --sandbox danger-full-access` |
-| Windows: `scripts/setup: /usr/bin/env: 'bash\r'` | The repo was cloned from Windows, not WSL. Delete it and clone again inside the Ubuntu terminal |
-| Windows: `powershell.exe: command not found` in WSL | WSL interop is off; the sleep guard and notifications won't work. Set Windows sleep to Never by hand |
-| Your status isn't on issue #2 | Rerun `scripts/setup` and check `gh auth status` |
+ECHØ plays a 20 kHz tone that most adults cannot hear and listens to its echo. When your hand moves, the echo shifts in pitch, and a small neural network running in your browser reads that shift as a gesture. We built it at **McGill CodeJam 16** to show that the hardware for touch-free control is already in almost every laptop, that it can work where cameras are not allowed, and that it can help people who cannot reach a button.
 
 ## How it works
 
-1. **Rules.** `docs/TEAM_RULES.md` is the rulebook every agent reads. `scripts/setup` turns it into each agent's local instruction file, so Claude and Codex follow the exact same rules.
-2. **Spec.** `docs/SPEC.md` is the only source of truth for what we build. Ian's agent writes it with `/kickoff` once we pick the idea, and every agent ACKs the version it read.
-3. **Ownership.** Everyone owns their own folders (in `team/team.json`). Agents cannot edit or commit files they don't own, so nobody overwrites anybody.
-4. **Contracts.** `contracts/` defines the interfaces between our parts, so everyone builds in parallel without waiting.
-5. **Board.** Issue #1 (pinned) is the message board. Agents post DONE / NEED / BLOCKED there and tag each other by GitHub login. Each agent waits for its own tag, so work moves between agents without us texting.
-6. **No AI credits in git.** Commits show only us. A hook strips any AI co-author lines.
+<p align="center"><img src="docs/readme/explainer.png" alt="The Doppler explainer: a hand moves toward the laptop and the echo pitch rises" width="100%"></p>
 
-## Agent Status (issue #2)
+1. **The speaker plays a steady 20 kHz tone.**
+2. **Your hand reflects it back to the microphone.** Moving toward the screen raises the echo's pitch, moving away lowers it, and a still hand gives no shift at all. This is the Doppler effect, $\Delta f = 2 v f_0 / c$.
+3. **A small CNN reads one second of the echo spectrogram** and decides which gesture it saw, about twelve times a second, entirely on the laptop.
+4. **Calibration** learns what your room sounds like when nothing moves, so only your hand stands out.
 
-Hooks automatically keep one comment per person on issue #2 up to date: what your agent is doing, whether it is stuck on a permission prompt, your last prompt and its last message, and your git state. It costs no tokens. Ian's agent reads all of it with `scripts/team` and sends instructions on the board: `[DIRECT]` posts are orders for your agent, `[HUMAN]` posts are things you need to do yourself: you get a corner notification, it shows in red in your Claude status bar, and your agent tells you about them first; once you've done it, tell your agent and it marks it done so Ian knows. Turn on GitHub notifications for this repo too (GitHub Mobile) since you get @mentioned.
+## Why not a camera
 
-## Board commands
+<p align="center"><img src="docs/readme/camera.png" alt="Cost, privacy and darkness: why sound instead of a camera" width="100%"></p>
+
+Camera and lidar rigs cost money to buy and install, privacy rules keep cameras out of hospital bathrooms and require consent in patient rooms, and ordinary cameras need light to see. A speaker and a microphone are already in almost every smart device, they work in the dark, and they never capture an image of anyone.
+
+## Three apps
+
+All three share one gesture: a **double tap in the air is undo**.
+
+### Care: a call button you do not have to reach
+<p align="center"><img src="docs/readme/care.png" alt="Care: a patient in bed waves, and the caregiver's phone receives HELP" width="100%"></p>
+
+For patients who can move a hand but cannot reach a call button. A stroke often causes weakness on one side of the body, and a 2021 study found that 56.6% of stroke patients had arm weakness on admission.
+
+| Hand gesture | Function |
+|---|---|
+| Wave | Help |
+| Open / close | Pain |
+| Double tap | Cancel |
+
+### Lock: your favourite site is simply down
+<p align="center"><img src="docs/readme/lock.png" alt="Lock: a blocked site that looks unreachable, unlocked with a hand code" width="100%"></p>
+
+A Chrome extension makes blocked sites look exactly like Chrome's own "This site can't be reached" page, so a child has nothing to argue with. Parents unlock it with a private sequence of hand gestures, and only four faint dots show progress, so nobody watching learns the code.
+
+### Habit: notice the scratch you otherwise would not
+<p align="center"><img src="docs/readme/habit.png" alt="Habit: scratching sets off a gentle prompt while typing is ignored" width="100%"></p>
+
+About 15% of Canadian children live with eczema, where scratching that you do not notice keeps the skin from healing. Habit ignores typing, gives a gentle prompt when it hears scratching, and a double tap snoozes it for ten minutes.
+
+## How we built it
+
+<p align="center"><img src="docs/readme/model.png" alt="The model: a spectrogram feeds a small CNN with seven outputs" width="100%"></p>
+
+| | |
+|---|---|
+| **Data** | 202 recordings from 5 people, labelled by on-screen cues, 134k training windows |
+| **Input** | 1 second of echo, 48 × 87 Doppler bins around 20 kHz |
+| **Model** | Small CNN, 3 conv blocks, 7 outputs, about 32k parameters, 128 KB |
+| **Training** | PyTorch on one laptop GPU, about 3 minutes a run, dozens of runs |
+| **Testing** | Every general score is on a person the model never saw |
+| **Runs** | In the browser with onnxruntime-web, on the laptop CPU, about 12 times a second |
+
+<p align="center"><img src="docs/readme/agents.png" alt="Four humans and five AI agents coordinating through one shared board" width="100%"></p>
+
+Four of us worked with **five AI coding agents**, each owning its own part of the code and coordinating through one shared GitHub issue that acted as a message board. Agents assigned each other tasks and checked each other's work, while we made the architecture decisions, recorded the training data and tested every feature live. Over the weekend the board carried 480 messages, and the repo grew to 379 commits and 29 issues. The full setup is in [docs/TEAM_SETUP.md](docs/TEAM_SETUP.md).
+
+## Our figures
+
+<p align="center"><img src="docs/readme/figures.png" alt="96% of 48 of 50 live trials, 3 m detection, and where it falls short" width="100%"></p>
+
+- **96%** of gestures recognised live (48 of 50 trials) on our calibrated demo MacBook Pro.
+- **3 m** highest observed detection range, although we only trained up to 50 cm.
+- **14 of 15** scratches caught in a live Habit test, with no camera and no wearable.
+
+ECHØ is a proof of concept and not a finished medical device. It needs recalibrating whenever the room or the laptop position changes, it was trained on only five people, the same sign varies from person to person, two laptops running ECHØ a few metres apart can interfere, and each gesture needed its own tuned threshold.
+
+## Run it yourself
+
+The fastest way is the [live site](https://echo-codejam16.vercel.app) in Chrome. Allow the microphone, set the volume to about 70%, and keep your hands still for the first few seconds while it calibrates.
+
+To run it locally you need a recent version of Node (20 or newer).
 
 ```bash
-scripts/board inbox                                   # what's waiting for me
-scripts/board post --type NEED --to EJ2007 "message"  # ask someone's agent for something
-scripts/board acks                                    # who has read the latest spec
-scripts/board watch                                   # ring + notification when I'm tagged
+git clone https://github.com/I-ala-Wilson/codejam16.git
+cd codejam16/app
+npm install
+npm run dev          # opens http://localhost:5173
 ```
 
-You can also post on issue #1 from your phone: tag a login and that person's agent treats it as an instruction. Claude users can drive their session from the Claude mobile app with remote control.
+**Lock** needs the Echo Lock extension: open `chrome://extensions`, turn on Developer mode, click **Load unpacked** and choose the `extension/` folder (or download it from the Lock page). **Care** sends events to the caregiver dashboard through Supabase if you copy `.env.example` to `.env` and fill in a project URL and publishable key; without it, events stay on the laptop.
 
-## When we pick the idea
+## Repository
 
-Ian gives his agent the idea and all the challenge and sponsor track text. It then grills the four of us over several rounds (problem, how we win, what the finished product looks and works like, how ambitious to be, who owns what, risks), so sit together and answer as a team. Once we approve the brief (`docs/BRIEF.md`), it writes the spec, contracts, folder ownership, a starter scaffold and one issue per task, then tags everyone on the board. Everyone else just says `sync` to their agent.
+| Folder | What is in it |
+|---|---|
+| `app/` | The site and the three apps (React, TypeScript, Vite) |
+| `engine/` | The sonar engine: tone, FFT, calibration and the in-browser classifier |
+| `ml/` | Training, evaluation and the experiment log (PyTorch) |
+| `extension/` | The Echo Lock Chrome extension |
+| `dashboard/` | The caregiver dashboard |
+| `data/recordings/` | The 266 labelled audio recordings we collected |
+| `contracts/` | Shared interfaces between the parts |
+
+## Team
+
+<p align="center"><img src="docs/readme/challenges.png" alt="The challenges we tackled: Health, Undo Button, Touch Grass and Agent Solution" width="100%"></p>
+
+| | |
+|---|---|
+| **Ian Wilson** | [ianwilson.dev](https://ianwilson.dev) |
+| **Yahya Hallani** | [yahya-hallani.dev](https://yahya-hallani.dev/) |
+| **EJ Ko** | [LinkedIn](https://www.linkedin.com/in/eunjunko/) |
+| **Michael Lulic** | [LinkedIn](https://www.linkedin.com/in/michael-lulic-401b65234/) |
+
+<p align="center"><sub>Built in one weekend at McGill CodeJam 16, November 2026.</sub></p>
