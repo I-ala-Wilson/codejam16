@@ -39,7 +39,10 @@
         "app/src/Lock.tsx",
         "app/src/lock/*",
         "app/src/Caregiver.tsx",
-        "app/src/App.tsx"
+        "app/src/App.tsx",
+        "extension/veil.js",
+        "extension/background.js",
+        "app/src/extension.ts"
       ],
       "machine": "Linux"
     },
