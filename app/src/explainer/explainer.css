@@ -33,4 +33,3 @@
 .ex__intro h2 { font: 400 34px/1.05 var(--pixel); margin: 10px 0 18px; color: var(--ink-strong); }
 .ex__intro hr { border: 0; border-top: 1px dotted var(--ink); width: 120px; margin: 0 0 22px; }
 .ex--embedded .ex__readout { left: 56px; }
-.ex--embedded 
