@@ -29,7 +29,7 @@ Ultrasound behaves differently on every laptop, so we tested each of ours. Telli
 Hand sensing with no camera on an ordinary laptop, shared by three apps. A team of four humans and five agents kept one spec in sync from start to finish.
 
 ## What we learned
-A speaker and a mic make a surprisingly capable sensor. Being honest about our numbers makes the project more convincing, not less: on people the model has never seen it gets about 45% of gestures right, and on our calibrated demo MacBook Pro it recognised 96% of gestures in 100 live trials. Habit is weaker: it caught 6 of 7 scratches in a live test but about 22% on unseen people.
+A speaker and a mic make a surprisingly capable sensor. Being honest about our numbers makes the project more convincing, not less: on people the model has never seen it gets about 45% of gestures right, and on our calibrated demo MacBook Pro it recognised 96% of gestures in 100 live trials. Habit is weaker: it caught 14 of 15 scratches in a live test but about 22% on unseen people.
 
 ## What's next for ECHØ
 Fix the PUSH/PULL confusion by retraining on more data, raise accuracy for new users, and grow Care's hand-sign vocabulary.

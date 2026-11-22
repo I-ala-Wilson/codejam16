@@ -36,7 +36,7 @@ Michael's phone on the caregiver dashboard, Habit mode on only for the Habit dem
 
 ## Cut from the long version (move to Q&A if asked)
 - 108,000 strokes a year in Canada and the 56.6% study figure (keep the "about half" line only).
-- The Health challenge quote, and "6 of 7 scratches caught live".
+- The Health challenge quote, and "14 of 15 scratches caught in a live test".
 - Snoozing Habit with a double tap (undo was already shown in Care).
 - Dataset size and the CNN details; agents assigning each other tasks.
 - Limits: quiet room needed, two devices interfere, right-hand bias, calibration environment, open/close varies by person.

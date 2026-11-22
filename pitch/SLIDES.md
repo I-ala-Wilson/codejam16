@@ -39,6 +39,6 @@ Pitch is 3-5 minutes, then Q&A (7 minutes total, judges come to our room). Spoke
 
 ## 6. How we built it, honest numbers, the team
 - 4 humans and 5 AI agents (three Claude Code, one QA, one Codex) on one GitHub issue board; git hooks enforced folder ownership, and every agent acknowledged each spec version.
-- **Numbers:** about 45% of gestures for a person the model never saw (5 people, 3 laptop models); 96% in 100 live trials on our calibrated demo MacBook Pro (one presenter); Habit caught 6 of 7 scratches live.
+- **Numbers:** about 45% of gestures for a person the model never saw (5 people, 3 laptop models); 96% in 100 live trials on our calibrated demo MacBook Pro (one presenter); Habit caught 14 of 15 scratches in a live test.
 - Team: Ian (lead, app, Chrome extension, integration), Yahya (sonar engine and ML model), EJ (UI, Habit, pitch, dataset), Michael (Supabase backend and caregiver dashboard).
 - Close: "Your laptop can hear your hands."
