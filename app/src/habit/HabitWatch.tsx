@@ -6,7 +6,7 @@ import { chime, ensureSonar } from '../sonar.ts'
 import { habitOn, logHabit, snooze, snoozedUntil } from './store.ts'
 import './habit.css'
 
-// Habit mode runs app-wide, like the lock guardian: when the sonar hears repetitive hand motion (scratching)
+// Habit mode runs on the Habit page: when the sonar hears repetitive hand motion (scratching)
 // it plays an alarm chime and shows a tiny corner note; the first nudge each hour also shows a gentle
 // bar along the bottom for 2 s. A double tap (UNDO) snoozes it for 10 minutes at any time; while snoozed, double taps
 // do nothing ('Resume now' on the Habit page is the only way to end a snooze early).
@@ -19,10 +19,9 @@ const UNDO_WINDOW_MS = 6000
 const TAP_PAIR_MS = 1500
 const INPUT_QUIET_MS = 2500
 const COOLDOWN_MS = 8000
-// Recording and test tabs: Habit stays silent there so its chime and nudge never land in a take (App.tsx keeps the
-// current page in location.hash).
-const QUIET_PAGES = new Set(['calib', 'dataset', 'habit', 'live', 'room', 'breath', 'record', 'gestures'])
-const onQuietPage = () => QUIET_PAGES.has(location.hash.slice(1))
+// Habit only listens while the Habit page itself is open (App.tsx keeps the current page in location.hash), so it never
+// fires on Home, the other demos or the recording tabs.
+const onHabitPage = () => location.hash.slice(1) === 'habit-app'
 const TOAST_MS = 3500
 const BAR_MS = 2000
 
@@ -41,9 +40,9 @@ export default function HabitWatch() {
   }
 
   useEffect(() => {
-    const start = () => { if (habitOn()) ensureSonar() }
-    start(); window.addEventListener('echo-habit', start)
-    return () => { window.removeEventListener('echo-habit', start); clearTimeout(hideNote.current); clearTimeout(hideBar.current) }
+    const start = () => { if (habitOn() && onHabitPage()) ensureSonar() }
+    start(); window.addEventListener('echo-habit', start); window.addEventListener('hashchange', start)
+    return () => { window.removeEventListener('echo-habit', start); window.removeEventListener('hashchange', start); clearTimeout(hideNote.current); clearTimeout(hideBar.current) }
   }, [])
 
   useEffect(() => {
@@ -54,7 +53,7 @@ export default function HabitWatch() {
   }, [])
 
   useEffect(() => engine.onGesture((g) => {
-    if (!habitOn() || onQuietPage()) return
+    if (!habitOn() || !onHabitPage()) return
     const t = Date.now()
     const pair = g.type === 'PUSH' && t - lastPush.current < TAP_PAIR_MS
     if (g.type === 'PUSH') lastPush.current = pair ? 0 : t

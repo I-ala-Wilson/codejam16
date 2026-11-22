@@ -77,8 +77,8 @@ export default function HabitPage() {
           {demo && <span className="on">demo data</span>}
         </div>
         <p className="lk__how">
-          Leave this on while you work. When the sonar hears scratching it alarms you and shows a small note in the
-          corner. Double tap toward the screen any time to snooze it for 10 minutes; press Resume now to end a snooze early.
+          Keep this page open while you work; Habit only listens here. When the sonar hears scratching it chimes and
+          shows a bar along the bottom. Double tap toward the screen any time to snooze it for 10 minutes; press Resume now to end a snooze early.
         </p>
         {failed && <p className="hb-warn">The sonar did not start. Allow the microphone and try again.</p>}
 
