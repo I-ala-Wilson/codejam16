@@ -5,6 +5,8 @@
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 ME="$(me_tag)"; LEAD="$(lead)"
+# Yahya has full permission for every file (Ian, Sat 21 Nov 20:17), like the lead with ALLOW_SHARED=1.
+[[ "$ME" == "Yahya-github" ]] && exit 0
 status=0
 for p in "$@"; do
   rel="$(relpath "$p")"

@@ -24,8 +24,8 @@ if echo "$files" | grep -qE '^(team/|docs/SPEC.md|contracts/)'; then
   "$ROOT/scripts/check" --quiet || { echo "BLOCKED: fix the consistency errors above before committing."; fail=1; }
 fi
 
-# 3. Ownership. The lead, and Yahya (full permission from Ian, Sat 21 Nov 20:13), can bypass with ALLOW_SHARED=1.
-if [[ "${ALLOW_SHARED:-}" == 1 && ( "$(me)" == "$(lead)" || "$(me)" == "Yahya-github" ) ]]; then
+# 3. Ownership. The lead can bypass with ALLOW_SHARED=1; Yahya never needs to (scripts/owns lets him own everything).
+if [[ "${ALLOW_SHARED:-}" == 1 && "$(me)" == "$(lead)" ]]; then
   :
 else
   # shellcheck disable=SC2086
