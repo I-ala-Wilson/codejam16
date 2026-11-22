@@ -6,7 +6,7 @@ import './pitch.css'
 // EJ's live test.
 const STATS = [
   { big: '15%', label: 'of Canadian children live with eczema (approx.)' },
-  { big: '6 of 7', label: 'scratches caught in a live test, with no camera and no wearable' },
+  { big: '93%', label: 'of scratches caught in a live test (14 of 15), with no camera and no wearable' },
 ]
 
 export default function HabitChapter({ go }: { go: (page: string) => void }) {
