@@ -10,7 +10,7 @@ const PANELS = [
     title: 'The model', big: '202 recordings', scene: model,
     alt: 'A scrolling spectrogram with gesture streaks feeds a small convolutional network that picks one of seven outputs: five gestures, Habit, or nothing.',
     caption: 'We recorded 202 sessions from five people, so every second of echo has an exact label. A small neural network learned the shape of each gesture in about three minutes, and it runs entirely in your browser.',
-    scene2: pipeline, alt2: 'Record, label, train, model, run: five people make 202 takes, cue beeps label them, three minutes on one GPU, a 32k-parameter model, running in the browser about twelve times a second.',
+    scene2: pipeline, alt2: 'Record, label, train, model, run: five people make 202 takes, cue beeps label them, dozens of training runs of about three minutes each, a 32k-parameter model, running in the browser about twelve times a second.',
     specs: [
       ['Input', '1 s of echo: 48 × 87 Doppler bins around 20 kHz'],
       ['Model', 'small CNN, 3 conv blocks, 7 outputs, 32k params, 128 KB'],

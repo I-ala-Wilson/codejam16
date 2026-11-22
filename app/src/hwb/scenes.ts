@@ -455,7 +455,7 @@ export const tradeoffs: Scene = {
 const STAGES = [
   { name: 'RECORD', note: '5 people · 202 takes' },
   { name: 'LABEL', note: 'cue = label' },
-  { name: 'TRAIN', note: '3 min · 1 GPU' },
+  { name: 'TRAIN', note: '3 min a run\ndozens of runs' },
   { name: 'MODEL', note: '32k params · 128 KB' },
   { name: 'RUN', note: 'in browser · 12/s' },
 ]
@@ -504,7 +504,7 @@ export const pipeline: Scene = {
     const a = activeStage(t)
     STAGES.forEach((s, i) => {
       if (i === a) tag(g, s.name, PX[i], 140, 18); else label(g, s.name, PX[i], 140, 18, 'center')
-      label(g, s.note, PX[i], 166, 14, 'center')
+      s.note.split('\n').forEach((line, k) => label(g, line, PX[i], 166 + k * 17, 14, 'center'))
     })
   },
 }
