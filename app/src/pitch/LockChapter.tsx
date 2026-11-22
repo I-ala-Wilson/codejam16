@@ -8,11 +8,11 @@ export default function LockChapter({ go }: { go: (page: string) => void }) {
   return (
     <section id="lock" className="pz pz--chapter" aria-labelledby="pz-lock">
       <div className="pz__tags"><span>Touch Grass</span><span>Undo</span></div>
-      <h2 id="pz-lock" className="pz__title">Lock: the site is simply down</h2>
+      <h2 id="pz-lock" className="pz__title">Lock: your favourite site is simply down</h2>
       <div className="pz__split">
         <div>
-          <p className="pz__line pz__line--lead">To the child, a blocked site looks like it is simply down, so they put the device away and go outside.</p>
-          <p className="pz__line">Parents unlock it with a private sequence of hand gestures. Only two faint dots show progress, so nobody watching learns the code.</p>
+          <p className="pz__line">To the child, a blocked site looks like it is simply down, so they put the device away and go outside.</p>
+          <p className="pz__line">Parents unlock it with a private sequence of hand gestures. Only four faint dots show progress, so nobody watching learns the code.</p>
           <button className="pz__btn" onClick={() => go('lock')}>Open live demo</button>
         </div>
         <div className="pz__frame pz__replay" onClick={replayLock} title="click to replay">

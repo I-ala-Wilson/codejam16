@@ -88,7 +88,9 @@
 }
 
 /* Why not a camera: borderless, flower-like tiles (fine dots, no rules) */
-.pz__cards--soft .pz__card { border-top: 0; padding-top: 0; }
+.pz__cards--soft .pz__card { border-top: 0; padding-top: 0; text-align: center; }
+.pz__cards--soft .pz__cardhead { justify-content: center; }
+.pz__cards--soft .pz__line { margin-left: auto; margin-right: auto; }
 .pz__cards--soft .pz__frame { margin: 8px 0 10px; }
 .pz__cards--soft .hwb__canvas { aspect-ratio: 2 / 1; }
 .pz__gestures li.pz__gestures-head { font-size: 19px; letter-spacing: .08em; text-transform: uppercase; border-bottom: 1px solid var(--ink); padding-bottom: 6px; }

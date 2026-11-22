@@ -4,19 +4,19 @@ import './pitch.css'
 const CHALLENGES = [
   {
     name: 'Health', apps: 'Care',
-    line: 'Hands-free help and pain calls for people who cannot reach a button, with no camera in bathrooms or hospital rooms.',
+    line: 'Hands-free calls for help and for pain, designed for patients who cannot reach a call button, with no camera in bathrooms or hospital rooms.',
   },
   {
     name: 'Undo Button', apps: 'Undo gesture · Lock',
-    line: 'A double tap in the air deletes the last sign anywhere in ECHØ, and Lock lets a parent undo a kid\'s bad screen habit.',
+    line: 'A double tap in the air reverses the last sign anywhere in ECHØ, and Lock allows a parent to undo a child\'s unhealthy screen habit.',
   },
   {
     name: 'Touch Grass', apps: 'Habit · Lock',
-    line: 'Habit nudges you off a screen habit. Lock makes blocked sites look unreachable, so the kid goes outside.',
+    line: 'Habit brings an unconscious habit to your attention as it happens, and Lock makes blocked sites appear unreachable so that the child steps away from the screen.',
   },
   {
     name: 'Agent Solution', apps: 'How we built it',
-    line: 'A 128 KB model that runs on the laptop\'s own CPU, in the browser: no server, no cloud cost. The explainer shows how it works.',
+    line: 'A 128 KB model runs on the laptop\'s own processor inside the browser, with no server and no cloud cost, and the explainer above shows how it works.',
   },
 ]
 

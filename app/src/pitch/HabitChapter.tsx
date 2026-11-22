@@ -13,7 +13,7 @@ export default function HabitChapter({ go }: { go: (page: string) => void }) {
   return (
     <section id="habit" className="pz pz--chapter" aria-labelledby="pz-habit">
       <div className="pz__tags"><span>Health</span><span>Undo</span></div>
-      <h2 id="pz-habit" className="pz__title">Habit: notice the scratch you do not notice</h2>
+      <h2 id="pz-habit" className="pz__title">Habit: notice the scratch you otherwise would not</h2>
       <div className="pz__split">
         <div>
           <div className="pz__stats pz__stats--2">

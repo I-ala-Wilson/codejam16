@@ -196,7 +196,7 @@ export default function Lock() {
 
         <details className="lk__setup" open={!status}>
           <summary>Extension setup</summary>
-          <p>Load <code>codejam16/extension</code> unpacked at chrome://extensions (Developer mode), then paste its ID here.</p>
+          <p>Lock needs the small Echo Lock extension for Chrome. <a href="/echo-lock.zip" download>Download it</a>, unzip it, open <code>chrome://extensions</code>, turn on Developer mode, click Load unpacked and choose the unzipped folder. Then press Connect.</p>
           <input value={extId} onChange={(e) => { const v = e.target.value.trim(); setExtId(v); localStorage.setItem('echo.extId', v) }} placeholder="extension ID" />
           <button className="lk__btn" onClick={refresh}>Connect</button>
         </details>

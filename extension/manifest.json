@@ -3,8 +3,23 @@
   "name": "Echo Lock",
   "version": "0.2.0",
   "description": "Secretly blocks chosen sites until the Echo sonar hears the hand-sign password.",
-  "permissions": ["storage", "scripting", "tabs", "declarativeNetRequest"],
-  "host_permissions": ["<all_urls>"],
-  "background": { "service_worker": "background.js" },
-  "externally_connectable": { "matches": ["http://localhost:*/*", "https://*.vercel.app/*"] }
+  "permissions": [
+    "storage",
+    "scripting",
+    "tabs",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:*/*",
+      "https://*.vercel.app/*"
+    ]
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuz34OvByo6l2CO+jQ3HZumX75RsQVWk10boXPAMpZD6cWEJOL/zy+KYPR3spHH6q1n77Dp2vFmX8AaafBAGuCY3LiiNn6IHcaLzfehCI8sZ5MlzLkvaY489WIgYNmWpSR0Wc6H//2M5ZBnHBR5cFtfzVSlz0C5mGr27PVKSPDDuwpzTn9tIYZnqjEJI9l8mDfZNbuMHNVv3ww2Re7bh+DKf40edtip+LSjNbTqvmltYreexHDurpphM+V049ktDUCttHLvrCDy8tASSRbh//tehfvD35ERvzueCLkoj4aOKe2LVtKOqaodAWfNKxt8xrwUWE1Es1TbmwkCO6bW0zrwIDAQAB"
 }

@@ -37,7 +37,9 @@
         "app/src/breath/*",
         "app/src/BreathRecord.tsx",
         "app/src/Lock.tsx",
-        "app/src/lock/*"
+        "app/src/lock/*",
+        "app/src/Caregiver.tsx",
+        "app/src/App.tsx"
       ],
       "machine": "Linux"
     },
@@ -67,7 +69,6 @@
         "backend/*",
         "dashboard/*",
         "app/src/Care.tsx",
-        "app/src/Caregiver.tsx",
         "app/src/care/*"
       ],
       "machine": "Dell Windows (WSL), Intel i5"

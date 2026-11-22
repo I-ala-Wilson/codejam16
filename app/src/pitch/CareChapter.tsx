@@ -21,7 +21,7 @@ export default function CareChapter({ go }: { go: (page: string) => void }) {
               <div key={s.big} className="pz__stat"><div className="pz__big">{s.big}</div><div className="pz__label">{s.label}</div></div>
             ))}
           </div>
-          <p className="pz__line">ECHØ has no lens and stores no audio. Only the event leaves the room.</p>
+          <p className="pz__line">ECHØ calls for help without a lens and without storing any audio. Only the request leaves the room.</p>
           <button className="pz__btn" onClick={() => go('care')}>Open live demo</button>
         </div>
         <div>
