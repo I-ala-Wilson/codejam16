@@ -123,10 +123,10 @@ npm run dev          # opens http://localhost:5173
 
 <table align="center">
   <tr>
-    <td align="center" width="25%"><a href="https://ianwilson.dev"><img src="https://github.com/I-ala-Wilson.png" width="96" alt="Ian Wilson"><br><b>Ian Wilson</b></a><br><sub>Lead · app, Lock extension, integration</sub><br><a href="https://ianwilson.dev">ianwilson.dev</a></td>
-    <td align="center" width="25%"><a href="https://yahya-hallani.dev/"><img src="https://github.com/Yahya-github.png" width="96" alt="Yahya Hallani"><br><b>Yahya Hallani</b></a><br><sub>Sonar engine and machine learning</sub><br><a href="https://yahya-hallani.dev/">yahya-hallani.dev</a></td>
-    <td align="center" width="25%"><a href="https://www.linkedin.com/in/eunjunko/"><img src="https://github.com/EJ2007.png" width="96" alt="EJ Ko"><br><b>EJ Ko</b></a><br><sub>Interface, Habit and pitch</sub><br><a href="https://www.linkedin.com/in/eunjunko/">LinkedIn</a></td>
-    <td align="center" width="25%"><a href="https://www.linkedin.com/in/michael-lulic-401b65234/"><img src="https://github.com/Miguel982.png" width="96" alt="Michael Lulic"><br><b>Michael Lulic</b></a><br><sub>Backend and caregiver dashboard</sub><br><a href="https://www.linkedin.com/in/michael-lulic-401b65234/">LinkedIn</a></td>
+    <td align="center" width="25%"><a href="https://ianwilson.dev"><img src="https://github.com/I-ala-Wilson.png" width="96" alt="Ian Wilson"><br><b>Ian Wilson</b></a><br><a href="https://ianwilson.dev">ianwilson.dev</a></td>
+    <td align="center" width="25%"><a href="https://yahya-hallani.dev/"><img src="https://github.com/Yahya-github.png" width="96" alt="Yahya Hallani"><br><b>Yahya Hallani</b></a><br><a href="https://yahya-hallani.dev/">yahya-hallani.dev</a></td>
+    <td align="center" width="25%"><a href="https://www.linkedin.com/in/eunjunko/"><img src="https://github.com/EJ2007.png" width="96" alt="EJ Ko"><br><b>EJ Ko</b></a><br><a href="https://www.linkedin.com/in/eunjunko/">LinkedIn</a></td>
+    <td align="center" width="25%"><a href="https://www.linkedin.com/in/michael-lulic-401b65234/"><img src="https://github.com/Miguel982.png" width="96" alt="Michael Lulic"><br><b>Michael Lulic</b></a><br><a href="https://www.linkedin.com/in/michael-lulic-401b65234/">LinkedIn</a></td>
   </tr>
 </table>
 
