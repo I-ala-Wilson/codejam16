@@ -14,7 +14,8 @@
 .pz__big { font-size: 76px; line-height: .9; color: var(--ink-strong); white-space: nowrap; }
 .pz__label { font-size: 23px; line-height: 1.25; margin-top: 16px; max-width: 32ch; }
 .pz__honest { display: grid; grid-template-columns: minmax(240px, 0.8fr) 2fr; gap: 48px; align-items: stretch; }
-.pz__honestright { border-left: 1px dotted var(--ink); padding-left: 48px; }
+.pz__honestright { border-left: 1px dotted var(--ink); padding-left: 48px; align-self: start; }
+.pz__honestright .hwb__canvas { margin-bottom: -8%; }
 .pz__honeststats { display: grid; gap: 44px; }
 .pz__honeststats .pz__label { margin-top: 10px; }
 .pz__honest .pz__stat { border-top: 0; padding-top: 0; }
