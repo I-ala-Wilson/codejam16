@@ -543,19 +543,13 @@ export const limits: Scene = {
         g.beginPath(); g.arc(px, y + 8, 8, Math.PI, 0); g.fill()
       }
     }
-    { // hands vary: the same sign drawn three ways
+    { // hands vary: two open hands doing the same sign, each at its own angle and rhythm
       const { x, y } = LIMITS[2]
-      for (let k = 0; k < 3; k++) {
-        g.lineWidth = 2
-        g.beginPath()
-        for (let i = 0; i <= 40; i++) {
-          const u = i / 40, xx = x - 36 + u * 72
-          const yy = y - 16 + k * 14 + Math.sin(u * Math.PI * (1 + k * 0.6) - t * (1.2 + k * 0.5)) * (4 + k * 2)
-          i ? g.lineTo(xx, yy) : g.moveTo(xx, yy)
-        }
-        g.stroke()
+      for (const [dx, base, sp, ph] of [[-22, -0.25, 1.6, 0], [22, 0.2, 2.3, 1.3]]) {
+        g.save(); g.translate(x + dx, y + 2); g.rotate(base + 0.22 * Math.sin(t * sp + ph))
+        hand(g, 0, 0, 0.62, 0)
+        g.restore()
       }
-      g.lineWidth = 2.4
     }
     { // echos clash: two laptops, waves crossing in the middle
       const { x, y } = LIMITS[3]
