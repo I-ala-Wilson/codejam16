@@ -531,11 +531,11 @@ export const limits: Scene = {
     g.fillStyle = gray(1); g.strokeStyle = gray(1); g.lineWidth = 2.4
     { // recalibrate often: a refresh arrow that keeps turning, over a laptop
       const { x, y } = LIMITS[0], T = y - 40
-      const cx = x, cy = T + 13, r = 11, a0 = t * 2.2, a1 = a0 + Math.PI * 1.55
+      const cx = x, cy = T + 11, r = 11, a0 = t * 2.2, a1 = a0 + Math.PI * 1.55
       g.beginPath(); g.arc(cx, cy, r, a0, a1); g.stroke()
       const hx = cx + r * Math.cos(a1), hy = cy + r * Math.sin(a1), tx = -Math.sin(a1), ty = Math.cos(a1), nx = Math.cos(a1), ny = Math.sin(a1)
       g.beginPath(); g.moveTo(hx + tx * 7, hy + ty * 7); g.lineTo(hx + nx * 6 - tx * 2, hy + ny * 6 - ty * 2); g.lineTo(hx - nx * 6 - tx * 2, hy - ny * 6 - ty * 2); g.closePath(); g.fill()
-      miniLaptop(g, x, T + 50)
+      miniLaptop(g, x, T + 57)
     }
     { // small dataset: five people, one stepping forward at a time
       const { x, y } = LIMITS[1], T = y - 40
